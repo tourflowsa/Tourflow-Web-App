@@ -28,13 +28,16 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const { bucket, path, expiresIn } = body;
-    if (!path) {
+    const { bucket, path: rawPath, expiresIn } = body;
+    if (!rawPath) {
       return new Response(
         JSON.stringify({ error: 'Missing required parameter: path' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // Sanitize path
+    const path = rawPath.replace(/^\/+/, '').replace(/\/+/g, '/');
 
     // 4. Initialize Supabase Clients
     // Client for Auth Context (uses the Authorization header from the request)

@@ -118,8 +118,9 @@ export const Login: React.FC = () => {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-brand-charcoal/60">
-          Don't have an account? <Link to="/signup" className="text-brand-teal font-bold hover:underline">Sign Up</Link>
+        <div className="mt-6 text-center text-sm text-brand-charcoal/60 space-y-2">
+          <div>Don't have an account? <Link to="/signup" className="text-brand-teal font-bold hover:underline">Sign Up</Link></div>
+          <div>Need help? <Link to="/contact" className="text-brand-teal font-bold hover:underline">Contact support</Link></div>
         </div>
 
         <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-center gap-4 text-xs text-brand-charcoal/50">

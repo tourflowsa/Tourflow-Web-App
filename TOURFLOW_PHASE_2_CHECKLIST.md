@@ -155,6 +155,22 @@
 - [ ] Phase 2F: Analytics and Scale
 - [ ] Phase 2G: Future B2C Listing Foundation
 
+## Phase 2L.2 Storage Security Audit: Complete
+Storage policy SQL: Deferred until staging/shadow project testing
+
+Confirmed:
+- [x] Sensitive documents are in private buckets.
+- [x] Admin preview works through Edge Function.
+- [x] Provider preview still works.
+- [x] Public images are separated from private documents.
+- [x] Storage RLS hardening has a plan, but should not be applied directly to the current working project.
+
+## Backlog: Before public launch
+- [ ] Create a staging Supabase project.
+- [ ] Apply storage RLS policies there first.
+- [ ] Test document upload, preview, replace, delete, admin review, profile images, and vehicle images.
+- [ ] Only then apply policies to production.
+
 ## Production Setup Notes (Post-Phase 2J)
 - [ ] Supabase Site URL must match production domain.
 - [ ] Supabase Redirect URLs must include production `/#/reset-password` route.

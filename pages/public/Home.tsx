@@ -33,9 +33,6 @@ export function Home() {
         
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="max-w-3xl">
-            <span className="inline-block py-1 px-3 rounded-full bg-[#00abc6]/20 text-[#00abc6] text-xs font-bold tracking-widest uppercase mb-6">
-              PREMIUM OPERATIONS INFRASTRUCTURE
-            </span>
             <h1 className="text-5xl md:text-7xl font-extrabold text-white leading-tight mb-8">
               Run Your Tourism Operations with <span className="text-[#00abc6]">Verified Supply</span> and Full Control
             </h1>

@@ -141,7 +141,7 @@ export const uploadDocumentFile = async (
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const fileExt = file.name.split('.').pop();
   const safeDocType = toDbEnum(docType);
-  const path = `${role}/${userId}/${safeDocType}/${timestamp}.${fileExt}`;
+  const path = `${role}/${userId}/${safeDocType}/${timestamp}.${fileExt}`.replace(/\/+/g, '/');
 
   const { error } = await supabase.storage
     .from(BUCKET_NAME)
@@ -464,9 +464,12 @@ export const getAllDocumentsAdmin = async () => {
 export const getDocumentSignedUrl = async (path: string) => {
   if (!path) throw new Error("File path is missing");
   
+  // Sanitize path: remove leading slashes and prevent double slashes
+  const cleanPath = path.replace(/^\/+/, '').replace(/\/+/g, '/');
+
   const { data, error } = await supabase.storage
     .from(BUCKET_NAME)
-    .createSignedUrl(path, 3600); 
+    .createSignedUrl(cleanPath, 3600); 
 
   if (error) throw error;
   return data.signedUrl;

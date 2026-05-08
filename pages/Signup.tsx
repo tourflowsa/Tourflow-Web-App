@@ -156,6 +156,7 @@ export const Signup: React.FC = () => {
             </button>
             <div className="mt-4 text-center text-sm text-brand-charcoal/60">
               Already have an account? <Link to="/login" className="text-brand-teal font-bold hover:underline">Sign In</Link>
+              <div className="mt-2">Need help? <Link to="/contact" className="text-brand-teal font-bold hover:underline">Contact support</Link></div>
             </div>
           </div>
         )}
@@ -199,6 +200,9 @@ export const Signup: React.FC = () => {
               >
                 {loading ? <Loader2 className="animate-spin" size={20} /> : 'Complete Registration'}
               </button>
+             <div className="mt-4 text-center text-sm text-brand-charcoal/60">
+                Need help? <Link to="/contact" className="text-brand-teal font-bold hover:underline">Contact support</Link>
+             </div>
           </form>
         )}
       </div>

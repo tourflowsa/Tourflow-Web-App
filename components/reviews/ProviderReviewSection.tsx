@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
-import { Star, MessageSquare, Calendar, Tag } from 'lucide-react';
+import { Star, MessageSquare, Calendar, Tag, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Review, RatingSummary, getProviderReviews, getProviderRatingSummary } from '../../lib/reviewService';
 import { formatDate } from '../../lib/formatUtils';
 import { supabase } from '../../lib/supabase';
@@ -132,9 +133,19 @@ export const ProviderReviewSection: React.FC<ProviderReviewSectionProps> = ({ pr
                 <p className="text-xs text-gray-500 italic font-medium">
                   Showing latest 3 of {reviews.length} reviews.
                 </p>
-                <div className="px-4 py-1.5 bg-white border border-gray-200 rounded-full text-[10px] font-bold text-gray-400 uppercase tracking-widest cursor-not-allowed">
-                  Full review history page coming soon
-                </div>
+                {providerId ? (
+                  <Link 
+                    to={`/reviews/provider/${providerId}`}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full text-[10px] font-bold text-brand-teal hover:text-brand-teal/80 hover:border-brand-teal/20 transition-all uppercase tracking-widest"
+                  >
+                    View all reviews
+                    <ArrowRight size={12} />
+                  </Link>
+                ) : (
+                  <div className="px-4 py-1.5 bg-white border border-gray-200 rounded-full text-[10px] font-bold text-gray-400 uppercase tracking-widest cursor-not-allowed">
+                    Full review history unavailable
+                  </div>
+                )}
               </div>
             )}
           </>

@@ -53,6 +53,7 @@ import { DocumentsChecklist } from './pages/shared/DocumentsChecklist';
 import { FleetList } from './pages/operator/FleetList';
 import { VehicleFormPage } from './pages/operator/VehicleFormPage';
 import { VehicleDetailPage } from './pages/operator/VehicleDetailPage';
+import { ProviderReviewsPage } from './pages/operator/ProviderReviewsPage';
 import { OperatorPayoutsPage } from './pages/operator/PayoutsPage';
 import { FinancialDashboard } from './pages/operator/FinancialDashboard';
 import { PayoutDetail } from './pages/operator/PayoutDetail';
@@ -228,6 +229,7 @@ export default function App() {
           <Route path="/operator/directory/:id" element={<ProtectedRoute allowedRoles={['operator']}><DashboardLayout><ProviderProfilePage /></DashboardLayout></ProtectedRoute>} />
           <Route path="/operator/directory/provider/:id" element={<ProtectedRoute allowedRoles={['operator']}><DashboardLayout><ProviderProfilePage /></DashboardLayout></ProtectedRoute>} />
           <Route path="/operator/providers/:id" element={<ProtectedRoute allowedRoles={['operator']}><DashboardLayout><ProviderProfilePage /></DashboardLayout></ProtectedRoute>} />
+          <Route path="/reviews/provider/:id" element={<ProtectedRoute allowedRoles={['admin', 'operator', 'driver', 'guide', 'vehicle_owner']}><DashboardLayout><ProviderReviewsPage /></DashboardLayout></ProtectedRoute>} />
           <Route path="/operator/documents" element={<ProtectedRoute allowedRoles={['operator']}><DashboardLayout><DocumentsChecklist /></DashboardLayout></ProtectedRoute>} />
           <Route path="/operator/financials" element={<ProtectedRoute allowedRoles={['operator']}><DashboardLayout><FinancialDashboard /></DashboardLayout></ProtectedRoute>} />
           <Route path="/operator/payouts" element={<ProtectedRoute allowedRoles={['operator']}><DashboardLayout><OperatorPayoutsPage /></DashboardLayout></ProtectedRoute>} />

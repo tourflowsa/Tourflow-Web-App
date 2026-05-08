@@ -592,10 +592,19 @@ export const listOperatorPayouts = async (operatorId: string, filters?: { status
     query = query.is('operator_archived_at', null);
   }
   if (filters?.status) {
+    const validStatuses = ['pending', 'approved', 'paid', 'cancelled'];
     if (Array.isArray(filters.status)) {
-      query = query.in('status', filters.status.map(s => s.toLowerCase()));
+      const cleanStatuses = filters.status
+        .map(s => s.toLowerCase())
+        .filter(s => validStatuses.includes(s));
+      if (cleanStatuses.length > 0) {
+        query = query.in('status', cleanStatuses);
+      }
     } else if (filters.status !== 'All') {
-      query = query.eq('status', filters.status.toLowerCase());
+      const s = filters.status.toLowerCase();
+      if (validStatuses.includes(s)) {
+        query = query.eq('status', s);
+      }
     }
   }
   if (filters?.startDate) query = query.gte('created_at', filters.startDate);

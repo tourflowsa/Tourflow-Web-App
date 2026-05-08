@@ -242,6 +242,9 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           <LogOut size={16} />
           Sign Out
         </button>
+        <div className="px-4 py-2">
+          <Link to="/contact" className="text-gray-400 hover:text-brand-teal text-xs font-bold transition-colors">Support / Need help?</Link>
+        </div>
       </div>
     </>
   );
