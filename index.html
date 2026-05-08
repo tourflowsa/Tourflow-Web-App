@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TourFlow B2B</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Nunito:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    >
+
+    <!-- Tailwind CSS (dev only, but fine for now) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                teal: '#00abc6',
+                charcoal: '#363a37',
+                coral: '#ff7055',
+                aqua: '#84c9c0',
+                gold: '#f1c36c',
+                white: '#fafbfb',
+              }
+            },
+            fontFamily: {
+              sans: ['Nunito', 'sans-serif'],
+              serif: ['Merriweather', 'serif'],
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.95.2",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "jspdf": "https://esm.sh/jspdf@^4.1.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0"
+  }
+}
+</script>
+</head>
+
+  <body class="bg-brand-white text-brand-charcoal antialiased">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

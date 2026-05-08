@@ -1,0 +1,169 @@
+
+--- notifications ---
+-- RLS Policies
+CREATE POLICY "Users can view their own notifications"
+    ON public.notifications FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own notifications"
+    ON public.notifications FOR UPDATE
+    USING (auth.uid() = user_id)
+
+--- payout_ledger ---
+CREATE POLICY "Admins have full access to payout_ledger"
+ON public.payout_ledger
+FOR ALL
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  )
+);
+
+CREATE POLICY "Providers can view their own payout rows"
+ON public.payout_ledger
+FOR SELECT
+TO authenticated
+USING (provider_id = auth.uid());
+
+CREATE POLICY "Providers can update their own payout rows for withdrawal"
+ON public.payout_ledger
+FOR UPDATE
+TO authenticated
+USING (provider_id = auth.uid())
+WITH CHECK (provider_id = auth.uid());
+
+CREATE POLICY "Operators can view payouts for their bookings"
+ON public.payout_ledger
+FOR SELECT
+TO authenticated
+USING (operator_id = auth.uid());
+
+CREATE POLICY "Operators can update payouts for their bookings"
+ON public.payout_ledger
+FOR UPDATE
+TO authenticated
+USING (operator_id = auth.uid())
+WITH CHECK (operator_id = auth.uid())
+
+--- payout_batches ---
+-- Policies for payout_batches
+CREATE POLICY "Admins can do everything on payout_batches"
+  ON payout_batches
+  FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.role = 'admin'
+    )
+  );
+
+CREATE POLICY "Operators can view their own batches"
+  ON payout_batches
+  FOR SELECT
+  TO authenticated
+  USING (
+    operator_id = auth.uid()
+  )
+
+--- operator_bank_details ---
+-- Policies
+CREATE POLICY "Operators can manage their own bank details"
+  ON operator_bank_details
+  FOR ALL
+  TO authenticated
+  USING (operator_id = auth.uid())
+  WITH CHECK (operator_id = auth.uid());
+
+CREATE POLICY "Admins can view all operator bank details"
+  ON operator_bank_details
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.role = 'admin'
+    )
+  );
+
+CREATE POLICY "Operators can manage their own bank details"
+  ON operator_bank_details
+  FOR ALL
+  TO authenticated
+  USING (operator_id = auth.uid())
+  WITH CHECK (operator_id = auth.uid());
+
+CREATE POLICY "Admins can view all operator bank details"
+  ON operator_bank_details
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.role = 'admin'
+    )
+  )
+
+--- system_audit_log ---
+-- Allow authenticated users to insert audit logs (logging is usually allowed for all users)
+CREATE POLICY "Anyone can insert audit logs"
+ON public.system_audit_log FOR INSERT
+TO authenticated
+WITH CHECK (true);
+
+-- Allow operators to read audit logs where they are the actor or it's a booking they own
+CREATE POLICY "Operators can read audit logs for their bookings"
+ON public.system_audit_log FOR SELECT
+TO authenticated
+USING (
+    actor_id = auth.uid() OR 
+    (entity_type = 'booking' AND EXISTS (
+        SELECT 1 FROM public.bookings b 
+        WHERE b.id = entity_id AND b.operator_id = auth.uid()
+    ))
+);
+
+-- Allow admins full read access
+CREATE POLICY "Admins can read all audit logs"
+ON public.system_audit_log FOR SELECT
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = auth.uid() AND role = 'admin'
+    )
+);
+
+CREATE POLICY "Authenticated users can insert own audit logs"
+ON public.system_audit_log FOR INSERT
+TO authenticated
+WITH CHECK (actor_id = auth.uid())
+
+--- reviews ---
+-- Policies
+CREATE POLICY "Operators can insert reviews" 
+ON public.reviews FOR INSERT 
+WITH CHECK (
+    auth.uid() = operator_id AND 
+    EXISTS (
+        SELECT 1 FROM public.bookings 
+        WHERE id = booking_id AND operator_id = auth.uid() AND status = 'completed'
+    )
+);
+
+CREATE POLICY "Providers can read own reviews" 
+ON public.reviews FOR SELECT 
+USING (auth.uid() = provider_id);
+
+CREATE POLICY "Operators can read own reviews" 
+ON public.reviews FOR SELECT 
+USING (auth.uid() = operator_id);
+
+CREATE POLICY "Admins can read all reviews"
+ON public.reviews FOR SELECT
+USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))

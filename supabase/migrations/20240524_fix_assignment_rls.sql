@@ -1,0 +1,3 @@
+-- Migration file was corrupted. 
+-- Please verify assignment RLS policies directly in the Supabase Dashboard.
+-- This file is kept as a placeholder to prevent build/versioning issues.

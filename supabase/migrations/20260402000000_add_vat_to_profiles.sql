@@ -1,0 +1,4 @@
+-- Add VAT configuration to profiles table
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS vat_registered BOOLEAN DEFAULT FALSE;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS vat_number TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS vat_rate NUMERIC DEFAULT 15;
