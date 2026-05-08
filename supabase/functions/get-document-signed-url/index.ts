@@ -5,20 +5,15 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 declare const Deno: any;
 
 Deno.serve(async (req: Request) => {
-  // 1. CORS Setup - Handle Origin Reflection for Credentials support
-  const origin = req.headers.get('Origin') || '*'
   const corsHeaders = {
-    'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Credentials': 'true',
-    'Vary': 'Origin',
-    'Content-Type': 'application/json'
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
   }
 
   // 2. Handle Preflight OPTIONS request immediately
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { status: 200, headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
@@ -29,15 +24,15 @@ Deno.serve(async (req: Request) => {
     } catch (e) {
       return new Response(
         JSON.stringify({ error: 'Invalid JSON body' }),
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const { document_id } = body;
-    if (!document_id) {
+    const { bucket, path, expiresIn } = body;
+    if (!path) {
       return new Response(
-        JSON.stringify({ error: 'Missing required parameter: document_id' }),
-        { status: 400, headers: corsHeaders }
+        JSON.stringify({ error: 'Missing required parameter: path' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -47,7 +42,7 @@ Deno.serve(async (req: Request) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: 'Missing Authorization header' }),
-        { status: 401, headers: corsHeaders }
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -73,7 +68,7 @@ Deno.serve(async (req: Request) => {
     if (userError || !user) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized', details: userError?.message }),
-        { status: 401, headers: corsHeaders }
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -87,50 +82,35 @@ Deno.serve(async (req: Request) => {
     if (profileError || !profile || profile.role !== 'admin') {
       return new Response(
         JSON.stringify({ error: 'Forbidden: Admin access required' }),
-        { status: 403, headers: corsHeaders }
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // 7. Get Document Details to find the path
-    const { data: doc, error: docError } = await supabaseAdmin
-      .from('documents')
-      .select('file_path')
-      .eq('id', document_id)
-      .single()
-
-    if (docError || !doc) {
-      return new Response(
-        JSON.stringify({ error: 'Document not found' }),
-        { status: 404, headers: corsHeaders }
-      )
-    }
-
-    // 8. Determine Bucket and Generate Signed URL
-    const path = doc.file_path;
-    let bucket = 'provider-documents'; // Default bucket
+    // 7. Determine Bucket and Generate Signed URL
+    let targetBucket = bucket || 'provider-documents'; // Default bucket
     
     // Heuristic: Check if path belongs to the legacy/compliance bucket
     // If it doesn't start with a standard role folder, check compliance-docs
     if (!path.startsWith('operator/') && !path.startsWith('guide/') && !path.startsWith('driver/') && !path.startsWith('vehicle_owner/')) {
        // Also check if the path looks like 'userid/docname' which is typical for compliance-docs
        if (path.includes('/') && path.split('/')[0].length > 20) { // simple uuid check length
-          bucket = 'compliance-docs'; 
+          targetBucket = 'compliance-docs'; 
        }
     }
 
     // Attempt generation
     let result = await supabaseAdmin
       .storage
-      .from(bucket)
-      .createSignedUrl(path, 300) // 5 minutes expiry
+      .from(targetBucket)
+      .createSignedUrl(path, expiresIn || 300) // Default 5 minutes expiry
 
     // Fallback: If failed (likely file not found in that bucket), try the other bucket
     if (result.error) {
-       const altBucket = bucket === 'provider-documents' ? 'compliance-docs' : 'provider-documents';
+       const altBucket = targetBucket === 'provider-documents' ? 'compliance-docs' : 'provider-documents';
        const altResult = await supabaseAdmin
         .storage
         .from(altBucket)
-        .createSignedUrl(path, 300)
+        .createSignedUrl(path, expiresIn || 300)
        
        // If the fallback succeeded, use it
        if (!altResult.error) {
@@ -142,14 +122,14 @@ Deno.serve(async (req: Request) => {
       console.error('Storage Error:', result.error);
       return new Response(
         JSON.stringify({ error: `Storage Error: ${result.error.message}` }),
-        { status: 404, headers: corsHeaders }
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     // 9. Return Success
     return new Response(
       JSON.stringify({ signedUrl: result.data.signedUrl }),
-      { status: 200, headers: corsHeaders }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error: any) {
@@ -157,7 +137,7 @@ Deno.serve(async (req: Request) => {
     console.error('Edge Function Unexpected Error:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Internal Server Error' }),
-      { status: 500, headers: corsHeaders }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })

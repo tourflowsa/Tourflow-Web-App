@@ -112,28 +112,22 @@ export const DocumentReviews: React.FC = () => {
   };
 
   const handlePreview = async (docId: string, filePath: string) => {
+    console.log('Document preview request:', { bucket: 'provider-documents', path: filePath }); // Temporary QA console log
     if (!filePath) {
-      setMessage({ type: 'error', text: "Error: File path is missing for this record." });
+      setMessage({ type: 'error', text: "Document file path is missing. Please re-upload the document." });
       return;
     }
 
     setPreviewingId(docId);
     setMessage(null);
     try {
-      let { data, error } = await supabase.storage
-        .from('provider-documents')
-        .createSignedUrl(filePath, 60);
-
-      if (error || !data?.signedUrl) {
-         // Fallback
-         const legacy = await supabase.storage
-           .from('compliance-docs')
-           .createSignedUrl(filePath, 60);
-         if (legacy.data?.signedUrl) {
-           data = legacy.data;
-           error = null;
-         }
-      }
+      const { data, error } = await supabase.functions.invoke('get-document-signed-url', {
+        body: { 
+          bucket: 'provider-documents',
+          path: filePath,
+          expiresIn: 3600
+        }
+      });
 
       if (error) throw error;
       if (!data?.signedUrl) throw new Error("Could not generate URL from any bucket.");
@@ -141,7 +135,7 @@ export const DocumentReviews: React.FC = () => {
       window.open(data.signedUrl, '_blank');
     } catch (err: any) {
       console.error(err);
-      setMessage({ type: 'error', text: "Preview Failed: " + (err.message || "File not found") });
+      setMessage({ type: 'error', text: "Could not open this document. Please try again." });
     } finally {
       setPreviewingId(null);
     }
