@@ -321,7 +321,7 @@ export const GuideDashboard: React.FC = () => {
                     <div className="flex-1 cursor-pointer" onClick={() => navigate(`/guide/assignments/${a.id}`)}>
                       <div className="flex items-center gap-3 mb-2">
                         <span className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider ${
-                          a.status === 'accepted' ? 'bg-green-100 text-green-700 border border-green-200' :
+                          a.status === 'accepted' || a.status === 'completed' ? 'bg-green-100 text-green-700 border border-green-200' :
                           a.status === 'pending' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
                           'bg-red-100 text-red-700 border border-red-200'
                         }`}>

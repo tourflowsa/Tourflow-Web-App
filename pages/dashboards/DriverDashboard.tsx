@@ -350,8 +350,8 @@ export const DriverDashboard: React.FC = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <span className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider ${
-                          a.status === 'accepted' ? 'bg-green-100 text-green-700 border border-green-200' :
-                          a.status === 'rejected' ? 'bg-red-100 text-red-700 border border-red-200' :
+                          a.status === 'accepted' || a.status === 'completed' ? 'bg-green-100 text-green-700 border border-green-200' :
+                          a.status === 'rejected' || a.status === 'cancelled' ? 'bg-red-100 text-red-700 border border-red-200' :
                           'bg-amber-100 text-amber-700 border border-amber-200'
                         }`}>
                           {a.status === 'pending' ? 'Pending Acceptance' : a.status === 'rejected' ? 'Declined' : a.status}

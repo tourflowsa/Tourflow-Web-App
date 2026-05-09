@@ -38,14 +38,14 @@ const getPayoutStatusBadgeClass = (status: string) => {
 };
 
 const getStatusBadgeClass = (status: string, bookingStatus?: string) => {
-  if (bookingStatus === 'completed') return 'bg-gray-100 text-gray-700';
-  if (bookingStatus === 'cancelled') return 'bg-red-100 text-red-700';
+  if (bookingStatus === 'completed' || status === 'completed') return 'bg-green-100 text-green-700 border border-green-200';
+  if (bookingStatus === 'cancelled' || status === 'cancelled') return 'bg-red-100 text-red-700 border border-red-200';
 
   switch (status) {
-    case 'accepted': return 'bg-green-100 text-green-700';
-    case 'rejected': return 'bg-red-100 text-red-700';
-    case 'pending': return 'bg-amber-100 text-amber-700';
-    default: return 'bg-gray-100 text-gray-700';
+    case 'accepted': return 'bg-green-100 text-green-700 border border-green-200';
+    case 'rejected': return 'bg-red-100 text-red-700 border border-red-200';
+    case 'pending': return 'bg-amber-100 text-amber-700 border border-amber-200';
+    default: return 'bg-gray-100 text-gray-700 border border-gray-200';
   }
 };
 

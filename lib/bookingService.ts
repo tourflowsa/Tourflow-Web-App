@@ -744,43 +744,12 @@ export async function completeBooking(bookingId: string) {
   return data;
 }
 
-export async function cancelBooking(bookingId: string) {
+export async function cancelBooking(bookingId: string, reason?: string) {
   const { data, error } = await supabase.rpc('rpc_cancel_booking', {
     p_booking_id: bookingId,
+    p_reason: reason || null
   });
   if (error) throw error;
-
-  // Notify assigned resources
-  try {
-    const { data: booking } = await supabase
-      .from('bookings')
-      .select('operator_id, booking_reference')
-      .eq('id', bookingId)
-      .single();
-
-    if (booking) {
-      const { data: assignments } = await supabase
-        .from('booking_assignments')
-        .select('resource_id')
-        .eq('booking_id', bookingId)
-        .in('status', ['accepted', 'pending']);
-
-      if (assignments && assignments.length > 0) {
-        for (const a of assignments) {
-          createNotification({
-            user_id: a.resource_id,
-            type: 'BOOKING_CANCELLED',
-            title: 'Booking Cancelled',
-            message: `Booking ${booking.booking_reference} has been cancelled by the operator.`,
-            link: '/dashboard'
-          }).catch(err => console.error('Failed to notify resource of cancellation:', err));
-        }
-      }
-    }
-  } catch (notifyErr) {
-    console.error('Error during cancellation notification:', notifyErr);
-  }
-
   return data;
 }
 

@@ -256,13 +256,11 @@ export const AssignmentDetail: React.FC = () => {
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Assignment Status</span>
             <div
               className={`mt-1 inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-bold uppercase ${
-                getDisplayStatus(assignment) === 'accepted'
-                  ? 'bg-green-100 text-green-700'
-                  : getDisplayStatus(assignment) === 'rejected'
-                  ? 'bg-red-100 text-red-700'
-                  : getDisplayStatus(assignment) === 'cancelled'
-                  ? 'bg-amber-100 text-amber-700'
-                  : 'bg-amber-100 text-amber-700'
+                getDisplayStatus(assignment) === 'accepted' || getDisplayStatus(assignment) === 'completed'
+                  ? 'bg-green-100 text-green-700 border border-green-200'
+                  : getDisplayStatus(assignment) === 'rejected' || getDisplayStatus(assignment) === 'cancelled'
+                  ? 'bg-red-100 text-red-700 border border-red-200'
+                  : 'bg-amber-100 text-amber-700 border border-amber-200'
               }`}
             >
               {getDisplayStatus(assignment) === 'accepted' ? <CheckCircle2 size={16} /> : null}

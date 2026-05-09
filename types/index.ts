@@ -179,7 +179,7 @@ export interface BookingAssignment {
   booking_id: string;
   resource_id: string;
   resource_type: 'driver' | 'guide' | 'vehicle';
-  status: 'pending' | 'accepted' | 'rejected' | 'completed';
+  status: 'pending' | 'accepted' | 'rejected' | 'completed' | 'cancelled';
   updated_at: string;
   
   // Snapshot fields
