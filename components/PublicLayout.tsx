@@ -12,7 +12,7 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Link to="/" className="flex items-center">
-                <img src="/tourflow-logo.png" alt="TourFlow" className="h-10 w-auto object-contain" />
+                <img src="/tourflow-logo.png" alt="TourFlow" className="h-10 w-auto" />
               </Link>
             </div>
             <nav className="hidden md:flex space-x-8">
@@ -41,7 +41,7 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center mb-4">
-              <img src="/tourflow-logo-reversed.png" alt="TourFlow" className="h-10 w-auto object-contain" />
+              <img src="/tourflow-logo-reversed.png" alt="TourFlow" className="h-10 w-auto" />
             </div>
             <p className="text-gray-400 text-sm">
               The B2B operational platform connecting tour operators, guides, drivers, and vehicle owners.

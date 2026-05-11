@@ -101,7 +101,7 @@ export interface Tour {
   updated_at: string;
 }
 
-export type BookingStatus = 'draft' | 'pending' | 'confirmed' | 'cancelled' | 'completed';
+export type BookingStatus = 'draft' | 'pending' | 'confirmed' | 'assigned' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
 
 export type PaymentStatus = 'payment_pending' | 'funds_received' | 'funds_held' | 'payout_ready' | 'payout_completed';
 
@@ -172,6 +172,11 @@ export interface Booking {
   
   // Joins
   tours?: Pick<Tour, 'title' | 'id' | 'region'>;
+  vehicles?: {
+    make: string;
+    model: string;
+    license_plate: string;
+  } | null;
 }
 
 export interface BookingAssignment {
@@ -179,13 +184,21 @@ export interface BookingAssignment {
   booking_id: string;
   resource_id: string;
   resource_type: 'driver' | 'guide' | 'vehicle';
-  status: 'pending' | 'accepted' | 'rejected' | 'completed' | 'cancelled';
+  status: 'pending' | 'accepted' | 'rejected' | 'completed' | 'cancelled' | 'no_show';
   updated_at: string;
   
   // Snapshot fields
   rate_amount?: number | null;
   rate_type?: 'day' | 'hour' | null;
   rate_overridden?: boolean;
+
+  // Reporting/Incident fields
+  incident_reason?: string | null;
+  incident_reported_at?: string | null;
+  incident_reported_by?: string | null;
+  no_show_reason?: string | null;
+  no_show_reported_at?: string | null;
+  no_show_reported_by?: string | null;
 
   // Joins
   bookings?: Booking;

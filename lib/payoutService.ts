@@ -2466,20 +2466,24 @@ export const raisePayoutDispute = async (payload: {
     notes: payload.reason
   });
 
-  await logAuditEvent({
-    action: 'dispute_created',
-    entityType: 'payout_disputes',
-    entityId: dispute.id,
-    metadata: {
-      payout_id: payload.payout_id,
-      booking_id: payload.booking_id,
-      provider_id: payload.provider_id,
-      operator_id: payload.operator_id,
-      amount: existingPayout?.amount_net || 0,
-      reason: payload.reason,
-      payout_reference: existingPayout?.payout_reference || payload.payout_id
-    }
-  });
+  try {
+    await logAuditEvent({
+      action: 'dispute_created',
+      entityType: 'payout_disputes',
+      entityId: dispute.id,
+      metadata: {
+        payout_id: payload.payout_id,
+        booking_id: payload.booking_id,
+        provider_id: payload.provider_id,
+        operator_id: payload.operator_id,
+        amount: existingPayout?.amount_net || 0,
+        reason: payload.reason,
+        payout_reference: existingPayout?.payout_reference || payload.payout_id
+      }
+    });
+  } catch (auditErr) {
+    console.error('[raisePayoutDispute] Audit logging failed:', auditErr);
+  }
 
   // 4. Trigger Notifications
   // Notify Admin

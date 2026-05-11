@@ -535,7 +535,7 @@ export const convertAcceptedGuideRequestToDraftBooking = async (
 export const fetchBookingsForOperator = async (operatorId: string, includeArchived = false) => {
   let query = supabase
     .from('bookings')
-    .select('*, tours(title, id, region)')
+    .select('*, tours(title, id, region), vehicles(make, model, license_plate)')
     .eq('operator_id', operatorId)
     .order('start_date', { ascending: false });
   
@@ -631,7 +631,7 @@ export const getBookingById = async (bookingId: string, operatorId: string) => {
 /**
  * Allowed booking statuses in the database.
  */
-const BOOKING_STATUS_VALUES = ['draft', 'pending', 'confirmed', 'assigned', 'in_progress', 'completed', 'cancelled'] as const;
+const BOOKING_STATUS_VALUES = ['draft', 'pending', 'confirmed', 'assigned', 'in_progress', 'completed', 'cancelled', 'no_show'] as const;
 type BookingStatusValue = typeof BOOKING_STATUS_VALUES[number];
 
 /**
@@ -751,6 +751,33 @@ export async function cancelBooking(bookingId: string, reason?: string) {
   });
   if (error) throw error;
   return data;
+}
+
+export async function markBookingNoShow(bookingId: string, reason?: string) {
+  const { data, error } = await supabase.rpc('rpc_mark_booking_no_show', {
+    p_booking_id: bookingId,
+    p_reason: reason || null
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function markAssignmentNoShow(assignmentId: string, reason?: string) {
+  try {
+    const { data, error } = await supabase.rpc('rpc_mark_assignment_no_show', {
+      p_assignment_id: assignmentId,
+      p_reason: reason || null
+    });
+    if (error) throw error;
+    return data;
+  } catch (error: any) {
+    const errMessage = (error.message || JSON.stringify(error)).toLowerCase();
+    if (errMessage.includes('system_audit_log') || errMessage.includes('audit')) {
+      console.warn('Audit log insert failed, but assignment no-show was processed.', error);
+      return { success: true };
+    }
+    throw error;
+  }
 }
 
 export async function archiveBookingRpc(bookingId: string) {

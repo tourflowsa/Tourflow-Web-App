@@ -10,6 +10,7 @@ export function Contact() {
         <div className="absolute inset-0 z-0">
           <img 
             src="/contact-hero.jpg" 
+            loading="eager"
             alt="Contact TourFlow" 
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"

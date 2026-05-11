@@ -22,6 +22,7 @@ export function HowItWorks() {
         <div className="absolute inset-0 z-0">
           <img 
             src="/how-hero.jpg" 
+            loading="eager"
             alt="Tourism Operations" 
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
@@ -216,6 +217,7 @@ export function HowItWorks() {
             <div className="rounded-[2.5rem] overflow-hidden shadow-2xl">
               <img 
                 src="/how-driver.jpg" 
+                loading="lazy"
                 alt="Reliability on the Ground" 
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"

@@ -35,6 +35,7 @@ export function Pricing() {
         <div className="absolute inset-0 z-0">
           <img 
             src="/pricing-hero.jpg" 
+            loading="eager"
             alt="Pricing Hero" 
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
@@ -256,6 +257,7 @@ export function Pricing() {
             <div className="rounded-3xl overflow-hidden shadow-2xl">
               <img 
                 src="/pricing-trust.jpg" 
+                loading="lazy"
                 alt="Trust and Transparency" 
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"

@@ -62,6 +62,50 @@ BEGIN
         'operator'
     );
 
+    -- 4. Sync booking_assignments table for the vehicle resource
+    -- This ensures the vehicle shows up in the assignments list and can be marked as no-show
+    IF p_vehicle_id IS NOT NULL THEN
+        -- Check if vehicle assignment exists
+        IF EXISTS (
+            SELECT 1 FROM public.booking_assignments 
+            WHERE booking_id = p_booking_id AND resource_type = 'vehicle'
+        ) THEN
+            UPDATE public.booking_assignments
+            SET 
+                resource_id = p_vehicle_id,
+                rate_type = p_rate_type,
+                rate_amount = p_rate_amount,
+                rate_overridden = p_rate_overridden,
+                status = 'accepted', -- Ensure it's accepted
+                updated_at = now()
+            WHERE booking_id = p_booking_id AND resource_type = 'vehicle';
+        ELSE
+            INSERT INTO public.booking_assignments (
+                booking_id,
+                resource_id,
+                resource_type,
+                status,
+                rate_type,
+                rate_amount,
+                rate_overridden
+            )
+            VALUES (
+                p_booking_id,
+                p_vehicle_id,
+                'vehicle',
+                'accepted',
+                p_rate_type,
+                p_rate_amount,
+                p_rate_overridden
+            );
+        END IF;
+    ELSE
+        -- Remove vehicle assignment if it exists
+        DELETE FROM public.booking_assignments
+        WHERE booking_id = p_booking_id AND resource_type = 'vehicle';
+    END IF;
+
+    -- Return the updated booking
     RETURN v_booking;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

@@ -25,14 +25,31 @@ export const BookingsList: React.FC = () => {
   const [view, setView] = useState<'list' | 'calendar'>('list');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterSettlement, setFilterSettlement] = useState<string>(searchParams.get('filter') === 'awaiting_settlement' ? 'awaiting' : 'all');
+  const [filterDriver, setFilterDriver] = useState<string>('all');
+  const [filterGuide, setFilterGuide] = useState<string>('all');
+  const [filterVehicle, setFilterVehicle] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [showBanner, setShowBanner] = useState(true);
   
   // Assignment tracking state
-  const [assignmentMap, setAssignmentMap] = useState<Record<string, { driverStatus?: string; guideStatus?: string }>>({});
-  const prevMapRef = useRef<Record<string, { driverStatus?: string; guideStatus?: string }>>({});
+  const [assignmentMap, setAssignmentMap] = useState<Record<string, { 
+    driverStatus?: string; 
+    driverId?: string;
+    driverName?: string;
+    guideStatus?: string; 
+    guideId?: string;
+    guideName?: string;
+  }>>({});
+  const prevMapRef = useRef<Record<string, { 
+    driverStatus?: string; 
+    driverId?: string;
+    driverName?: string;
+    guideStatus?: string; 
+    guideId?: string;
+    guideName?: string;
+  }>>({});
 
   // Archive Modal State
   const [archiveTarget, setArchiveTarget] = useState<Booking | null>(null);
@@ -73,7 +90,7 @@ export const BookingsList: React.FC = () => {
         const [assignmentsResult, ledgers, disputesResult] = await Promise.all([
           supabase
             .from('booking_assignments')
-            .select('booking_id, resource_type, status, updated_at')
+            .select('*')
             .in('booking_id', bookingIds)
             .order('updated_at', { ascending: true }),
           getPayoutLedgersForBookings(bookingIds),
@@ -88,16 +105,39 @@ export const BookingsList: React.FC = () => {
         setDisputes(disputesResult.data || []);
 
         if (!assignmentsResult.error && assignmentsResult.data) {
-          const map: Record<string, { driverStatus?: string; guideStatus?: string }> = {};
+          const assignments = assignmentsResult.data;
+          
+          // 1. Get unique resource IDs
+          const resourceIds = Array.from(new Set(assignments.map(a => a.resource_id)));
+          
+          // 2. Fetch profiles for these resources
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', resourceIds);
+          
+          const profileMap = (profiles || []).reduce((acc, p) => {
+            acc[p.id] = p.full_name;
+            return acc;
+          }, {} as Record<string, string | null>);
+
+          const map: Record<string, { 
+            driverStatus?: string; 
+            driverId?: string;
+            driverName?: string;
+            guideStatus?: string; 
+            guideId?: string;
+            guideName?: string;
+          }> = {};
           
           // Group assignments by booking_id
           const assignmentsByBooking: Record<string, any[]> = {};
-          assignmentsResult.data.forEach(a => {
+          assignments.forEach(a => {
             if (!assignmentsByBooking[a.booking_id]) assignmentsByBooking[a.booking_id] = [];
             assignmentsByBooking[a.booking_id].push(a);
           });
 
-          // Resolve current status for each booking using the shared helper
+          // Resolve current status and names for each booking
           Object.keys(assignmentsByBooking).forEach(bookingId => {
             const bookingAssignments = assignmentsByBooking[bookingId];
             const currentDriver = getCurrentAssignment(bookingAssignments, 'driver');
@@ -105,7 +145,11 @@ export const BookingsList: React.FC = () => {
             
             map[bookingId] = {
               driverStatus: currentDriver?.status || undefined,
-              guideStatus: currentGuide?.status || undefined
+              driverId: currentDriver?.resource_id || undefined,
+              driverName: currentDriver ? profileMap[currentDriver.resource_id] || undefined : undefined,
+              guideStatus: currentGuide?.status || undefined,
+              guideId: currentGuide?.resource_id || undefined,
+              guideName: currentGuide ? profileMap[currentGuide.resource_id] || undefined : undefined
             };
           });
 
@@ -249,9 +293,44 @@ export const BookingsList: React.FC = () => {
       b.booking_reference.toLowerCase().includes(searchTerm.toLowerCase()) || 
       (b.tours?.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (b.guest_name || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+    const assignments = assignmentMap[b.id] || {};
+    const matchesDriver = filterDriver === 'all' || (filterDriver === 'Unassigned' ? !assignments.driverId : assignments.driverId === filterDriver);
+    const matchesGuide = filterGuide === 'all' || (filterGuide === 'Unassigned' ? !assignments.guideId : assignments.guideId === filterGuide);
+
+    const vehicleLabel = b.vehicles ? `${b.vehicles.make} ${b.vehicles.model} (${b.vehicles.license_plate})` : 'Unassigned';
+    const matchesVehicle = filterVehicle === 'all' || vehicleLabel === filterVehicle;
     
-    return matchesStatus && matchesSettlement && matchesSearch;
+    return matchesStatus && matchesSettlement && matchesSearch && matchesDriver && matchesGuide && matchesVehicle;
   });
+
+  // Extract unique resource options from assignmentMap
+  const driverOptions = Array.from(
+    new Map(
+      Object.values(assignmentMap)
+        .filter(a => !!a.driverId && !!a.driverName)
+        .map(a => [a.driverId as string, a.driverName as string])
+    ).entries()
+  ).sort((a, b) => a[1].localeCompare(b[1]));
+
+  const guideOptions = Array.from(
+    new Map(
+      Object.values(assignmentMap)
+        .filter(a => !!a.guideId && !!a.guideName)
+        .map(a => [a.guideId as string, a.guideName as string])
+    ).entries()
+  ).sort((a, b) => a[1].localeCompare(b[1]));
+
+  const vehicleOptions = Array.from(new Set(bookings.map(b => b.vehicles ? `${b.vehicles.make} ${b.vehicles.model} (${b.vehicles.license_plate})` : 'Unassigned'))).sort();
+
+  const resetFilters = () => {
+    setFilterStatus('all');
+    setFilterSettlement('all');
+    setFilterDriver('all');
+    setFilterGuide('all');
+    setFilterVehicle('all');
+    setSearchTerm('');
+  };
 
   const AssignmentStatusBadge = ({ status }: { status?: string }) => {
     if (!status) return <span className="text-[10px] text-gray-400 uppercase font-medium">None</span>;
@@ -337,68 +416,112 @@ export const BookingsList: React.FC = () => {
       </div>
 
       {/* Controls */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6 justify-between items-end md:items-center">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center bg-white p-1 rounded-lg border border-gray-200">
-             <button 
-               onClick={() => setView('list')}
-               className={`px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 transition-colors ${view === 'list' ? 'bg-brand-charcoal text-white' : 'text-gray-500 hover:bg-gray-50'}`}
-             >
-               <List size={16} /> List
-             </button>
-             <button 
-               onClick={() => setView('calendar')}
-               className={`px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 transition-colors ${view === 'calendar' ? 'bg-brand-charcoal text-white' : 'text-gray-500 hover:bg-gray-50'}`}
-             >
-               <CalendarIcon size={16} /> Calendar
-             </button>
-          </div>
-          
-          <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-600 hover:text-brand-charcoal select-none">
-            <div className={`w-10 h-5 rounded-full relative transition-colors ${showArchived ? 'bg-brand-teal' : 'bg-gray-300'}`}>
-              <input type="checkbox" className="hidden" checked={showArchived} onChange={() => setShowArchived(!showArchived)} />
-              <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${showArchived ? 'left-6' : 'left-1'}`}></div>
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4 justify-between items-end md:items-center">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center bg-white p-1 rounded-lg border border-gray-200">
+               <button 
+                 onClick={() => setView('list')}
+                 className={`px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 transition-colors ${view === 'list' ? 'bg-brand-charcoal text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+               >
+                 <List size={16} /> List
+               </button>
+               <button 
+                 onClick={() => setView('calendar')}
+                 className={`px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 transition-colors ${view === 'calendar' ? 'bg-brand-charcoal text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+               >
+                 <CalendarIcon size={16} /> Calendar
+               </button>
             </div>
-            Archived Only
-          </label>
+            
+            <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-600 hover:text-brand-charcoal select-none">
+              <div className={`w-10 h-5 rounded-full relative transition-colors ${showArchived ? 'bg-brand-teal' : 'bg-gray-300'}`}>
+                <input type="checkbox" className="hidden" checked={showArchived} onChange={() => setShowArchived(!showArchived)} />
+                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${showArchived ? 'left-6' : 'left-1'}`}></div>
+              </div>
+              Archived Only
+            </label>
+          </div>
+
+          <div className="relative flex-1 w-full md:w-64">
+            <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+            <input 
+              type="text" 
+              placeholder="Search ref, tour, or guest..." 
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-teal"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
 
-        {view === 'list' && (
-          <div className="flex gap-2 w-full md:w-auto">
-             <div className="relative flex-1 md:w-64">
-               <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
-               <input 
-                 type="text" 
-                 placeholder="Search ref, tour, or guest..." 
-                 className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-brand-teal"
-                 value={searchTerm}
-                 onChange={(e) => setSearchTerm(e.target.value)}
-               />
-             </div>
-             <select 
-               className="border border-gray-200 rounded-lg px-4 py-2 bg-white text-sm focus:outline-none focus:border-brand-teal"
-               value={filterStatus}
-               onChange={(e) => setFilterStatus(e.target.value)}
-             >
-               <option value="all">All Status</option>
-               <option value="draft">Draft</option>
-               <option value="pending">Pending</option>
-               <option value="confirmed">Confirmed</option>
-               <option value="completed">Completed</option>
-               <option value="cancelled">Cancelled</option>
-             </select>
-             <select 
-               className="border border-gray-200 rounded-lg px-4 py-2 bg-white text-sm focus:outline-none focus:border-brand-teal"
-               value={filterSettlement}
-               onChange={(e) => setFilterSettlement(e.target.value)}
-             >
-               <option value="all">All Settlement</option>
-               <option value="awaiting">Awaiting payout</option>
-               <option value="approved_not_paid">Approved not paid</option>
-               <option value="fully_paid">Fully paid</option>
-             </select>
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2 items-center bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2 ml-1">Filters:</div>
+          
+          <select 
+            className="border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-xs font-medium focus:outline-none focus:border-brand-teal min-w-[120px]"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="all">Any Status</option>
+            <option value="draft">Draft</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+
+          <select 
+            className="border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-xs font-medium focus:outline-none focus:border-brand-teal min-w-[140px]"
+            value={filterSettlement}
+            onChange={(e) => setFilterSettlement(e.target.value)}
+          >
+            <option value="all">Any Settlement</option>
+            <option value="awaiting">Awaiting payout</option>
+            <option value="approved_not_paid">Approved not paid</option>
+            <option value="fully_paid">Fully paid</option>
+          </select>
+
+          <select 
+            className="border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-xs font-medium focus:outline-none focus:border-brand-teal min-w-[120px]"
+            value={filterDriver}
+            onChange={(e) => setFilterDriver(e.target.value)}
+          >
+            <option value="all">Any Driver</option>
+            {driverOptions.map(([id, name]) => (
+              <option key={id} value={id}>{name}</option>
+            ))}
+          </select>
+
+          <select 
+            className="border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-xs font-medium focus:outline-none focus:border-brand-teal min-w-[120px]"
+            value={filterGuide}
+            onChange={(e) => setFilterGuide(e.target.value)}
+          >
+            <option value="all">Any Guide</option>
+            {guideOptions.map(([id, name]) => (
+              <option key={id} value={id}>{name}</option>
+            ))}
+          </select>
+
+          <select 
+            className="border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-xs font-medium focus:outline-none focus:border-brand-teal min-w-[140px]"
+            value={filterVehicle}
+            onChange={(e) => setFilterVehicle(e.target.value)}
+          >
+            <option value="all">Any Vehicle</option>
+            {vehicleOptions.map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+
+          <button
+            onClick={resetFilters}
+            className="ml-auto text-xs font-bold text-brand-teal hover:text-brand-charcoal transition-colors px-3 py-1.5 rounded-lg border border-brand-teal/20 hover:border-brand-teal/40 bg-brand-teal/5"
+          >
+            Reset Filters
+          </button>
+        </div>
       </div>
 
       {/* View Content */}
@@ -419,7 +542,10 @@ export const BookingsList: React.FC = () => {
           </Link>
         </div>
       ) : view === 'calendar' ? (
-        <BookingCalendar bookings={filteredBookings} />
+        <BookingCalendar 
+          bookings={filteredBookings} 
+          assignments={assignmentMap}
+        />
       ) : (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
            {filteredBookings.length === 0 ? (

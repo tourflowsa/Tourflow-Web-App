@@ -57,6 +57,7 @@ export const NotificationBell: React.FC = () => {
       case 'WITHDRAWAL_APPROVED': return <CheckCircle size={14} />;
       case 'WITHDRAWAL_REJECTED': return <XCircle size={14} />;
       case 'BOOKING_CANCELLED': return <CalendarX size={14} />;
+      case 'BOOKING_NO_SHOW': return <AlertTriangle size={14} />;
       default: return <Bell size={14} />;
     }
   };
@@ -75,6 +76,7 @@ export const NotificationBell: React.FC = () => {
       case 'REMOVED_FROM_BOOKING':
       case 'WITHDRAWAL_REJECTED':
       case 'BOOKING_CANCELLED':
+      case 'BOOKING_NO_SHOW':
         return 'text-red-600 bg-red-50';
       
       case 'PAYOUT_HOLD':

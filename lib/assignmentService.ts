@@ -6,7 +6,7 @@ import { canAssignProvider } from "./compliance";
 import { checkProviderConflicts } from "./bookingService";
 
 export type ProviderRole = "driver" | "guide";
-export type AssignmentStatus = "pending" | "accepted" | "rejected" | "cancelled" | "completed";
+export type AssignmentStatus = "pending" | "accepted" | "rejected" | "cancelled" | "completed" | "no_show";
 
 export type ProviderProfile = {
   id: string;
@@ -38,6 +38,12 @@ export type BookingAssignmentRow = {
   rate_amount: number | null;
   rate_overridden: boolean;
   cost_total?: number | null;
+  incident_reason?: string | null;
+  incident_reported_at?: string | null;
+  incident_reported_by?: string | null;
+  no_show_reason?: string | null;
+  no_show_reported_at?: string | null;
+  no_show_reported_by?: string | null;
   profile?: {
     id: string;
     full_name: string | null;

@@ -48,7 +48,7 @@ export const ResetPassword: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-brand-white p-4 font-sans">
       <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
-          <img src="/tourflow-logo.png" alt="TourFlow" className="w-24 h-auto object-contain mx-auto mb-4" />
+          <img src="/tourflow-logo.png" alt="TourFlow" className="h-16 w-auto mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-brand-charcoal">Reset Password</h1>
           <p className="text-brand-charcoal/60 mt-2 font-serif">Enter your new secure password below</p>
         </div>

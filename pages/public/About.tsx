@@ -10,6 +10,7 @@ export function About() {
         <div className="absolute inset-0 z-0">
           <img 
             src="/about-hero.jpg" 
+            loading="eager"
             alt="About TourFlow Hero" 
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
@@ -77,6 +78,7 @@ export function About() {
             <div className="rounded-3xl overflow-hidden shadow-2xl">
               <img 
                 src="/about-team.jpg" 
+                loading="lazy"
                 alt="TourFlow Team and Operations" 
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
@@ -177,6 +179,7 @@ export function About() {
             <div className="order-1 lg:order-2 rounded-3xl overflow-hidden shadow-2xl">
               <img 
                 src="/about-guide.jpg" 
+                loading="lazy"
                 alt="Verified Tour Guide" 
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"

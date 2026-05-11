@@ -14,6 +14,8 @@ import {
   updateBookingStatus,
   completeBooking,
   cancelBooking,
+  markBookingNoShow,
+  markAssignmentNoShow,
   archiveBookingRpc,
   unarchiveBookingRpc,
   getEffectiveVehicleRateForBookingAssignment,
@@ -118,6 +120,7 @@ const getStatusDisplay = (status: string | null | undefined) => {
     case 'rejected': return 'Declined';
     case 'cancelled': return 'Cancelled';
     case 'replaced': return 'Replaced';
+    case 'no_show': return 'No-Show Reported';
     default: return status;
   }
 };
@@ -148,6 +151,7 @@ const getStatusBadgeClass = (status: string | null | undefined) => {
     case 'accepted': return 'bg-green-100 text-green-700';
     case 'completed': return 'bg-brand-teal/10 text-brand-teal';
     case 'rejected': return 'bg-red-100 text-red-700';
+    case 'no_show': return 'bg-red-100 text-red-700';
     case 'pending': return 'bg-amber-100 text-amber-700';
     case 'cancelled': return 'bg-orange-100 text-orange-700';
     case 'replaced': return 'bg-slate-100 text-slate-700';
@@ -528,6 +532,14 @@ export const BookingDetail: React.FC = () => {
   const isDriverAccepted = assignedDriver?.status === 'accepted' || assignedDriver?.status === 'completed';
   const isGuideAccepted = assignedGuide?.status === 'accepted' || assignedGuide?.status === 'completed';
   const isReady = !!booking?.tour_id && !!booking?.start_date && !!booking?.end_date && (booking?.num_guests || 0) > 0 && !!booking?.guest_name && !!booking?.guest_email;
+  
+  const canReportNoShow = useMemo(() => {
+    if (!booking) return false;
+    const startTime = new Date(booking.start_date).getTime();
+    const now = Date.now();
+    // Allow reporting 5 mins before theoretical start to be safe for setup issues
+    return now >= (startTime - 5 * 60 * 1000);
+  }, [booking?.start_date]);
 
   const actualReleased = useMemo(() => {
     const sum = payoutLedgers
@@ -557,6 +569,13 @@ export const BookingDetail: React.FC = () => {
 
   const hasPendingProviders = pendingProviders.length > 0;
   const [showAcceptanceWarningModal, setShowAcceptanceWarningModal] = useState(false);
+  const [showNoShowModal, setShowNoShowModal] = useState(false);
+  const [noShowReason, setNoShowReason] = useState('');
+  const [reportingNoShow, setReportingNoShow] = useState(false);
+
+  const [showAssignmentNoShowModal, setShowAssignmentNoShowModal] = useState<{ id: string, type: string, name: string } | null>(null);
+  const [assignmentNoShowReason, setAssignmentNoShowReason] = useState('');
+  const [reportingAssignmentNoShow, setReportingAssignmentNoShow] = useState(false);
 
   const handleConfirmBooking = () => {
     if (hasPendingProviders) {
@@ -1322,6 +1341,10 @@ export const BookingDetail: React.FC = () => {
             label = `${roleLabel} assignment completed${nameSuffix}`;
             colorClass = 'text-green-600';
             break;
+        case 'ASSIGNMENT_NO_SHOW':
+            label = `${roleLabel} reported no-show${nameSuffix}`;
+            colorClass = 'text-red-700';
+            break;
           default:
             // Fallback for any other assignment action
             label = `${roleLabel} ${log.action.toLowerCase().replace('_', ' ')}${nameSuffix}`;
@@ -1586,6 +1609,47 @@ export const BookingDetail: React.FC = () => {
     }
   };
 
+  const handleReportNoShow = async () => {
+    if (!booking || reportingNoShow) return;
+    setReportingNoShow(true);
+    try {
+      await markBookingNoShow(booking.id, noShowReason);
+      setShowNoShowModal(false);
+      setNoShowReason('');
+      showNotice('success', 'Booking marked as no-show successfully.');
+      await loadAll();
+    } catch (e: any) {
+      showNotice('error', getFriendlyErrorMessage(e, 'Failed to report no-show.'));
+    } finally {
+      setReportingNoShow(false);
+    }
+  };
+
+  const handleReportAssignmentNoShow = async () => {
+    if (!showAssignmentNoShowModal || reportingAssignmentNoShow) return;
+    setReportingAssignmentNoShow(true);
+    
+    // QA Logging
+    console.log('Assignment No-Show QA Log:', {
+        assignmentId: showAssignmentNoShowModal.id,
+        assignmentResourceId: assignments.find(a => a.id === showAssignmentNoShowModal.id)?.resource_id,
+        assignmentStatus: assignments.find(a => a.id === showAssignmentNoShowModal.id)?.status,
+        reasonPresent: !!assignmentNoShowReason,
+    });
+    
+    try {
+      await markAssignmentNoShow(showAssignmentNoShowModal.id, assignmentNoShowReason);
+      setShowAssignmentNoShowModal(null);
+      setAssignmentNoShowReason('');
+      showNotice('success', `${showAssignmentNoShowModal.type.charAt(0).toUpperCase() + showAssignmentNoShowModal.type.slice(1)} marked as no-show.`);
+      await loadAll();
+    } catch (e: any) {
+      showNotice('error', getFriendlyErrorMessage(e, 'Failed to report no-show.'));
+    } finally {
+      setReportingAssignmentNoShow(false);
+    }
+  };
+
   const handleStatusUpdate = async (newStatus: BookingStatus) => {
     if (!booking || !user) return;
     try {
@@ -1649,7 +1713,11 @@ export const BookingDetail: React.FC = () => {
         // 2. Complete booking (which triggers payout creation)
         await completeBooking(booking.id);
       } else if (newStatus === 'cancelled') {
-        await cancelBooking(booking.id);
+        const reason = window.prompt("Reason for cancellation (optional):") || "";
+        await cancelBooking(booking.id, reason);
+      } else if (newStatus === 'no_show') {
+        setShowNoShowModal(true);
+        return;
       } else {
         await updateBookingStatus(booking.id, newStatus, user.id, 'operator_dashboard');
       }
@@ -2736,6 +2804,19 @@ export const BookingDetail: React.FC = () => {
               <h2 className="font-bold text-brand-charcoal flex items-center gap-2">
                 <Users size={18} className="text-brand-teal" /> Resources
               </h2>
+              {['confirmed', 'in_progress', 'assigned', 'pending'].includes(booking.status) && (
+                <div className="mt-4 p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-4">
+                  <div className="bg-amber-100 p-2 rounded-xl text-amber-600">
+                    <Info size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-amber-900">Having trouble with a provider?</p>
+                    <p className="text-xs text-amber-700 mt-1">
+                      If a specific provider does not arrive or there is an issue during the tour, <Link to="/contact" className="underline font-bold">contact support</Link> so Admin can review the case.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Driver Block */}
@@ -2758,11 +2839,27 @@ export const BookingDetail: React.FC = () => {
                       </div>
                       <div>
                         <p className="font-bold text-brand-charcoal text-sm">{assignedDriver.profile?.full_name}</p>
-                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getStatusBadgeClass(assignedDriver.status)}`}>
-                          {getStatusDisplay(assignedDriver.status)}
-                        </span>
+                        {(() => {
+                           const isReported = assignedDriver.status === 'no_show' || !!assignedDriver.incident_reported_at;
+                           return (
+                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getStatusBadgeClass(isReported ? 'no_show' : assignedDriver.status || 'accepted')}`}>
+                              {isReported ? 'REPORTED NO-SHOW' : getStatusDisplay(assignedDriver.status)}
+                            </span>
+                           );
+                        })()}
                       </div>
                     </div>
+                    {(() => {
+                       const isReported = assignedDriver.status === 'no_show' || !!assignedDriver.incident_reported_at;
+                       return isReported && (
+                        <div className="mb-3 p-2 bg-amber-50 border border-amber-100 rounded-lg">
+                          <p className="text-[10px] font-bold text-amber-700 uppercase mb-1">Incident reported</p>
+                          { (assignedDriver.incident_reason || assignedDriver.no_show_reason) && (
+                            <p className="text-xs text-amber-600">{assignedDriver.incident_reason || assignedDriver.no_show_reason}</p>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <div className="flex flex-wrap gap-2">
                       <button 
                         onClick={() => handleReplaceAssignment(assignedDriver.id, 'driver')} 
@@ -2829,13 +2926,29 @@ export const BookingDetail: React.FC = () => {
                       </div>
                       <div>
                         <p className="font-bold text-brand-charcoal text-sm">{assignedGuide.profile?.full_name}</p>
-                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getStatusBadgeClass(assignedGuide.status)}`}>
-                          {getStatusDisplay(assignedGuide.status)}
-                        </span>
+                        {(() => {
+                           const isReported = assignedGuide.status === 'no_show' || !!assignedGuide.incident_reported_at;
+                           return (
+                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getStatusBadgeClass(isReported ? 'no_show' : assignedGuide.status || 'accepted')}`}>
+                              {isReported ? 'REPORTED NO-SHOW' : getStatusDisplay(assignedGuide.status)}
+                            </span>
+                           );
+                        })()}
                       </div>
                     </div>
+                    {(() => {
+                       const isReported = assignedGuide.status === 'no_show' || !!assignedGuide.incident_reported_at;
+                       return isReported && (
+                        <div className="mb-3 p-2 bg-amber-50 border border-amber-100 rounded-lg">
+                          <p className="text-[10px] font-bold text-amber-700 uppercase mb-1">Incident reported</p>
+                          { (assignedGuide.incident_reason || assignedGuide.no_show_reason) && (
+                            <p className="text-xs text-amber-600">{assignedGuide.incident_reason || assignedGuide.no_show_reason}</p>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <div className="flex flex-wrap gap-2">
-                      <button 
+                       <button 
                         onClick={() => handleReplaceAssignment(assignedGuide.id, 'guide')} 
                         disabled={booking.status === 'completed' || booking.status === 'cancelled' || isAssignmentApproved(payoutLedgers, assignedGuide.resource_id) || isAssignmentPaid(payoutLedgers, assignedGuide.resource_id) || isFinanciallyLocked}
                         className="text-xs bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg font-bold hover:bg-gray-200 disabled:opacity-50"
@@ -2888,9 +3001,25 @@ export const BookingDetail: React.FC = () => {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-bold text-brand-charcoal">{selectedVehicleDetails.make} {selectedVehicleDetails.model}</p>
                     </div>
-                    <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-green-100 text-green-700">
-                      Assigned
-                    </span>
+                    {(() => {
+                        const vAsgn = assignments.find(a => a.resource_type === 'vehicle' && a.resource_id === booking.vehicle_id);
+                        const isReported = vAsgn?.status === 'no_show' || !!vAsgn?.incident_reported_at;
+                        return (
+                          <>
+                            <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getStatusBadgeClass(isReported ? 'no_show' : vAsgn?.status || 'accepted')}`}>
+                              {isReported ? 'REPORTED NO-SHOW' : getStatusDisplay(vAsgn?.status || 'accepted')}
+                            </span>
+                            {isReported && (
+                              <div className="mt-3 p-2 bg-amber-50 border border-amber-100 rounded-lg">
+                                <p className="text-[10px] font-bold text-amber-700 uppercase mb-1">Incident reported</p>
+                                {(vAsgn?.incident_reason || vAsgn?.no_show_reason) && (
+                                    <p className="text-xs text-amber-600">{vAsgn.incident_reason || vAsgn.no_show_reason}</p>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        );
+                    })()}
                     <div className="mt-4 flex flex-wrap gap-2">
                       <button 
                         onClick={() => openResourceModal('vehicle', 'replace')} 
@@ -3237,6 +3366,55 @@ export const BookingDetail: React.FC = () => {
                           )}
                         </div>
                       )}
+
+                      {showNoShowModal && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+                          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+                            <div className="flex items-center gap-3 text-purple-600 mb-4">
+                              <AlertTriangle size={24} />
+                              <h3 className="font-bold text-xl">Report No-Show</h3>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-6">
+                              Are you sure you want to mark this booking as a no-show? This status is for operational tracking only and does not automatically process payouts or penalties.
+                            </p>
+                            
+                            <div className="mb-6">
+                              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                                Reason for no-show
+                              </label>
+                              <textarea
+                                value={noShowReason}
+                                onChange={(e) => setNoShowReason(e.target.value)}
+                                placeholder="Briefly explain what happened. Example: guest did not arrive, provider did not arrive, wrong pickup details, or other issue."
+                                className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none min-h-[100px] resize-none transition-all"
+                              />
+                            </div>
+                            
+                            <div className="flex gap-3">
+                              <button 
+                                onClick={() => { setShowNoShowModal(false); setNoShowReason(''); }} 
+                                className="flex-1 py-3 rounded-xl font-bold text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                              >
+                                Cancel
+                              </button>
+                              <button 
+                                onClick={handleReportNoShow} 
+                                disabled={reportingNoShow}
+                                className="flex-1 py-3 rounded-xl font-bold text-sm bg-purple-600 text-white hover:bg-purple-700 transition-colors shadow-lg shadow-purple-200 disabled:opacity-50 flex items-center justify-center gap-2"
+                              >
+                                {reportingNoShow ? (
+                                  <>
+                                    <Loader2 size={16} className="animate-spin" />
+                                    Reporting...
+                                  </>
+                                ) : (
+                                  'Confirm No-Show'
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       
                       {showAcceptanceWarningModal && (
                         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -3251,6 +3429,58 @@ export const BookingDetail: React.FC = () => {
                             <div className="flex gap-3">
                               <button onClick={() => setShowAcceptanceWarningModal(false)} className="flex-1 py-2 rounded-lg font-bold text-sm bg-gray-100 hover:bg-gray-200">Go Back</button>
                               <button onClick={() => { setShowAcceptanceWarningModal(false); handleStatusUpdate('confirmed'); }} className="flex-1 py-2 rounded-lg font-bold text-sm bg-brand-teal text-white hover:bg-brand-teal/90">Confirm Anyway</button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {showAssignmentNoShowModal && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+                          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+                            <div className="flex items-center gap-3 text-orange-600 mb-4">
+                              <AlertTriangle size={24} />
+                              <h3 className="font-bold text-xl">Report {showAssignmentNoShowModal.type.charAt(0).toUpperCase() + showAssignmentNoShowModal.type.slice(1)} No-Show</h3>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-2">
+                              Report no-show for <strong>{showAssignmentNoShowModal.name}</strong>.
+                            </p>
+                            <p className="text-xs text-gray-500 mb-6 italic">
+                              This marks only this specific assignment as no-show. The overall booking status remains unchanged unless manually updated.
+                            </p>
+                            
+                            <div className="mb-6">
+                              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                                Reason for no-show
+                              </label>
+                              <textarea
+                                value={assignmentNoShowReason}
+                                onChange={(e) => setAssignmentNoShowReason(e.target.value)}
+                                placeholder="Example: provider was late, wrong vehicle arrived, or did not show up at all."
+                                className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none min-h-[80px] resize-none transition-all"
+                              />
+                            </div>
+                            
+                            <div className="flex gap-3">
+                              <button 
+                                onClick={() => { setShowAssignmentNoShowModal(null); setAssignmentNoShowReason(''); }} 
+                                className="flex-1 py-3 rounded-xl font-bold text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                              >
+                                Cancel
+                              </button>
+                              <button 
+                                onClick={handleReportAssignmentNoShow} 
+                                disabled={reportingAssignmentNoShow}
+                                className="flex-1 py-3 rounded-xl font-bold text-sm bg-orange-600 text-white hover:bg-orange-700 transition-colors shadow-lg shadow-orange-200 disabled:opacity-50 flex items-center justify-center gap-2"
+                              >
+                                {reportingAssignmentNoShow ? (
+                                  <>
+                                    <Loader2 size={16} className="animate-spin" />
+                                    Reporting...
+                                  </>
+                                ) : (
+                                  'Confirm No-Show'
+                                )}
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -3341,9 +3571,23 @@ export const BookingDetail: React.FC = () => {
                           >
                             Cancel Booking
                           </button>
-                          {isFinanciallyLocked && (
-                            <p className="text-[10px] text-red-500 font-medium text-center px-2">
-                              This booking cannot be cancelled because provider payouts have already been released.
+                        </div>
+                      )}
+                      {booking.status !== 'completed' && booking.status !== 'cancelled' && booking.status !== 'no_show' && !booking.archived_at && (
+                        <div className="flex flex-col gap-1">
+                          <button 
+                            onClick={() => handleStatusUpdate('no_show')} 
+                            disabled={isFinanciallyLocked || !canReportNoShow}
+                            title={isFinanciallyLocked ? "Financial lock active." : !canReportNoShow ? "No-show can only be reported once the booking starts." : ""}
+                            className={`w-full bg-white text-purple-600 border-2 border-purple-100 py-2.5 rounded-xl font-bold text-sm transition-colors ${
+                              (isFinanciallyLocked || !canReportNoShow) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-50'
+                            }`}
+                          >
+                            Report No-Show
+                          </button>
+                          {!canReportNoShow && (
+                            <p className="text-[10px] text-amber-600 font-medium text-center">
+                              Available after {new Date(new Date(booking.start_date).getTime() - 5 * 60 * 1000).toLocaleString()}
                             </p>
                           )}
                         </div>
@@ -3478,7 +3722,15 @@ export const BookingDetail: React.FC = () => {
                   </button>
                 )}
               </div>
-              <p className="text-[10px] text-gray-500 mt-1">
+              {(booking?.status === 'completed' || payoutLedgers.length > 0) && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-3">
+                  <Info size={16} className="text-blue-600 mt-0.5 shrink-0" />
+                  <p className="text-[11px] text-blue-800 leading-relaxed">
+                    If a provider failed to arrive or delivered the wrong service, use <span className="font-bold uppercase tracking-tight">Raise Dispute</span> on that provider’s payout. This will place the payout on hold until Admin reviews it.
+                  </p>
+                </div>
+              )}
+              <p className="text-[10px] text-gray-500 mt-2">
                 Net provider payouts after TourFlow fee.
               </p>
             </div>

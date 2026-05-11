@@ -41,6 +41,24 @@ export const BookingStatusBadge: React.FC<Props> = ({ status, className = '' }) 
           <Clock size={12} /> Draft
         </span>
       );
+    case 'assigned':
+      return (
+        <span className={`${baseClasses} bg-indigo-100 text-indigo-700 ${className}`}>
+          <AlertCircle size={12} /> Assigned
+        </span>
+      );
+    case 'in_progress':
+      return (
+        <span className={`${baseClasses} bg-emerald-100 text-emerald-700 ${className}`}>
+          <AlertCircle size={12} /> In Progress
+        </span>
+      );
+    case 'no_show':
+      return (
+        <span className={`${baseClasses} bg-purple-100 text-purple-700 ${className}`}>
+          <AlertCircle size={12} /> No-Show
+        </span>
+      );
     default:
       return (
         <span className={`${baseClasses} bg-gray-100 text-gray-500 ${className}`}>

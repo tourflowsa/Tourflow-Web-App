@@ -169,7 +169,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       <div className="p-6 border-b border-gray-700 flex items-center justify-between">
         <Link to="/" className="block group" onClick={() => isMobile && setIsMobileMenuOpen(false)}>
           <div className="flex items-center mb-1">
-             <img src="/tourflow-logo-reversed.png" alt="TourFlow" className="h-10 w-auto object-contain" />
+             <img src="/tourflow-logo-reversed.png" alt="TourFlow" className="h-10 w-auto" />
           </div>
           <div className="flex items-center justify-between">
             <span className="text-xs text-gray-400 uppercase tracking-widest">
@@ -260,7 +260,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
         >
           <Menu size={24} />
         </button>
-        <img src="/tourflow-logo-reversed.png" alt="TourFlow" className="h-8 w-auto object-contain" />
+        <img src="/tourflow-logo-reversed.png" alt="TourFlow" className="h-8 w-auto" />
         <div className="flex items-center gap-2">
           <NotificationBell />
         </div>

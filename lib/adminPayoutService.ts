@@ -236,25 +236,33 @@ export const placePayoutOnHold = async (payoutId: string, adminId: string, reaso
   if (disputeError) throw disputeError;
 
   if (data) {
-    await logPayoutEvent({
-      payout_id: payoutId,
-      booking_id: payout.booking_id,
-      provider_id: payout.provider_id,
-      event_type: 'hold',
-      previous_state: payout,
-      new_state: data,
-      triggered_by: adminId,
-      triggered_role: 'admin',
-      notes: reason
-    });
+    try {
+      await logPayoutEvent({
+        payout_id: payoutId,
+        booking_id: payout.booking_id,
+        provider_id: payout.provider_id,
+        event_type: 'hold',
+        previous_state: payout,
+        new_state: data,
+        triggered_by: adminId,
+        triggered_role: 'admin',
+        notes: reason
+      });
+    } catch (err) {
+      console.error('[placePayoutOnHold] Payout event logging failed:', err);
+    }
   }
 
-  await logAuditEvent({
-    action: 'payout_hold_placed',
-    entityType: 'payout_ledger',
-    entityId: payoutId,
-    metadata: { reason, adminId }
-  });
+  try {
+    await logAuditEvent({
+      action: 'payout_hold_placed',
+      entityType: 'payout_ledger',
+      entityId: payoutId,
+      metadata: { reason, adminId }
+    });
+  } catch (auditErr) {
+    console.error('[placePayoutOnHold] Audit logging failed:', auditErr);
+  }
 
   // 4. Trigger Notification for Operator
   await createNotification({
@@ -476,24 +484,32 @@ export const releasePayoutHold = async (payoutId: string, adminId?: string) => {
   if (!data) throw new Error("Payout record not found.");
 
   if (data) {
-    await logPayoutEvent({
-      payout_id: payoutId,
-      booking_id: data.booking_id,
-      provider_id: data.provider_id,
-      event_type: 'released',
-      previous_state: current,
-      new_state: data,
-      triggered_by: adminId,
-      triggered_role: 'admin'
-    });
+    try {
+      await logPayoutEvent({
+        payout_id: payoutId,
+        booking_id: data.booking_id,
+        provider_id: data.provider_id,
+        event_type: 'released',
+        previous_state: current,
+        new_state: data,
+        triggered_by: adminId,
+        triggered_role: 'admin'
+      });
+    } catch (err) {
+      console.error('[releasePayoutHold] Payout event logging failed:', err);
+    }
   }
 
-  await logAuditEvent({
-    action: 'payout_hold_released',
-    entityType: 'payout_ledger',
-    entityId: payoutId,
-    metadata: { payoutId }
-  });
+  try {
+    await logAuditEvent({
+      action: 'payout_hold_released',
+      entityType: 'payout_ledger',
+      entityId: payoutId,
+      metadata: { payoutId }
+    });
+  } catch (auditErr) {
+    console.error('[releasePayoutHold] Audit logging failed:', auditErr);
+  }
 
   // Trigger Notification for Operator
   await createNotification({
@@ -701,33 +717,37 @@ export const resolvePayoutDispute = async (
     updatedPayout = updated;
 
     if (updatedPayout) {
-      // 1. Log resolution event
-      await logPayoutEvent({
-        payout_id: dispute.payout_id,
-        booking_id: updatedPayout.booking_id,
-        provider_id: updatedPayout.provider_id,
-        event_type: 'dispute_resolved',
-        previous_state: existingPayout,
-        new_state: { ...updatedPayout, resolution_outcome: outcome },
-        triggered_by: adminId,
-        triggered_role: 'admin',
-        notes: resolution
-      });
-
-      // 2. Log adjustment event if amount changed
-      const prevAmount = existingPayout.adjusted_amount || existingPayout.amount_net;
-      if (Number(finalAdjustedAmount) !== Number(prevAmount)) {
+      try {
+        // 1. Log resolution event
         await logPayoutEvent({
           payout_id: dispute.payout_id,
           booking_id: updatedPayout.booking_id,
           provider_id: updatedPayout.provider_id,
-          event_type: 'adjusted',
+          event_type: 'dispute_resolved',
           previous_state: existingPayout,
-          new_state: updatedPayout,
+          new_state: { ...updatedPayout, resolution_outcome: outcome },
           triggered_by: adminId,
           triggered_role: 'admin',
-          notes: `Adjusted from ${prevAmount} to ${finalAdjustedAmount}. Resolution: ${outcome.toUpperCase()}. Reason: ${resolution}`
+          notes: resolution
         });
+
+        // 2. Log adjustment event if amount changed
+        const prevAmount = existingPayout.adjusted_amount || existingPayout.amount_net;
+        if (Number(finalAdjustedAmount) !== Number(prevAmount)) {
+          await logPayoutEvent({
+            payout_id: dispute.payout_id,
+            booking_id: updatedPayout.booking_id,
+            provider_id: updatedPayout.provider_id,
+            event_type: 'adjusted',
+            previous_state: existingPayout,
+            new_state: updatedPayout,
+            triggered_by: adminId,
+            triggered_role: 'admin',
+            notes: `Adjusted from ${prevAmount} to ${finalAdjustedAmount}. Resolution: ${outcome.toUpperCase()}. Reason: ${resolution}`
+          });
+        }
+      } catch (err) {
+        console.error('[resolvePayoutDispute] Payout event logging failed:', err);
       }
 
       // 3. Refresh escrow state
@@ -737,22 +757,26 @@ export const resolvePayoutDispute = async (
     }
   }
 
-  await logAuditEvent({
-    action: 'dispute_resolved',
-    entityType: 'payout_disputes',
-    entityId: disputeId,
-    metadata: { 
-      resolution, 
-      adminId, 
-      action, 
-      adjustedAmount,
-      outcome: outcome.toUpperCase(),
-      original_amount: existingPayout?.original_amount || existingPayout?.amount_net,
-      final_amount: updatedPayout?.adjusted_amount ?? updatedPayout?.amount_net,
-      adjustment: (existingPayout?.original_amount || existingPayout?.amount_net || 0) - (updatedPayout?.adjusted_amount ?? updatedPayout?.amount_net ?? 0),
-      payout_reference: updatedPayout?.payout_reference || existingPayout?.payout_reference
-    }
-  });
+  try {
+    await logAuditEvent({
+      action: 'dispute_resolved',
+      entityType: 'payout_disputes',
+      entityId: disputeId,
+      metadata: { 
+        resolution, 
+        adminId, 
+        action, 
+        adjustedAmount,
+        outcome: outcome.toUpperCase(),
+        original_amount: existingPayout?.original_amount || existingPayout?.amount_net,
+        final_amount: updatedPayout?.adjusted_amount ?? updatedPayout?.amount_net,
+        adjustment: (existingPayout?.original_amount || existingPayout?.amount_net || 0) - (updatedPayout?.adjusted_amount ?? updatedPayout?.amount_net ?? 0),
+        payout_reference: updatedPayout?.payout_reference || existingPayout?.payout_reference
+      }
+    });
+  } catch (auditErr) {
+    console.error('[resolvePayoutDispute] Audit logging failed:', auditErr);
+  }
 
   // Trigger Notifications
   if (dispute.payout_id && existingPayout) {

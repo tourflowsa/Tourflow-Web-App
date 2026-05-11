@@ -21,6 +21,7 @@ export function ForOperators() {
         <div className="absolute inset-0 z-0">
           <img 
             src="/operators-hero.jpg" 
+            loading="eager"
             alt="Tour Operations" 
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
@@ -201,6 +202,7 @@ export function ForOperators() {
             <div className="rounded-[2.5rem] overflow-hidden shadow-2xl">
               <img 
                 src="/operators-driver.jpg" 
+                loading="lazy"
                 alt="Execution on the Ground" 
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
@@ -215,7 +217,7 @@ export function ForOperators() {
                 <div className="flex -space-x-4">
                   {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="w-12 h-12 rounded-full border-4 border-white bg-gray-200 overflow-hidden">
-                      <img src={`https://picsum.photos/seed/user${i}/100/100`} alt="User" referrerPolicy="no-referrer" />
+                      <img src={`https://picsum.photos/seed/user${i}/100/100`} loading="lazy" alt="User" referrerPolicy="no-referrer" />
                     </div>
                   ))}
                 </div>
@@ -231,6 +233,7 @@ export function ForOperators() {
         <div className="absolute inset-0 z-0">
           <img 
             src="/operators-operations.jpg" 
+            loading="lazy"
             alt="Operations Control" 
             className="w-full h-full object-cover opacity-10"
             referrerPolicy="no-referrer"

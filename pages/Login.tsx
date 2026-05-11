@@ -67,7 +67,7 @@ export const Login: React.FC = () => {
           </Link>
         </div>
         <div className="text-center mb-8">
-          <img src="/tourflow-logo.png" alt="TourFlow" className="w-24 h-auto object-contain mx-auto mb-4" />
+          <img src="/tourflow-logo.png" alt="TourFlow" className="h-16 w-auto mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-brand-charcoal">Welcome Back</h1>
           <p className="text-brand-charcoal/60 mt-2 font-serif">Sign in to your TourFlow B2B account</p>
         </div>

@@ -28,6 +28,7 @@ export function ForProviders() {
         <div className="absolute inset-0 z-0">
           <img 
             src="/providers-hero.jpg" 
+            loading="eager"
             alt="Professional Tour Provider" 
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
@@ -125,6 +126,7 @@ export function ForProviders() {
               <div className="bg-brand-teal/5 rounded-3xl p-8 border border-brand-teal/10">
                 <img 
                   src="/providers-guide.jpg" 
+                  loading="lazy"
                   alt="Tour Guide at Work" 
                   className="rounded-2xl shadow-2xl w-full h-auto object-cover"
                   referrerPolicy="no-referrer"
@@ -189,6 +191,7 @@ export function ForProviders() {
             <div className="order-2 lg:order-1">
               <img 
                 src="/providers-guide.jpg" 
+                loading="lazy"
                 alt="Guide with Client" 
                 className="rounded-3xl shadow-2xl w-full h-[500px] object-cover"
                 referrerPolicy="no-referrer"
@@ -211,6 +214,7 @@ export function ForProviders() {
         <div className="absolute inset-0 z-0">
           <img 
             src="/providers-support.jpg" 
+            loading="lazy"
             alt="Support and Growth" 
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"

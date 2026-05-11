@@ -24,6 +24,7 @@ export function Home() {
         <div className="absolute inset-0 z-0">
           <img 
             src="/home-hero.jpg" 
+            loading="eager"
             alt="Tourism Operations" 
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
@@ -172,7 +173,8 @@ export function Home() {
             <div className="relative">
               <div className="rounded-[2rem] overflow-hidden shadow-2xl">
                 <img 
-                  src="/home-guide-safari.jpg" 
+                  src="/home-guide-safari.jpg"
+                  loading="lazy"
                   alt="Safari Guide" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
@@ -196,7 +198,7 @@ export function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-12 gap-6">
           <div className="md:col-span-8 bg-white p-8 rounded-3xl border border-gray-100 flex flex-col md:flex-row gap-8 items-center">
             <div className="w-full md:w-1/2 h-64 rounded-2xl overflow-hidden">
-              <img src="/home-guide-safari.jpg" className="w-full h-full object-cover" alt="Verified Network" referrerPolicy="no-referrer" />
+              <img src="/home-guide-safari.jpg" loading="lazy" className="w-full h-full object-cover" alt="Verified Network" referrerPolicy="no-referrer" />
             </div>
             <div className="w-full md:w-1/2">
               <h3 className="text-2xl font-bold mb-4">Verified Provider Network</h3>
@@ -341,6 +343,7 @@ export function Home() {
         <div className="absolute inset-0 z-0">
           <img 
             src="/home-landscape.jpg" 
+            loading="lazy"
             alt="Landscape" 
             className="w-full h-full object-cover opacity-20"
             referrerPolicy="no-referrer"
