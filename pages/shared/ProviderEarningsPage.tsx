@@ -372,10 +372,10 @@ export const ProviderEarningsPage: React.FC = () => {
             <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
               <RefreshCw size={18} />
             </div>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pending</span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pending Authorization</span>
           </div>
           <h2 className="text-xl font-bold text-indigo-700">{formatCurrency(payoutSummary?.pending || 0)}</h2>
-          <p className="text-[10px] text-gray-500 mt-1">Earned, Unapproved</p>
+          <p className="text-[10px] text-gray-500 mt-1">Earned, waiting for authorization</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
@@ -460,15 +460,15 @@ export const ProviderEarningsPage: React.FC = () => {
               className="w-full p-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-teal focus:border-transparent outline-none transition-all appearance-none bg-no-repeat bg-[right_0.5rem_center] bg-[length:1.5em_1.5em]"
               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")` }}
             >
-              <option value="all">All Statuses</option>
-              <option value="Available">Available</option>
-              <option value="Requested">Requested</option>
-              <option value="Approved">Approved</option>
-              <option value="Rejected">Rejected</option>
-              <option value="On Hold">On Hold</option>
-              <option value="Paid">Paid</option>
-              <option value="Pending">Pending</option>
-            </select>
+            <option value="all">All Statuses</option>
+            <option value="Available">Available</option>
+            <option value="Requested">Requested</option>
+            <option value="Approved">Approved for Processing</option>
+            <option value="Rejected">Rejected</option>
+            <option value="On Hold">On Hold</option>
+            <option value="Paid">Paid</option>
+            <option value="Pending">Pending Authorization</option>
+          </select>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 flex-1">
@@ -620,7 +620,7 @@ export const ProviderEarningsPage: React.FC = () => {
                           </span>
                         ) : e.withdrawal_request_status === 'approved' && e.status !== 'paid' ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold uppercase w-fit bg-purple-100 text-purple-700">
-                            <CheckCircle2 size={10} /> READY FOR PAYOUT
+                            <CheckCircle2 size={10} /> APPROVED FOR PROCESSING
                           </span>
                         ) : e.withdrawal_request_status === 'rejected' ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold uppercase w-fit bg-red-100 text-red-700" title={e.withdrawal_notes}>
@@ -633,7 +633,7 @@ export const ProviderEarningsPage: React.FC = () => {
                             'bg-amber-100 text-amber-700'
                           }`}>
                             {e.status === 'paid' ? <CheckCircle2 size={10} /> : <Clock size={10} />}
-                            {e.status === 'paid' ? (e.adjusted_amount !== null && e.adjusted_amount !== undefined && e.adjusted_amount < getOriginalAmount(e) ? 'PAID, REDUCED' : 'PAID') : (e.status === 'approved' ? 'READY FOR PAYOUT' : e.status.toUpperCase())}
+                            {e.status === 'paid' ? 'PAID' : (e.status === 'approved' ? 'AVAILABLE' : e.status === 'pending' ? 'PENDING AUTHORIZATION' : e.status.toUpperCase())}
                           </span>
                         )}
 

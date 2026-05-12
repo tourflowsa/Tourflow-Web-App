@@ -131,20 +131,13 @@ export const PayoutDetail: React.FC = () => {
   };
 
   const getStatusLabel = (status: string) => {
-    if (payout?.is_on_hold) return payout.hold_reason === 'dispute' ? 'DISPUTED' : 'ON HOLD';
-
-    if (status === 'approved' && (payout?.adjusted_amount ?? 0) > 0 && (payout?.adjusted_amount ?? 0) < (payout?.original_amount || payout?.amount_net || 0)) {
-      return 'RESOLVED: REDUCED';
-    }
-
-    if (status === 'approved' && (payout?.adjusted_amount ?? 0) > 0) {
-      return 'RESOLVED: APPROVED';
-    }
+    if (payout?.is_on_hold) return 'ON HOLD';
 
     switch (status) {
-      case 'pending': return 'READY FOR PAYOUT';
+      case 'pending': return 'PENDING AUTHORIZATION';
       case 'approved': return 'AVAILABLE';
       case 'paid': return 'PAID';
+      case 'cancelled': return 'CANCELLED';
       default: return status.toUpperCase();
     }
   };

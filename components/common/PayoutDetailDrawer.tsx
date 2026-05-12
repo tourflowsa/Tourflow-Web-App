@@ -58,7 +58,7 @@ export const PayoutDetailDrawer: React.FC<PayoutDetailDrawerProps> = ({ isOpen, 
     if (payout.withdrawal_request_status) {
       switch (payout.withdrawal_request_status) {
         case 'requested': return 'WITHDRAWAL REQUESTED';
-        case 'approved': return 'APPROVED FOR PAYOUT';
+        case 'approved': return 'APPROVED FOR PROCESSING';
         case 'rejected': return 'WITHDRAWAL REJECTED';
         case 'paid': return 'PAID';
       }
@@ -69,13 +69,14 @@ export const PayoutDetailDrawer: React.FC<PayoutDetailDrawerProps> = ({ isOpen, 
     }
 
     if (status.toLowerCase() === 'approved' && (payout.adjusted_amount ?? 0) > 0) {
-      return 'RESOLVED: APPROVED';
+      return 'RESOLVED: AUTHORIZED';
     }
 
     switch (status.toLowerCase()) {
-      case 'pending': return 'READY FOR PAYOUT';
+      case 'pending': return 'PENDING';
       case 'approved': return 'AVAILABLE';
       case 'paid': return 'PAID';
+      case 'cancelled': return 'CANCELLED';
       default: return status.toUpperCase();
     }
   };

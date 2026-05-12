@@ -583,9 +583,10 @@ export const getOperatorPayoutReminders = async (operatorId: string): Promise<Pa
 };
 
 export const PAYOUT_STATUS_LABELS: Record<string, string> = {
-  pending: 'READY FOR PAYOUT',
-  approved: 'APPROVED',
+  pending: 'PENDING',
+  approved: 'AVAILABLE',
   paid: 'PAID',
+  cancelled: 'CANCELLED',
 };
 
 export const listOperatorPayouts = async (operatorId: string, filters?: { status?: string | string[]; startDate?: string; endDate?: string; limit?: number; includeArchived?: boolean }) => {
@@ -1592,6 +1593,10 @@ export const processPayouts = async (payoutIds: string[], userId: string) => {
       }
     }
 
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('PAYOUTS_UPDATED'));
+    }
+
     return { batch: { ...batch, status: 'completed' }, payouts: updatedPayouts, skippedCount };
   } catch (err) {
     console.error('[processPayouts] Processing failed, marking batch as failed:', err);
@@ -1881,7 +1886,7 @@ export const getPayoutFinanceReport = async (filters?: { startDate?: string; end
     .in('withdrawal_request_status', ['requested', 'approved']);
   
   const totalRequested = requestedData?.reduce((sum, p) => sum + Number(p.adjusted_amount ?? p.amount_net), 0) || 0;
-  const requestedCount = requestedData?.length || 0;
+  const requestedCount = requestedData?.filter(p => p.withdrawal_request_status === 'requested').length || 0;
 
   // 5. Mismatched Batches
   const { data: allBatches } = await supabase
@@ -1979,6 +1984,10 @@ export async function requestWithdrawal(payoutIds: string[], userId: string) {
     message: `Your withdrawal request for ${payoutIds.length} payout(s) has been submitted.`,
     link: '/provider/earnings'
   });
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('PAYOUTS_UPDATED'));
+  }
 
   // Notify Admins
   /* 

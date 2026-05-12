@@ -127,7 +127,7 @@ export const AdminPayoutsPage: React.FC = () => {
     setLoading(true);
     setSuccess(null);
     try {
-      const status = statusFilter === 'All' ? undefined : statusFilter.toLowerCase();
+      const status = ['All', 'on_hold'].includes(statusFilter) ? undefined : statusFilter.toLowerCase();
       const withdrawalStatus = withdrawalFilter === 'All' ? undefined : withdrawalFilter.toLowerCase();
       const data = await listAllPayouts({ 
         status: status === 'ready' ? 'pending' : status, 
@@ -135,7 +135,7 @@ export const AdminPayoutsPage: React.FC = () => {
         includeArchived 
       });
       
-      const enriched = await Promise.all(data.map(async (p: any) => {
+      let enriched = await Promise.all(data.map(async (p: any) => {
         const { data: context } = await supabase.rpc('get_payout_statement_context', { p_payout_id: p.id });
         const ctx = context?.[0] || {};
         let providerDisplayName = ctx.provider_display_name || 'Unknown Provider';
@@ -162,7 +162,12 @@ export const AdminPayoutsPage: React.FC = () => {
           provider_display_name: providerDisplayName
         };
       }));
-      setPayouts(enriched);
+
+      if (statusFilter === 'on_hold') {
+        setPayouts(enriched.filter(p => p.is_on_hold));
+      } else {
+        setPayouts(enriched);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -798,18 +803,19 @@ export const AdminPayoutsPage: React.FC = () => {
             <div className="flex gap-2 flex-wrap">
               <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="border p-2 rounded">
                 <option value="All">All Payout Status</option>
-                <option value="pending">Pending (Ready)</option>
-                <option value="approved">Approved</option>
+                <option value="pending">Pending Authorization</option>
+                <option value="approved">Available (Authorized)</option>
                 <option value="paid">Paid</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="on_hold">On Hold</option>
               </select>
               <select value={withdrawalFilter} onChange={e => setWithdrawalFilter(e.target.value)} className="border p-2 rounded">
                 <option value="All">All Withdrawal Status</option>
                 <option value="requested">Requested</option>
-                <option value="approved">Approved</option>
+                <option value="approved">Approved for Processing</option>
                 <option value="rejected">Rejected</option>
-                <option value="queued">Queued</option>
-                <option value="processed">Processed</option>
-                <option value="none">None</option>
+                <option value="processed">Paid (Processed)</option>
+                <option value="none">Not Requested</option>
               </select>
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={includeArchived} onChange={e => setIncludeArchived(e.target.checked)} />
@@ -976,35 +982,46 @@ export const AdminPayoutsPage: React.FC = () => {
                       <div className="flex flex-col gap-1">
                         {p.is_on_hold ? (
                           <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase w-fit bg-red-100 text-red-700">
-                            <ShieldAlert size={10} /> {p.hold_reason === 'dispute' ? 'DISPUTED' : 'ON HOLD'}
+                            <ShieldAlert size={10} /> ON HOLD
+                          </span>
+                        ) : p.status === 'cancelled' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase w-fit bg-gray-100 text-gray-500 border border-gray-200">
+                            CANCELLED
                           </span>
                         ) : (
                           <div className="flex flex-wrap gap-1">
-                            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase w-fit border ${
-                              p.status === 'paid' ? 'bg-green-50 text-green-700 border-green-100' : 
-                              p.status === 'approved' && p.adjusted_amount > 0 && p.adjusted_amount < (p.original_amount || p.amount_net) ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
-                              p.status === 'approved' && p.adjusted_amount > 0 ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                              p.withdrawal_request_status === 'requested' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                              p.withdrawal_request_status === 'approved' ? 'bg-purple-50 text-purple-700 border-purple-100' :
-                              p.withdrawal_request_status === 'rejected' ? 'bg-red-50 text-red-700 border-red-100' :
-                              p.status === 'approved' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' : 
-                              'bg-gray-50 text-gray-700 border-gray-100'
-                            }`}>
-                              {p.status === 'approved' && p.adjusted_amount > 0 && p.adjusted_amount < (p.original_amount || p.amount_net) ? 'Resolved: Reduced' :
-                               p.status === 'approved' && p.adjusted_amount > 0 ? 'Resolved: Approved' :
-                               p.status === 'paid' ? 'PAID' :
-                               p.withdrawal_request_status === 'requested' ? 'REQUESTED' :
-                               p.withdrawal_request_status === 'approved' ? 'APPROVED FOR PAYOUT' :
-                               p.withdrawal_request_status === 'rejected' ? 'REJECTED' :
-                               p.status === 'approved' ? 'AVAILABLE' :
-                               PAYOUT_STATUS_LABELS[p.status] || p.status.toUpperCase()}
-                            </span>
-                            {p.withdrawal_request_status === 'paid' && (
-                              <span className="px-2 py-1 rounded text-[10px] font-bold uppercase w-fit bg-green-100 text-green-700">
-                                <Send size={10} className="inline mr-1" />
-                                PAID
-                              </span>
-                            )}
+                            {(() => {
+                              const isAdjusted = p.adjusted_amount !== null && p.original_amount !== null && Math.abs(p.adjusted_amount - p.original_amount) > 0.01;
+                              
+                              let label = '';
+                              let colorClass = '';
+
+                              if (p.withdrawal_request_status === 'requested') {
+                                label = 'WITHDRAWAL REQUESTED';
+                                colorClass = 'bg-blue-100 text-blue-700 border-blue-200';
+                              } else if (p.withdrawal_request_status === 'approved') {
+                                label = 'APPROVED FOR PROCESSING';
+                                colorClass = 'bg-purple-100 text-purple-700 border-purple-200';
+                              } else if (p.status === 'paid' || p.withdrawal_request_status === 'paid' || p.withdrawal_request_status === 'processed') {
+                                label = 'PAID';
+                                colorClass = 'bg-green-100 text-green-700 border-green-200';
+                              } else if (p.status === 'approved') {
+                                label = isAdjusted ? 'RESOLVED: AUTHORIZED' : 'AVAILABLE';
+                                colorClass = isAdjusted ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-brand-teal/10 text-brand-teal border-brand-teal/20';
+                              } else if (p.status === 'pending') {
+                                label = 'PENDING AUTHORIZATION';
+                                colorClass = 'bg-amber-100 text-amber-700 border-amber-200';
+                              } else {
+                                label = (PAYOUT_STATUS_LABELS[p.status] || p.status).toUpperCase();
+                                colorClass = 'bg-gray-100 text-gray-500 border-gray-200';
+                              }
+
+                              return (
+                                <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase w-fit border ${colorClass}`}>
+                                  {label}
+                                </span>
+                              );
+                            })()}
                           </div>
                         )}
                         {p.adjustment_reason && (
@@ -1215,20 +1232,47 @@ export const AdminPayoutsPage: React.FC = () => {
                                       {formatCurrency(getSettlementAmount(p))}
                                     </td>
                                     <td className="p-2">
-                                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${
-                                        p.status === 'paid' ? 'bg-green-50 text-green-700 border-green-100' : 
-                                        p.is_on_hold ? 'bg-red-50 text-red-700 border-red-100' :
-                                        p.status === 'approved' && p.adjusted_amount > 0 && p.adjusted_amount < (p.original_amount || p.amount_net) ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
-                                        p.status === 'approved' && p.adjusted_amount > 0 ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                                        p.status === 'approved' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
-                                        'bg-gray-50 text-gray-700 border-gray-100'
-                                      }`}>
-                                        {p.is_on_hold ? (p.hold_reason === 'dispute' ? 'DISPUTED' : 'ON HOLD') : 
-                                         p.status === 'approved' && p.adjusted_amount > 0 && p.adjusted_amount < (p.original_amount || p.amount_net) ? 'Resolved: Reduced' :
-                                         p.status === 'approved' && p.adjusted_amount > 0 ? 'Resolved: Approved' :
-                                         p.status === 'approved' ? 'Available' :
-                                         PAYOUT_STATUS_LABELS[p.status] || p.status.toUpperCase()}
-                                      </span>
+                                      {(() => {
+                                        const isAdjusted = p.adjusted_amount !== null && p.original_amount !== null && Math.abs(p.adjusted_amount - p.original_amount) > 0.01;
+                                        
+                                        let label = '';
+                                        let colorClass = '';
+
+                                        if (p.is_on_hold) {
+                                          label = 'ON HOLD';
+                                          colorClass = 'bg-red-100 text-red-700 border-red-200';
+                                        } else if (p.status === 'paid' || p.withdrawal_request_status === 'paid' || p.withdrawal_request_status === 'processed') {
+                                          label = 'PAID';
+                                          colorClass = 'bg-green-100 text-green-700 border-green-200';
+                                        } else if (p.status === 'cancelled') {
+                                          label = 'CANCELLED';
+                                          colorClass = 'bg-gray-100 text-gray-500 border-gray-200';
+                                        } else if (p.withdrawal_request_status === 'requested') {
+                                          label = 'WITHDRAWAL REQUESTED';
+                                          colorClass = 'bg-blue-100 text-blue-700 border-blue-200';
+                                        } else if (p.withdrawal_request_status === 'approved') {
+                                          label = 'APPROVED FOR PROCESSING';
+                                          colorClass = 'bg-purple-100 text-purple-700 border-purple-200';
+                                        } else if (p.withdrawal_request_status === 'rejected') {
+                                          label = 'REJECTED';
+                                          colorClass = 'bg-red-100 text-red-700 border-red-200';
+                                        } else if (p.status === 'approved') {
+                                          label = isAdjusted ? 'RESOLVED: AUTHORIZED' : 'AVAILABLE';
+                                          colorClass = isAdjusted ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-brand-teal/10 text-brand-teal border-brand-teal/20';
+                                        } else if (p.status === 'pending') {
+                                          label = 'PENDING AUTHORIZATION';
+                                          colorClass = 'bg-amber-100 text-amber-700 border-amber-200';
+                                        } else {
+                                          label = (PAYOUT_STATUS_LABELS[p.status] || p.status).toUpperCase();
+                                          colorClass = 'bg-gray-100 text-gray-500 border-gray-200';
+                                        }
+
+                                        return (
+                                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${colorClass}`}>
+                                            {label}
+                                          </span>
+                                        );
+                                      })()}
                                     </td>
                                     <td className="p-2 text-right">
                                       <div className="flex items-center justify-end gap-2">

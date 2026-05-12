@@ -42,8 +42,8 @@ export const OperatorPayoutsPage: React.FC = () => {
     setSuccess(null);
     try {
       let status: string | string[] | undefined = ['pending', 'approved'];
-      if (statusFilter === 'Ready for Payout') status = 'pending';
-      if (statusFilter === 'Approved') status = 'approved';
+      if (statusFilter === 'Pending') status = 'pending';
+      if (statusFilter === 'Available') status = 'approved';
       if (statusFilter === 'Paid') status = 'paid';
       if (statusFilter === 'All') status = undefined;
       
@@ -162,7 +162,7 @@ export const OperatorPayoutsPage: React.FC = () => {
       if (onHolds) groupStatus = 'On Hold';
       else if (allPaid) groupStatus = 'Paid';
       else if (statuses.includes('paid') && hasPendingAppr) groupStatus = 'Partially Paid';
-      else if (hasPendingAppr) groupStatus = 'Ready for Payout';
+      else if (hasPendingAppr) groupStatus = 'Outstanding';
       else groupStatus = statuses[0];
 
       return {
@@ -289,11 +289,11 @@ export const OperatorPayoutsPage: React.FC = () => {
         <div className="flex justify-between items-center">
           <div className="flex gap-2">
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="border p-2 rounded">
-              <option value="Open">Open</option>
-              <option value="Ready for Payout">Ready for Payout</option>
-              <option value="Approved">Approved</option>
-              <option value="Paid">Paid</option>
-              <option value="All">All</option>
+                    <option value="Open">Open</option>
+                    <option value="pending">Pending Authorization</option>
+                    <option value="approved">Available</option>
+                    <option value="paid">Paid</option>
+                    <option value="All">All</option>
             </select>
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={includeArchived} onChange={e => setIncludeArchived(e.target.checked)} />
@@ -418,20 +418,17 @@ export const OperatorPayoutsPage: React.FC = () => {
                         <div className="flex flex-col gap-1">
                           {p.is_on_hold ? (
                             <span className="px-2 py-1 rounded text-[10px] bg-red-100 text-red-800 font-bold uppercase flex items-center gap-1 w-fit border border-red-200">
-                              <ShieldAlert size={10} /> {p.hold_reason === 'dispute' ? 'DISPUTED' : 'ON HOLD'}
+                              <ShieldAlert size={10} /> ON HOLD
                             </span>
                           ) : (
                             <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase w-fit border ${
                               p.status === 'paid' ? 'bg-green-50 text-green-700 border-green-100' : 
-                              p.status === 'approved' && p.adjusted_amount > 0 && (p.adjusted_amount < (p.original_amount || p.amount_net)) ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
-                              p.status === 'approved' && p.adjusted_amount > 0 ? 'bg-blue-50 text-blue-700 border-blue-100' :
                               p.status === 'approved' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' : 
                               'bg-blue-50 text-blue-700 border-blue-100'
                             }`}>
-                              {p.status === 'approved' && p.adjusted_amount > 0 && (p.adjusted_amount < (p.original_amount || p.amount_net)) ? 'Resolved, Reduced' :
-                               p.status === 'approved' && p.adjusted_amount > 0 ? 'Resolved, Approved' :
+                              {p.status === 'paid' ? 'Paid' :
                                p.status === 'approved' ? 'Available' :
-                               p.status === 'pending' ? 'Ready for Payout' :
+                               p.status === 'pending' ? 'Pending Authorization' :
                                PAYOUT_STATUS_LABELS[p.status] || p.status.toUpperCase()}
                             </span>
                           )}

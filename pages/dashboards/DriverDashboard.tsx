@@ -308,7 +308,7 @@ export const DriverDashboard: React.FC = () => {
             className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md hover:border-brand-teal/30 transition-all"
           >
             <p className="text-lg font-bold text-gray-600 mb-1">{formatCurrency(payoutSummary.pending)}</p>
-            <p className="font-bold text-gray-600 text-sm">Pending</p>
+            <p className="font-bold text-gray-600 text-sm">Pending Authorization</p>
           </div>
 
           <div 
@@ -406,7 +406,7 @@ export const DriverDashboard: React.FC = () => {
             <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
               <h2 className="font-bold text-lg text-brand-charcoal">Payout History</h2>
               <div className="flex items-center gap-2">
-                {['All', 'Available', 'Withdrawal Requested', 'On Hold', 'Paid', 'Pending'].map(f => (
+                {['All', 'Available', 'Withdrawal Requested', 'On Hold', 'Paid', 'Pending Authorization'].map(f => (
                   <button
                     key={f}
                     onClick={() => setPayoutFilter(f)}
@@ -462,20 +462,21 @@ export const DriverDashboard: React.FC = () => {
                         </td>
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
-                            p.is_on_hold ? 'bg-red-100 text-red-700' :
-                            p.withdrawal_request_status === 'requested' ? 'bg-blue-100 text-blue-700' :
-                            p.withdrawal_request_status === 'approved' ? 'bg-purple-100 text-purple-700' :
-                            p.withdrawal_request_status === 'rejected' ? 'bg-red-100 text-red-700' :
-                            p.status === 'paid' ? 'bg-green-50 text-green-600' :
-                            p.status === 'approved' ? 'bg-brand-teal/10 text-brand-teal' :
-                            'bg-gray-100 text-gray-500'
+                            p.is_on_hold ? 'bg-red-100 text-red-700 border border-red-200' :
+                            p.withdrawal_request_status === 'requested' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
+                            p.withdrawal_request_status === 'approved' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
+                            p.withdrawal_request_status === 'rejected' ? 'bg-red-100 text-red-700 border border-red-200' :
+                            p.status === 'paid' ? 'bg-green-100 text-green-700 border border-green-200' :
+                            p.status === 'approved' ? 'bg-brand-teal/10 text-brand-teal border border-brand-teal/20' :
+                            'bg-gray-100 text-gray-500 border border-gray-200'
                           }`}>
                             {p.is_on_hold ? 'On Hold' : 
                              p.withdrawal_request_status === 'requested' ? 'Requested' :
-                             p.withdrawal_request_status === 'approved' ? 'Ready for Payout' :
+                             p.withdrawal_request_status === 'approved' ? 'Approved for Processing' :
                              p.withdrawal_request_status === 'rejected' ? 'Rejected' :
-                             p.status === 'paid' ? (p.adjusted_amount !== null && p.adjusted_amount !== undefined && p.adjusted_amount < getOriginalAmount(p) ? 'Paid, Reduced' : 'Paid') :
-                             p.status === 'approved' ? 'Ready for Payout' : p.status}
+                             p.status === 'paid' ? 'Paid' :
+                             p.status === 'approved' ? 'Available' : 
+                             p.status === 'pending' ? 'Pending Authorization' : p.status.toUpperCase()}
                           </span>
                         </td>
                       </tr>
