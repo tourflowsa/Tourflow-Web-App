@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { listAllPayouts, processPayouts, PAYOUT_STATUS_LABELS, archiveAdminPayout, getPayoutBatchStats, listPayoutBatches, updateBatchStatus, getPayoutFinanceReport, reconcileBatch, approveWithdrawal, rejectWithdrawal, updatePayoutLedgerStatus } from '../../lib/payoutService';
+import { listAllPayouts, processPayouts, PAYOUT_STATUS_LABELS, archiveAdminPayout, getPayoutBatchStats, listPayoutBatches, updateBatchStatus, getPayoutFinanceReport, reconcileBatch, approveWithdrawal, rejectWithdrawal, updatePayoutLedgerStatus, validatePayoutsForProcessing, PayoutValidationResult } from '../../lib/payoutService';
 import { placePayoutOnHold, getPayoutEvents, exportBatchToCSV, exportToCsv } from '../../lib/adminPayoutService';
 import { formatCurrency, formatDate } from '../../lib/formatUtils';
 import { supabase } from '../../lib/supabase';
@@ -81,6 +81,11 @@ export const AdminPayoutsPage: React.FC = () => {
   // Partial Batch Confirm Modal State
   const [partialBatchConfirmOpen, setPartialBatchConfirmOpen] = useState(false);
   const [partialBatchBookingRef, setPartialBatchBookingRef] = useState<string>('');
+
+  // Blocked Payouts Modal State
+  const [blockedPayoutsModalOpen, setBlockedPayoutsModalOpen] = useState(false);
+  const [validationResult, setValidationResult] = useState<PayoutValidationResult | null>(null);
+  const [validating, setValidating] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -397,11 +402,15 @@ export const AdminPayoutsPage: React.FC = () => {
     }
   };
 
-  const executeProcessPayouts = async (actorId: string) => {
+  const executeProcessPayouts = async (actorId: string, payoutIds?: string[]) => {
+    const idsToProcess = payoutIds || processableSelectedIds;
+    if (idsToProcess.length === 0) return;
+
     setProcessing(true);
     setSuccess(null);
+    setError(null);
     try {
-      const result = await processPayouts(processableSelectedIds, actorId);
+      const result = await processPayouts(idsToProcess, actorId);
       let msg = `Batch Created: ${result.batch.batch_ref ?? result.batch.id}`;
       if (result.skippedCount > 0) {
         msg += `. ${result.skippedCount} selected payouts were no longer eligible and were removed from selection.`;
@@ -416,22 +425,13 @@ export const AdminPayoutsPage: React.FC = () => {
       await loadPayouts();
       setProcessing(false);
       setPartialBatchConfirmOpen(false);
+      setBlockedPayoutsModalOpen(false);
     }
   };
 
-  const handleProcess = async () => {
-    const actorId = user?.id || profile?.id;
-
-    if (!actorId) {
-      setError('Unable to process payouts. Missing user identity.');
-      setProcessing(false);
-      return;
-    }
-
-    if (processableSelectedIds.length === 0) return;
-    
+  const checkPartialBookingAndExecute = async (actorId: string, payoutIds: string[]) => {
     // Check for partial booking selection
-    const selectedPayouts = processableSelectedIds.map(id => payouts.find(p => p.id === id)).filter(Boolean);
+    const selectedPayouts = payoutIds.map(id => payouts.find(p => p.id === id)).filter(Boolean);
     const selectedBookingIds = new Set(selectedPayouts.map(p => p.booking_id));
     
     for (const bookingId of selectedBookingIds) {
@@ -442,7 +442,7 @@ export const AdminPayoutsPage: React.FC = () => {
         isSelectable(p)
       );
       
-      const unselectedReadyPayouts = readyPayoutsForBooking.filter(p => !processableSelectedIds.includes(p.id));
+      const unselectedReadyPayouts = readyPayoutsForBooking.filter(p => !payoutIds.includes(p.id));
       
       if (unselectedReadyPayouts.length > 0) {
         const bookingRef = readyPayoutsForBooking[0]?.booking_reference || bookingId;
@@ -452,7 +452,37 @@ export const AdminPayoutsPage: React.FC = () => {
       }
     }
     
-    await executeProcessPayouts(actorId);
+    await executeProcessPayouts(actorId, payoutIds);
+  };
+
+  const handleProcess = async () => {
+    const actorId = user?.id || profile?.id;
+
+    if (!actorId) {
+      setError('Unable to process payouts. Missing user identity.');
+      return;
+    }
+
+    if (processableSelectedIds.length === 0) return;
+    
+    setValidating(true);
+    setError(null);
+    try {
+      const result = await validatePayoutsForProcessing(processableSelectedIds);
+      setValidationResult(result);
+
+      if (result.blocked.length > 0) {
+        setBlockedPayoutsModalOpen(true);
+        return;
+      }
+      
+      await checkPartialBookingAndExecute(actorId, processableSelectedIds);
+    } catch (err: any) {
+      console.error("Validation failed:", err);
+      setError("Failed to validate payouts: " + err.message);
+    } finally {
+      setValidating(false);
+    }
   };
 
   const handleExportCSV = async (batchId: string, reference: string) => {
@@ -1892,6 +1922,92 @@ export const AdminPayoutsPage: React.FC = () => {
                     Close
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {blockedPayoutsModalOpen && validationResult && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !processing && setBlockedPayoutsModalOpen(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <ShieldAlert className="text-red-500" size={24} />
+                  Some payouts are blocked
+                </h3>
+                <button
+                  onClick={() => setBlockedPayoutsModalOpen(false)}
+                  disabled={processing}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X size={24} className="text-gray-400" />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto flex-1">
+                <div className="mb-6 bg-red-50 border border-red-100 rounded-xl p-4">
+                  <p className="text-red-800 font-medium mb-2">
+                   {validationResult.eligible.length} payouts are eligible for {formatCurrency(validationResult.eligibleTotal)}.
+                  </p>
+                  <p className="text-red-800 font-bold">
+                    {validationResult.blocked.length} payouts are blocked for {formatCurrency(validationResult.blockedTotal)}.
+                  </p>
+                </div>
+
+                <h4 className="font-bold text-gray-900 mb-4 uppercase text-xs tracking-wider">Blocked Payouts</h4>
+                <div className="space-y-3">
+                  {validationResult.blocked.map((item, idx) => (
+                    <div key={idx} className="flex flex-col p-3 bg-gray-50 rounded-xl border border-gray-100">
+                      <div className="flex justify-between items-start mb-1 text-sm font-bold text-gray-900">
+                        <span>{item.providerName}</span>
+                        <span className="text-red-600">{formatCurrency(item.amount)}</span>
+                      </div>
+                      <div className="text-xs text-gray-500 mb-2">Booking Ref: {item.bookingReference}</div>
+                      <div className="text-[11px] font-medium text-red-600 bg-red-50 px-2 py-1 rounded inline-flex items-center gap-1.5 w-fit">
+                        <AlertCircle size={12} />
+                        Reason: {item.reason}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 sticky bottom-0 z-10">
+                <button
+                  onClick={() => setBlockedPayoutsModalOpen(false)}
+                  disabled={processing}
+                  className="px-6 py-3 text-gray-600 font-bold hover:bg-gray-100 rounded-xl transition-colors border border-gray-200"
+                >
+                  Cancel
+                </button>
+                {validationResult.eligible.length > 0 && (
+                  <button
+                    onClick={() => {
+                      const actorId = user?.id || profile?.id;
+                      if (actorId) {
+                        checkPartialBookingAndExecute(actorId, validationResult.eligible.map(e => e.id));
+                      }
+                    }}
+                    disabled={processing}
+                    className="px-6 py-3 bg-blue-600 text-white font-bold hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-200 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {processing ? <Loader2 size={18} className="animate-spin" /> : 'Process Eligible Only'}
+                  </button>
+                )}
               </div>
             </motion.div>
           </div>

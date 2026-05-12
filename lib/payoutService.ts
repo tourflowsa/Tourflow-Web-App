@@ -1323,13 +1323,240 @@ export const updateBatchStatus = async (batchId: string, status: 'processing' | 
   return data;
 };
 
+export interface PayoutValidationItem {
+  id: string;
+  providerName: string;
+  bookingReference: string;
+  amount: number;
+  reason?: string | null;
+}
+
+export interface PayoutValidationResult {
+  eligible: PayoutValidationItem[];
+  blocked: PayoutValidationItem[];
+  eligibleTotal: number;
+  blockedTotal: number;
+}
+
+/**
+ * Validates a list of payouts for processing by the Admin.
+ * Identifies eligible and blocked payouts with reasons.
+ * Does not modify any data.
+ */
+export async function validatePayoutsForProcessing(payoutIds: string[]): Promise<PayoutValidationResult> {
+  if (!payoutIds || payoutIds.length === 0) {
+    return { eligible: [], blocked: [], eligibleTotal: 0, blockedTotal: 0 };
+  }
+
+  // 1. Fetch payouts with context
+  const { data: payouts, error: fetchError } = await supabase
+    .from('payout_ledger')
+    .select(`
+      id, 
+      amount_net, 
+      adjusted_amount, 
+      operator_id, 
+      is_on_hold, 
+      status, 
+      withdrawal_request_status, 
+      booking_id, 
+      provider_id, 
+      batch_id,
+      archived_at,
+      payout_reference,
+      bookings (id, booking_reference),
+      profiles:provider_id (id, full_name, company_name, role)
+    `)
+    .in('id', payoutIds);
+
+  if (fetchError) throw fetchError;
+  if (!payouts) throw new Error("Payouts not found during validation.");
+
+  const result: PayoutValidationResult = {
+    eligible: [],
+    blocked: [],
+    eligibleTotal: 0,
+    blockedTotal: 0
+  };
+
+  const candidateEligible: any[] = [];
+
+  // 2. Initial individual checks
+  for (const p of payouts) {
+    const amount = Number(p.adjusted_amount ?? p.amount_net ?? 0);
+    const providerName = (p.profiles as any)?.company_name || (p.profiles as any)?.full_name || 'Unknown Provider';
+    const bookingReference = (p.bookings as any)?.booking_reference || 'Unknown Booking';
+
+    const item: PayoutValidationItem = {
+      id: p.id,
+      providerName,
+      bookingReference,
+      amount
+    };
+
+    // a. Basic state checks
+    if (p.status === 'paid') {
+      result.blocked.push({ ...item, reason: "Payout is already marked as paid." });
+      result.blockedTotal += amount;
+      continue;
+    }
+    if (p.batch_id) {
+      result.blocked.push({ ...item, reason: "Payout is already assigned to a batch." });
+      result.blockedTotal += amount;
+      continue;
+    }
+    if (p.is_on_hold) {
+      result.blocked.push({ ...item, reason: "Payout is currently on hold." });
+      result.blockedTotal += amount;
+      continue;
+    }
+    if (p.status === 'cancelled') {
+        result.blocked.push({ ...item, reason: "Payout is cancelled." });
+        result.blockedTotal += amount;
+        continue;
+    }
+    if (p.archived_at) {
+        result.blocked.push({ ...item, reason: "Payout is archived." });
+        result.blockedTotal += amount;
+        continue;
+    }
+    
+    const isProcessableStatus = ['pending', 'approved'].includes((p.status || '').toLowerCase());
+    if (!isProcessableStatus) {
+        result.blocked.push({ ...item, reason: `Payout status is '${p.status}', which is not processable.` });
+        result.blockedTotal += amount;
+        continue;
+    }
+
+    const allowedWithdrawal = p.withdrawal_request_status === null || 
+                             ['approved', 'requested', 'queued'].includes(p.withdrawal_request_status);
+    if (!allowedWithdrawal) {
+        result.blocked.push({ ...item, reason: `Withdrawal status is '${p.withdrawal_request_status}', which blocks processing.` });
+        result.blockedTotal += amount;
+        continue;
+    }
+
+    // b. Compliance and Bank Details
+    if (!p.provider_id) {
+       result.blocked.push({ ...item, reason: "Missing provider ID." });
+       result.blockedTotal += amount;
+       continue;
+    }
+
+    const profile = p.profiles as any;
+    if (!profile) {
+        result.blocked.push({ ...item, reason: "Provider profile not found." });
+        result.blockedTotal += amount;
+        continue;
+    }
+
+    const compliance = await checkComplianceGate({
+      action: 'receive_payout',
+      actorRole: profile.role as UserRole,
+      actorUserId: p.provider_id
+    });
+
+    if (!compliance.allowed) {
+        result.blocked.push({ ...item, reason: `Compliance check failed: ${compliance.message}` });
+        result.blockedTotal += amount;
+        continue;
+    }
+
+    const bankDetails = await getBankDetails(p.provider_id);
+    const bankStatus = getBankStatus(bankDetails);
+    
+    if (bankStatus !== 'Complete' && bankStatus !== 'Updated recently') {
+        result.blocked.push({ ...item, reason: `Provider bank details are ${bankStatus}.` });
+        result.blockedTotal += amount;
+        continue;
+    }
+
+    // If passed all individual checks, add to candidate list for escrow check
+    candidateEligible.push(p);
+  }
+
+  // 3. Escrow checks (grouping by booking)
+  if (candidateEligible.length > 0) {
+    const bookingIds = Array.from(new Set(candidateEligible.map(p => p.booking_id).filter(Boolean)));
+    
+    const { data: bookings } = await supabase
+      .from('bookings')
+      .select('id, escrow_total, funds_held_amount, total_amount')
+      .in('id', bookingIds);
+
+    const { data: allPaidPayouts } = await supabase
+      .from('payout_ledger')
+      .select('booking_id, amount_net, adjusted_amount')
+      .in('booking_id', bookingIds)
+      .eq('status', 'paid');
+
+    const bookingMap = (bookings || []).reduce((acc, b) => {
+      acc[b.id] = b;
+      return acc;
+    }, {} as Record<string, any>);
+
+    for (const bookingId of bookingIds) {
+      const booking = bookingMap[bookingId];
+      const selectedPayoutsForBooking = candidateEligible.filter(p => p.booking_id === bookingId);
+      
+      const alreadyPaidAmount = (allPaidPayouts || [])
+        .filter(p => p.booking_id === bookingId)
+        .reduce((sum, p) => sum + Number(p.adjusted_amount ?? p.amount_net ?? 0), 0);
+
+      const totalEscrow = booking?.escrow_total || booking?.funds_held_amount || booking?.total_amount || 0;
+      const remainingEscrow = totalEscrow - alreadyPaidAmount;
+      const selectedAmountForBooking = selectedPayoutsForBooking
+        .reduce((sum, p) => sum + Number(p.adjusted_amount ?? p.amount_net ?? 0), 0);
+
+      if (totalEscrow <= 0 || remainingEscrow < selectedAmountForBooking) {
+        // Block all payouts for this booking
+        const reason = totalEscrow <= 0 
+          ? "Funds have not been received into escrow for this booking." 
+          : "Insufficient escrow remaining for this booking to cover all selected payouts.";
+          
+        for (const p of selectedPayoutsForBooking) {
+          const amount = Number(p.adjusted_amount ?? p.amount_net ?? 0);
+          const providerName = (p.profiles as any)?.company_name || (p.profiles as any)?.full_name || 'Unknown Provider';
+          const bookingReference = (p.bookings as any)?.booking_reference || 'Unknown Booking';
+          
+          result.blocked.push({
+            id: p.id,
+            providerName,
+            bookingReference,
+            amount,
+            reason
+          });
+          result.blockedTotal += amount;
+        }
+      } else {
+        // All good for this booking
+        for (const p of selectedPayoutsForBooking) {
+          const amount = Number(p.adjusted_amount ?? p.amount_net ?? 0);
+          const providerName = (p.profiles as any)?.company_name || (p.profiles as any)?.full_name || 'Unknown Provider';
+          const bookingReference = (p.bookings as any)?.booking_reference || 'Unknown Booking';
+          
+          result.eligible.push({
+            id: p.id,
+            providerName,
+            bookingReference,
+            amount
+          });
+          result.eligibleTotal += amount;
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
 export const processPayouts = async (payoutIds: string[], userId: string) => {
   if (!userId) throw new Error('Missing actor id for payout batch processing.');
 
   // 1. Fetch selected payouts (Current state to avoid stale selection)
   const { data: payouts, error: fetchError } = await supabase
     .from('payout_ledger')
-    .select('id, amount_net, adjusted_amount, operator_id, is_on_hold, status, withdrawal_request_status, booking_id, provider_id, batch_id')
+    .select('id, amount_net, adjusted_amount, operator_id, is_on_hold, status, withdrawal_request_status, booking_id, provider_id, batch_id, archived_at')
     .in('id', payoutIds);
 
   if (fetchError) throw fetchError;
@@ -1340,11 +1567,12 @@ export const processPayouts = async (payoutIds: string[], userId: string) => {
     const isPaid = p.status === 'paid';
     const isBatched = !!p.batch_id;
     const isOnHold = p.is_on_hold;
+    const isArchived = !!p.archived_at;
     const isProcessableStatus = ['pending', 'approved'].includes((p.status || '').toLowerCase());
     const allowedWithdrawal = p.withdrawal_request_status === null || 
                              ['approved', 'requested', 'queued'].includes(p.withdrawal_request_status);
     
-    return !isPaid && !isBatched && !isOnHold && isProcessableStatus && allowedWithdrawal;
+    return !isPaid && !isBatched && !isOnHold && !isArchived && isProcessableStatus && allowedWithdrawal;
   });
 
   const skippedCount = payouts.length - eligiblePayouts.length;
@@ -1933,6 +2161,16 @@ export async function requestWithdrawal(payoutIds: string[], userId: string) {
   if (!payouts) throw new Error("Payouts not found.");
 
   // 2. Validate eligibility
+  const providerIds = Array.from(new Set(payouts.map(p => p.provider_id).filter(Boolean)));
+  for (const providerId of providerIds) {
+    const bankDetails = await getBankDetails(providerId as string);
+    const bankStatus = getBankStatus(bankDetails);
+    
+    if (bankStatus === 'Missing' || bankStatus === 'Incomplete') {
+      throw new Error("Please complete your bank details before requesting withdrawal.");
+    }
+  }
+
   for (const p of payouts) {
     if (p.status !== 'approved') {
       throw new Error(`Payout ${p.payout_reference} is not approved.`);

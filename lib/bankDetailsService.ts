@@ -1,5 +1,6 @@
 
 import { supabase } from './supabase';
+import { logAuditEvent } from './auditService';
 
 export interface BankDetails {
   id?: string;
@@ -60,6 +61,20 @@ export const saveBankDetails = async (details: Omit<BankDetails, 'id' | 'updated
     .single();
 
   if (error) throw error;
+
+  // Audit logging - non-blocking
+  logAuditEvent({
+    action: 'PROVIDER_BANK_DETAILS_UPDATED',
+    entityType: 'provider_bank_details',
+    entityId: details.provider_id,
+    metadata: {
+      provider_id: details.provider_id,
+      bank_name: details.bank_name,
+      account_number_masked: maskAccountNumber(details.account_number),
+      provider_type: details.provider_type
+    }
+  }).catch(err => console.warn('[bankDetailsService] Audit log failed:', err));
+
   return data as BankDetails;
 };
 
