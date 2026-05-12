@@ -11,24 +11,21 @@ import { useNavigate } from 'react-router-dom';
 
 const getDisputeAmount = (payout: any) => {
   if (!payout) return 0;
-  if (payout.adjusted_amount !== null && payout.adjusted_amount !== undefined) return Number(payout.adjusted_amount);
-  if (payout.amount_net !== null && payout.amount_net !== undefined) return Number(payout.amount_net);
-  if (payout.original_amount !== null && payout.original_amount !== undefined) return Number(payout.original_amount);
-  return 0;
+  // Use amount_net as first priority for pre-dispute net payout, falling back to original_amount
+  return Number(payout.amount_net ?? payout.original_amount ?? 0);
 };
 
 const getDisputeSettlement = (payout: any) => {
   if (!payout) return 0;
-  if (payout.adjusted_amount !== null && payout.adjusted_amount !== undefined) return Number(payout.adjusted_amount);
+  // Settlement is the final adjusted amount after resolution
+  if (payout.adjusted_amount !== null && payout.adjusted_amount !== undefined) {
+    return Number(payout.adjusted_amount);
+  }
   return getDisputeAmount(payout);
 };
 
 const getModalOriginalAmount = (payout: any) => {
-  if (!payout) return 0;
-  if (payout.original_amount !== null && payout.original_amount !== undefined) return Number(payout.original_amount);
-  if (payout.amount_net !== null && payout.amount_net !== undefined) return Number(payout.amount_net);
-  if (payout.adjusted_amount !== null && payout.adjusted_amount !== undefined) return Number(payout.adjusted_amount);
-  return 0;
+  return getDisputeAmount(payout);
 };
 
 export const PayoutDisputesPage: React.FC = () => {
@@ -265,7 +262,7 @@ export const PayoutDisputesPage: React.FC = () => {
               <tr className="bg-gray-50 border-b border-gray-100">
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Payout / Booking</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Parties</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Amount</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Original Net</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Settlement</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Issue</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>

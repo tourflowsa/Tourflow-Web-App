@@ -1,10 +1,12 @@
 
 import { supabase } from './supabase';
-import { Payout } from '../types';
+import { Payout, UserRole } from '../types';
 import { logAuditEvent } from './auditService';
 import { resolveOperatorFee } from './feeService';
 import { createNotification } from './notificationService';
 import { refreshBookingEscrowState } from './escrowService';
+import { checkComplianceGate } from './complianceGate';
+import { getBankDetails, getBankStatus } from './bankDetailsService';
 
 /**
  * Logs a payout lifecycle event to the payout_events table and system_audit_log.
@@ -676,19 +678,88 @@ export const getPayoutDetail = async (payoutId: string, operatorId: string) => {
 export async function updatePayoutLedgerStatus(id: string, status: 'approved' | 'paid', operatorId?: string) {
   if (!id) throw new Error("Invalid Payout Ledger ID");
 
-  // Check if already paid, on hold, or batched
-  const { data: current } = await supabase
+  // Fetch payout row
+  const { data: current, error: fetchError } = await supabase
     .from('payout_ledger')
-    .select('status, is_on_hold, booking_id, batch_id')
+    .select('status, is_on_hold, booking_id, batch_id, provider_id')
     .eq('id', id)
     .single();
 
-  if (current?.batch_id) {
-    throw new Error("Cannot modify a payout that is already assigned to a batch.");
+  if (fetchError || !current) {
+    console.error("updatePayoutLedgerStatus fetchError for id", id, ":", fetchError);
+    throw new Error(`Payout ledger row not found or error fetching: ${id}`);
   }
 
-  if (current?.status === 'paid') {
+  // Explicit status guards
+  if (current.batch_id) {
+    throw new Error("Cannot modify a payout that is already assigned to a batch.");
+  }
+  if (current.status === 'paid') {
     throw new Error("PAYOUT_PAID");
+  }
+  if (current.status === 'cancelled') {
+    throw new Error("Cannot approve/pay a cancelled payout.");
+  }
+  if (status === 'approved' && current.status === 'approved') {
+    throw new Error("Payout is already approved.");
+  }
+  if (current.is_on_hold) {
+    throw new Error("Cannot approve/pay a payout while it is on hold.");
+  }
+
+  if (status === 'approved') {
+    // 0. Fetch booking to ensure it's completed
+    if (!current.booking_id) {
+      throw new Error("Cannot authorize payout: Missing booking ID.");
+    }
+    const { data: booking, error: bookingError } = await supabase
+      .from('bookings')
+      .select('status')
+      .eq('id', current.booking_id)
+      .single();
+    
+    if (bookingError || !booking) {
+      throw new Error(`Booking not found or error fetching for ID: ${current.booking_id}`);
+    }
+    
+    if (booking.status !== 'completed') {
+      throw new Error("Cannot authorize payout availability before booking is completed.");
+    }
+
+    // Provider ID Check
+    if (!current.provider_id) {
+      throw new Error("Cannot approve payout: Missing provider ID.");
+    }
+
+    // 1. Fetch provider profile to determine role
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', current.provider_id)
+      .single();
+
+    if (profileError || !profile) {
+      throw new Error(`Provider profile not found for ID: ${current.provider_id}`);
+    }
+
+    // 2. Compliance Gate Check
+    const compliance = await checkComplianceGate({
+      action: 'receive_payout',
+      actorRole: profile.role as UserRole,
+      actorUserId: current.provider_id
+    });
+
+    if (!compliance.allowed) {
+      throw new Error(`Payout approval blocked: ${compliance.message}`);
+    }
+
+    // 3. Bank Details Check
+    const bankDetails = await getBankDetails(current.provider_id);
+    const bankStatus = getBankStatus(bankDetails);
+    
+    if (bankStatus !== 'Complete' && bankStatus !== 'Updated recently') {
+      throw new Error(`Payout approval blocked: Provider bank details are ${bankStatus}.`);
+    }
   }
 
   if (status === 'paid' && current?.is_on_hold) {
@@ -1282,6 +1353,44 @@ export const processPayouts = async (payoutIds: string[], userId: string) => {
     throw new Error("None of the selected payouts are eligible for processing (they may have been paid or placed on hold).");
   }
 
+  // 2.5 Eligibility Check: Compliance and Bank Details
+  for (const p of eligiblePayouts) {
+    // Provider ID Check
+    if (!p.provider_id) {
+      throw new Error(`Payout ${p.id} eligibility error: Missing provider ID.`);
+    }
+
+    // Fetch provider profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', p.provider_id)
+      .single();
+
+    if (profileError || !profile) {
+      throw new Error(`Provider profile not found for ID: ${p.provider_id}`);
+    }
+
+    // Compliance Gate Check
+    const compliance = await checkComplianceGate({
+      action: 'receive_payout',
+      actorRole: profile.role as UserRole,
+      actorUserId: p.provider_id
+    });
+
+    if (!compliance.allowed) {
+      throw new Error(`Payout ${p.id} eligibility error: ${compliance.message}`);
+    }
+
+    // Bank Details Check
+    const bankDetails = await getBankDetails(p.provider_id);
+    const bankStatus = getBankStatus(bankDetails);
+    
+    if (bankStatus !== 'Complete' && bankStatus !== 'Updated recently') {
+      throw new Error(`Payout ${p.id} eligibility error: Provider bank details are ${bankStatus}.`);
+    }
+  }
+
   // 3. Group by booking and check escrow eligibility
   const bookingIds = Array.from(new Set(eligiblePayouts.map(p => p.booking_id).filter(Boolean)));
   
@@ -1768,10 +1877,11 @@ export const getPayoutFinanceReport = async (filters?: { startDate?: string; end
   // 4. Total Requested
   const { data: requestedData } = await supabase
     .from('payout_ledger')
-    .select('amount_net, adjusted_amount')
+    .select('amount_net, adjusted_amount, withdrawal_request_status')
     .in('withdrawal_request_status', ['requested', 'approved']);
   
   const totalRequested = requestedData?.reduce((sum, p) => sum + Number(p.adjusted_amount ?? p.amount_net), 0) || 0;
+  const requestedCount = requestedData?.length || 0;
 
   // 5. Mismatched Batches
   const { data: allBatches } = await supabase
@@ -1800,6 +1910,7 @@ export const getPayoutFinanceReport = async (filters?: { startDate?: string; end
     totalPending,
     totalOnHold,
     totalRequested,
+    requestedCount,
     mismatchCount
   };
 };
@@ -1870,6 +1981,9 @@ export async function requestWithdrawal(payoutIds: string[], userId: string) {
   });
 
   // Notify Admins
+  /* 
+  // Disabled due to RLS restrictions on providers creating notifications for admins.
+  // Admins monitor requested withdrawals via the Payout Management dashboard.
   const { data: admins } = await supabase
     .from('profiles')
     .select('id')
@@ -1886,6 +2000,7 @@ export async function requestWithdrawal(payoutIds: string[], userId: string) {
       });
     }
   }
+  */
 
   // 5. Audit Log
   await logAuditEvent({
@@ -2413,6 +2528,19 @@ export const raisePayoutDispute = async (payload: {
   
   if (payout?.status === 'paid') {
     throw new Error("Cannot create a dispute for a paid payout.");
+  }
+
+  // Check if an open dispute already exists
+  const { data: existingDispute, error: existingDisputeError } = await supabase
+    .from('payout_disputes')
+    .select('id')
+    .eq('payout_id', payload.payout_id)
+    .eq('status', 'open')
+    .maybeSingle();
+
+  if (existingDisputeError) throw existingDisputeError;
+  if (existingDispute) {
+    throw new Error("An open dispute already exists for this payout.");
   }
 
   // 1. Insert into payout_disputes

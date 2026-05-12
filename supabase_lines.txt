@@ -1,0 +1,4 @@
+import { supabase } from '../../lib/supabase';
+        const { data: context } = await supabase.rpc('get_payout_statement_context', { p_payout_id: p.id });
+          const { data: vehicle } = await supabase
+      const { data, error } = await supabase

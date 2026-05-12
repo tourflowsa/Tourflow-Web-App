@@ -467,6 +467,7 @@ export const BookingDetail: React.FC = () => {
   }, [booking?.vehicle_id]);
 
   const isOperatorOrAdmin = profile?.role === 'operator' || profile?.role === 'admin';
+  const isAdmin = profile?.role === 'admin';
 
   const handleSaveCosts = async () => {
     if (!booking || !user) return;
@@ -1282,8 +1283,8 @@ export const BookingDetail: React.FC = () => {
       });
     });
 
-    // Tracking which resource_id + type has audit logs to avoid duplicate entries with fallback
-    const handledAssignments = new Set<string>();
+    // Tracking which resource_id + type + action has audit logs to avoid duplicate entries with fallback
+    const handledResourceActions = new Set<string>();
 
     // Audit Logs (Primary source for history)
     auditLogs.forEach(log => {
@@ -1310,7 +1311,13 @@ export const BookingDetail: React.FC = () => {
         const rawRole = log.metadata?.provider_type || log.metadata?.role || 'provider';
         
         if (resourceId) {
-          handledAssignments.add(`${resourceId}_${rawRole}`);
+          const actionKey = log.action.replace('ASSIGNMENT_', '').toLowerCase();
+          handledResourceActions.add(`${resourceId}_${rawRole}_${actionKey}`);
+          // Support older audit log mappings
+          if (actionKey === 'declined') handledResourceActions.add(`${resourceId}_${rawRole}_rejected`);
+          if (actionKey === 'rejected') handledResourceActions.add(`${resourceId}_${rawRole}_declined`);
+          // Mark as "sent" if we have any assignment activity to avoid duplicate "assigned" fallbacks
+          handledResourceActions.add(`${resourceId}_${rawRole}_sent`);
         }
 
         let label = '';
@@ -1362,24 +1369,20 @@ export const BookingDetail: React.FC = () => {
       }
     });
 
-    // Fallback Assignments (For old bookings without audit logs)
+    // Fallback Assignments (Reliability layer for missing audit logs)
     assignments.forEach(a => {
       const role = a.resource_type;
       const resourceId = a.resource_id;
       
-      // If we have audit logs for this assignment, don't show the redundant current-state entry
-      if (handledAssignments.has(`${resourceId}_${role}`)) {
-        return;
-      }
-
       const roleLabel = role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ');
       const name = (a.profile as any)?.company_name || a.profile?.full_name || '';
       const nameSuffix = name ? `: ${name}` : '';
       
-      if (a.updated_at) {
+      // 1. "Assigned" event fallback
+      if (a.updated_at && !handledResourceActions.has(`${resourceId}_${role}_sent`)) {
         events.push({
           type: 'assignment',
-          label: `${roleLabel} assigned (Current)${nameSuffix}`,
+          label: `${roleLabel} assigned${nameSuffix}`,
           timestamp: a.updated_at,
           source: 'OPERATOR',
           avatar: a.profile?.avatar_url || a.profile?.profile_image_url || undefined,
@@ -1387,21 +1390,38 @@ export const BookingDetail: React.FC = () => {
         });
       }
 
+      // 2. Status event fallback (Accepted/Declined/Completed)
       if (a.updated_at && a.status && a.status !== 'pending') {
-        let label = '';
-        if (a.status === 'accepted') label = `${roleLabel} accepted`;
-        else if (a.status === 'rejected') label = `${roleLabel} declined`;
-        else if (a.status === 'completed') label = `${roleLabel} completed`;
+        const actionKey = a.status === 'rejected' ? 'declined' : a.status;
+        const alternateKey = a.status === 'rejected' ? 'rejected' : a.status;
 
-        if (label) {
-          events.push({
-            type: 'assignment',
-            label: `${label} (Current)${nameSuffix}`,
-            timestamp: a.updated_at,
-            source: a.status === 'cancelled' ? 'OPERATOR' : 'PROVIDER',
-            avatar: a.profile?.avatar_url || a.profile?.profile_image_url || undefined,
-            initials: a.profile?.full_name?.charAt(0)
-          });
+        if (!handledResourceActions.has(`${resourceId}_${role}_${actionKey}`) && 
+            !handledResourceActions.has(`${resourceId}_${role}_${alternateKey}`)) {
+          
+          let label = '';
+          let colorClass = '';
+          if (a.status === 'accepted') {
+            label = `${roleLabel} accepted assignment${nameSuffix}`;
+            colorClass = 'text-green-600';
+          } else if (a.status === 'rejected') {
+            label = `${roleLabel} declined assignment${nameSuffix}`;
+            colorClass = 'text-red-600';
+          } else if (a.status === 'completed') {
+            label = `${roleLabel} assignment completed${nameSuffix}`;
+            colorClass = 'text-green-600';
+          }
+
+          if (label) {
+            events.push({
+              type: 'assignment',
+              label,
+              timestamp: a.updated_at,
+              source: a.status === 'rejected' ? 'PROVIDER' : (a.status === 'accepted' ? 'PROVIDER' : 'SYSTEM'),
+              avatar: a.profile?.avatar_url || a.profile?.profile_image_url || undefined,
+              initials: a.profile?.full_name?.charAt(0),
+              colorClass
+            });
+          }
         }
       }
     });
@@ -1810,6 +1830,10 @@ export const BookingDetail: React.FC = () => {
 
   const handleUpdatePayoutStatus = async (payoutLedgerId: string, status: 'approved' | 'paid', resource: 'driver' | 'guide' | 'vehicle') => {
     if (!booking) return;
+    if (!isAdmin) {
+      showNotice('error', 'Only administrators can update payout statuses.');
+      return;
+    }
     
     setUpdatingPayout(resource);
     try {
@@ -3786,14 +3810,16 @@ export const BookingDetail: React.FC = () => {
                       <span className="text-[10px] text-amber-600 font-bold italic">Payout record missing</span>
                     ) : driverPayout.status === 'pending' ? (
                       <>
-                        <button
-                          onClick={() => handleUpdatePayoutStatus(driverPayout.id, 'approved', 'driver')}
-                          disabled={updatingPayout === 'driver' || driverPayout.is_on_hold}
-                          title={driverPayout.is_on_hold ? "Payout is on hold. Resolve dispute to continue." : ""}
-                          className="px-3 py-1 bg-brand-teal text-white text-[10px] font-bold uppercase rounded hover:bg-brand-teal/90 disabled:opacity-50"
-                        >
-                          {updatingPayout === 'driver' ? <Loader2 size={12} className="animate-spin inline" /> : 'Approve'}
-                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleUpdatePayoutStatus(driverPayout.id, 'approved', 'driver')}
+                            disabled={updatingPayout === 'driver' || driverPayout.is_on_hold}
+                            title={driverPayout.is_on_hold ? "Payout is on hold. Resolve dispute to continue." : ""}
+                            className="px-3 py-1 bg-brand-teal text-white text-[10px] font-bold uppercase rounded hover:bg-brand-teal/90 disabled:opacity-50"
+                          >
+                            {updatingPayout === 'driver' ? <Loader2 size={12} className="animate-spin inline" /> : 'Approve'}
+                          </button>
+                        )}
                         {!driverPayout.is_on_hold && (
                           <button
                             onClick={() => setDisputeModal({ isOpen: true, payoutId: driverPayout.id, resource: 'driver' })}
@@ -3805,14 +3831,16 @@ export const BookingDetail: React.FC = () => {
                       </>
                     ) : driverPayout.status === 'approved' ? (
                       <>
-                        <button
-                          onClick={() => handleUpdatePayoutStatus(driverPayout.id, 'paid', 'driver')}
-                          disabled={updatingPayout === 'driver' || driverPayout.is_on_hold}
-                          title={driverPayout.is_on_hold ? "Payout is on hold. Resolve dispute to continue." : ""}
-                          className="px-3 py-1 bg-green-600 text-white text-[10px] font-bold uppercase rounded hover:bg-green-700 disabled:opacity-50"
-                        >
-                          {updatingPayout === 'driver' ? <Loader2 size={12} className="animate-spin inline" /> : 'Mark as Paid'}
-                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleUpdatePayoutStatus(driverPayout.id, 'paid', 'driver')}
+                            disabled={updatingPayout === 'driver' || driverPayout.is_on_hold}
+                            title={driverPayout.is_on_hold ? "Payout is on hold. Resolve dispute to continue." : ""}
+                            className="px-3 py-1 bg-green-600 text-white text-[10px] font-bold uppercase rounded hover:bg-green-700 disabled:opacity-50"
+                          >
+                            {updatingPayout === 'driver' ? <Loader2 size={12} className="animate-spin inline" /> : 'Mark as Paid'}
+                          </button>
+                        )}
                         {!driverPayout.is_on_hold && (
                           <button
                             onClick={() => setDisputeModal({ isOpen: true, payoutId: driverPayout.id, resource: 'driver' })}
@@ -3883,14 +3911,16 @@ export const BookingDetail: React.FC = () => {
                       <span className="text-[10px] text-amber-600 font-bold italic">Payout record missing</span>
                     ) : guidePayout.status === 'pending' ? (
                       <>
-                        <button
-                          onClick={() => handleUpdatePayoutStatus(guidePayout.id, 'approved', 'guide')}
-                          disabled={updatingPayout === 'guide' || guidePayout.is_on_hold}
-                          title={guidePayout.is_on_hold ? "Payout is on hold. Resolve dispute to continue." : ""}
-                          className="px-3 py-1 bg-brand-teal text-white text-[10px] font-bold uppercase rounded hover:bg-brand-teal/90 disabled:opacity-50"
-                        >
-                          {updatingPayout === 'guide' ? <Loader2 size={12} className="animate-spin inline" /> : 'Approve'}
-                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleUpdatePayoutStatus(guidePayout.id, 'approved', 'guide')}
+                            disabled={updatingPayout === 'guide' || guidePayout.is_on_hold}
+                            title={guidePayout.is_on_hold ? "Payout is on hold. Resolve dispute to continue." : ""}
+                            className="px-3 py-1 bg-brand-teal text-white text-[10px] font-bold uppercase rounded hover:bg-brand-teal/90 disabled:opacity-50"
+                          >
+                            {updatingPayout === 'guide' ? <Loader2 size={12} className="animate-spin inline" /> : 'Approve'}
+                          </button>
+                        )}
                         {!guidePayout.is_on_hold && (
                           <button
                             onClick={() => setDisputeModal({ isOpen: true, payoutId: guidePayout.id, resource: 'guide' })}
@@ -3902,14 +3932,16 @@ export const BookingDetail: React.FC = () => {
                       </>
                     ) : guidePayout.status === 'approved' ? (
                       <>
-                        <button
-                          onClick={() => handleUpdatePayoutStatus(guidePayout.id, 'paid', 'guide')}
-                          disabled={updatingPayout === 'guide' || guidePayout.is_on_hold}
-                          title={guidePayout.is_on_hold ? "Payout is on hold. Resolve dispute to continue." : ""}
-                          className="px-3 py-1 bg-green-600 text-white text-[10px] font-bold uppercase rounded hover:bg-green-700 disabled:opacity-50"
-                        >
-                          {updatingPayout === 'guide' ? <Loader2 size={12} className="animate-spin inline" /> : 'Mark as Paid'}
-                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleUpdatePayoutStatus(guidePayout.id, 'paid', 'guide')}
+                            disabled={updatingPayout === 'guide' || guidePayout.is_on_hold}
+                            title={guidePayout.is_on_hold ? "Payout is on hold. Resolve dispute to continue." : ""}
+                            className="px-3 py-1 bg-green-600 text-white text-[10px] font-bold uppercase rounded hover:bg-green-700 disabled:opacity-50"
+                          >
+                            {updatingPayout === 'guide' ? <Loader2 size={12} className="animate-spin inline" /> : 'Mark as Paid'}
+                          </button>
+                        )}
                         {!guidePayout.is_on_hold && (
                           <button
                             onClick={() => setDisputeModal({ isOpen: true, payoutId: guidePayout.id, resource: 'guide' })}
@@ -3980,14 +4012,16 @@ export const BookingDetail: React.FC = () => {
                       <span className="text-[10px] text-amber-600 font-bold italic">Payout record missing</span>
                     ) : vehiclePayout.status === 'pending' ? (
                       <>
-                        <button
-                          onClick={() => handleUpdatePayoutStatus(vehiclePayout.id, 'approved', 'vehicle')}
-                          disabled={updatingPayout === 'vehicle' || vehiclePayout.is_on_hold}
-                          title={vehiclePayout.is_on_hold ? "Payout is on hold. Resolve dispute to continue." : ""}
-                          className="px-3 py-1 bg-brand-teal text-white text-[10px] font-bold uppercase rounded hover:bg-brand-teal/90 disabled:opacity-50"
-                        >
-                          {updatingPayout === 'vehicle' ? <Loader2 size={12} className="animate-spin inline" /> : 'Approve'}
-                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleUpdatePayoutStatus(vehiclePayout.id, 'approved', 'vehicle')}
+                            disabled={updatingPayout === 'vehicle' || vehiclePayout.is_on_hold}
+                            title={vehiclePayout.is_on_hold ? "Payout is on hold. Resolve dispute to continue." : ""}
+                            className="px-3 py-1 bg-brand-teal text-white text-[10px] font-bold uppercase rounded hover:bg-brand-teal/90 disabled:opacity-50"
+                          >
+                            {updatingPayout === 'vehicle' ? <Loader2 size={12} className="animate-spin inline" /> : 'Approve'}
+                          </button>
+                        )}
                         {!vehiclePayout.is_on_hold && (
                           <button
                             onClick={() => setDisputeModal({ isOpen: true, payoutId: vehiclePayout.id, resource: 'vehicle' })}
@@ -3999,14 +4033,16 @@ export const BookingDetail: React.FC = () => {
                       </>
                     ) : vehiclePayout.status === 'approved' ? (
                       <>
-                        <button
-                          onClick={() => handleUpdatePayoutStatus(vehiclePayout.id, 'paid', 'vehicle')}
-                          disabled={updatingPayout === 'vehicle' || vehiclePayout.is_on_hold}
-                          title={vehiclePayout.is_on_hold ? "Payout is on hold. Resolve dispute to continue." : ""}
-                          className="px-3 py-1 bg-green-600 text-white text-[10px] font-bold uppercase rounded hover:bg-green-700 disabled:opacity-50"
-                        >
-                          {updatingPayout === 'vehicle' ? <Loader2 size={12} className="animate-spin inline" /> : 'Mark as Paid'}
-                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleUpdatePayoutStatus(vehiclePayout.id, 'paid', 'vehicle')}
+                            disabled={updatingPayout === 'vehicle' || vehiclePayout.is_on_hold}
+                            title={vehiclePayout.is_on_hold ? "Payout is on hold. Resolve dispute to continue." : ""}
+                            className="px-3 py-1 bg-green-600 text-white text-[10px] font-bold uppercase rounded hover:bg-green-700 disabled:opacity-50"
+                          >
+                            {updatingPayout === 'vehicle' ? <Loader2 size={12} className="animate-spin inline" /> : 'Mark as Paid'}
+                          </button>
+                        )}
                         {!vehiclePayout.is_on_hold && (
                           <button
                             onClick={() => setDisputeModal({ isOpen: true, payoutId: vehiclePayout.id, resource: 'vehicle' })}

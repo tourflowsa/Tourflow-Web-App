@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { listAllPayouts, processPayouts, PAYOUT_STATUS_LABELS, archiveAdminPayout, getPayoutBatchStats, listPayoutBatches, updateBatchStatus, getPayoutFinanceReport, reconcileBatch, approveWithdrawal, rejectWithdrawal } from '../../lib/payoutService';
+import { listAllPayouts, processPayouts, PAYOUT_STATUS_LABELS, archiveAdminPayout, getPayoutBatchStats, listPayoutBatches, updateBatchStatus, getPayoutFinanceReport, reconcileBatch, approveWithdrawal, rejectWithdrawal, updatePayoutLedgerStatus } from '../../lib/payoutService';
 import { placePayoutOnHold, getPayoutEvents, exportBatchToCSV, exportToCsv } from '../../lib/adminPayoutService';
 import { formatCurrency, formatDate } from '../../lib/formatUtils';
 import { supabase } from '../../lib/supabase';
-import { Loader2, Archive, Search, Lock, ShieldAlert, X, Send, History, AlertCircle, List, Layers, Download, CheckCircle2, FileText, Clock, Filter, Calendar, DollarSign, Scale, ChevronRight, ChevronDown } from 'lucide-react';
+import { Loader2, Archive, Search, Lock, ShieldAlert, X, Send, Inbox, History, AlertCircle, List, Layers, Download, CheckCircle2, FileText, Clock, Filter, Calendar, DollarSign, Scale, ChevronRight, ChevronDown } from 'lucide-react';
 import { downloadCSV } from '../../lib/csvExportService';
 import { motion, AnimatePresence } from 'motion/react';
 import { filterPayouts, getPayableAmount, getSettlementAmount } from '../../lib/payoutUtils';
@@ -77,6 +77,10 @@ export const AdminPayoutsPage: React.FC = () => {
   const [selectedBatchForDetail, setSelectedBatchForDetail] = useState<any | null>(null);
   const [batchPayouts, setBatchPayouts] = useState<any[]>([]);
   const [loadingBatchPayouts, setLoadingBatchPayouts] = useState(false);
+
+  // Partial Batch Confirm Modal State
+  const [partialBatchConfirmOpen, setPartialBatchConfirmOpen] = useState(false);
+  const [partialBatchBookingRef, setPartialBatchBookingRef] = useState<string>('');
 
   useEffect(() => {
     if (user) {
@@ -179,6 +183,13 @@ export const AdminPayoutsPage: React.FC = () => {
       return p && isSelectable(p);
     });
   }, [selectedIds, payouts, isSelectable]);
+
+  const authorizableSelectedIds = useMemo(() => {
+    return selectedIds.filter(id => {
+      const p = payouts.find(item => item.id === id);
+      return p && p.status === 'pending' && !p.is_on_hold && !p.archived_at;
+    });
+  }, [selectedIds, payouts]);
 
   const filteredPayouts = useMemo(() => {
     return filterPayouts(payouts, searchTerm, ['operator_display_name', 'provider_display_name', 'booking_reference', 'payout_reference']);
@@ -331,17 +342,57 @@ export const AdminPayoutsPage: React.FC = () => {
     });
   };
 
-  const handleProcess = async () => {
+  const handleAuthorizeAvailability = async () => {
     const actorId = user?.id || profile?.id;
-
     if (!actorId) {
-      setError('Unable to process payouts. Missing user identity.');
-      setProcessing(false);
+      setError('Unable to authorize payouts. Missing user identity.');
       return;
     }
 
-    if (processableSelectedIds.length === 0) return;
-    
+    if (authorizableSelectedIds.length === 0) {
+      setError("No valid pending payouts selected to authorize.");
+      return;
+    }
+
+    setProcessing(true);
+    setSuccess(null);
+    setError(null);
+    let successCount = 0;
+    let failedCount = 0;
+
+    try {
+      for (const id of authorizableSelectedIds) {
+        const p = payouts.find(item => item.id === id);
+        if (!p) continue;
+        try {
+          await updatePayoutLedgerStatus(id, 'approved', p.operator_id);
+          successCount++;
+        } catch (e: any) {
+          console.error(`Failed to authorize payout ${id}:`, e);
+          failedCount++;
+          // Optional: Add to an error array if we want detailed reporting
+        }
+      }
+
+      if (successCount > 0 && failedCount === 0) {
+        setSuccess(`Payout availability authorized for ${successCount} row(s).`);
+      } else if (successCount > 0 && failedCount > 0) {
+        setSuccess(`Authorized ${successCount} row(s). ${failedCount} row(s) failed (e.g. booking not completed or missing bank details).`);
+      } else if (failedCount > 0) {
+        setError(`Failed to authorize selected row(s) (e.g. booking not completed or missing bank details).`);
+      }
+
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Error occurred while authorizing payouts.');
+    } finally {
+      setSelectedIds([]);
+      await loadPayouts();
+      setProcessing(false);
+    }
+  };
+
+  const executeProcessPayouts = async (actorId: string) => {
     setProcessing(true);
     setSuccess(null);
     try {
@@ -359,7 +410,44 @@ export const AdminPayoutsPage: React.FC = () => {
       setSelectedIds([]);
       await loadPayouts();
       setProcessing(false);
+      setPartialBatchConfirmOpen(false);
     }
+  };
+
+  const handleProcess = async () => {
+    const actorId = user?.id || profile?.id;
+
+    if (!actorId) {
+      setError('Unable to process payouts. Missing user identity.');
+      setProcessing(false);
+      return;
+    }
+
+    if (processableSelectedIds.length === 0) return;
+    
+    // Check for partial booking selection
+    const selectedPayouts = processableSelectedIds.map(id => payouts.find(p => p.id === id)).filter(Boolean);
+    const selectedBookingIds = new Set(selectedPayouts.map(p => p.booking_id));
+    
+    for (const bookingId of selectedBookingIds) {
+      if (!bookingId) continue;
+      
+      const readyPayoutsForBooking = payouts.filter(p => 
+        p.booking_id === bookingId && 
+        isSelectable(p)
+      );
+      
+      const unselectedReadyPayouts = readyPayoutsForBooking.filter(p => !processableSelectedIds.includes(p.id));
+      
+      if (unselectedReadyPayouts.length > 0) {
+        const bookingRef = readyPayoutsForBooking[0]?.booking_reference || bookingId;
+        setPartialBatchBookingRef(bookingRef);
+        setPartialBatchConfirmOpen(true);
+        return; // Stop here, wait for confirmation
+      }
+    }
+    
+    await executeProcessPayouts(actorId);
   };
 
   const handleExportCSV = async (batchId: string, reference: string) => {
@@ -602,7 +690,12 @@ export const AdminPayoutsPage: React.FC = () => {
             <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Requested</p>
           </div>
           <p className="text-2xl font-bold text-brand-charcoal">
-            {loadingReport ? <Loader2 className="w-5 h-5 animate-spin" /> : formatCurrency(financeReport?.totalRequested || 0)}
+            {loadingReport ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+              <span className="flex items-baseline gap-2">
+                {formatCurrency(financeReport?.totalRequested || 0)}
+                <span className="text-sm font-medium text-gray-400">({financeReport?.requestedCount || 0} req)</span>
+              </span>
+            )}
           </p>
         </div>
 
@@ -630,6 +723,40 @@ export const AdminPayoutsPage: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* Withdrawal Requests Alert Banner */}
+      {financeReport?.requestedCount > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-blue-100 rounded-xl text-blue-600">
+              <Inbox size={24} />
+            </div>
+            <div>
+              <p className="text-blue-900 font-bold">
+                You have {financeReport.requestedCount} withdrawal request{financeReport.requestedCount > 1 ? 's' : ''} waiting for review.
+              </p>
+              <p className="text-blue-700 text-sm">
+                Providers are waiting for their payouts to be processed.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setWithdrawalFilter('requested');
+              setActiveTab('payouts');
+              window.scrollTo({ top: 400, behavior: 'smooth' });
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-all shadow-sm active:scale-95"
+          >
+            <Search size={18} />
+            View Requests
+          </button>
+        </motion.div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
@@ -688,6 +815,13 @@ export const AdminPayoutsPage: React.FC = () => {
                 <input type="checkbox" checked={includeArchived} onChange={e => setIncludeArchived(e.target.checked)} />
                 Include Archived
               </label>
+              <button 
+                onClick={handleAuthorizeAvailability}
+                disabled={authorizableSelectedIds.length === 0 || processing}
+                className="bg-brand-teal text-white px-4 py-2 rounded hover:bg-brand-teal/90 disabled:bg-gray-400"
+              >
+                {processing ? 'Processing...' : `Authorize Payout (${authorizableSelectedIds.length})`}
+              </button>
               <button 
                 onClick={handleProcess}
                 disabled={processableSelectedIds.length === 0 || processing}
@@ -1719,6 +1853,68 @@ export const AdminPayoutsPage: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+        {partialBatchConfirmOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden"
+            >
+              <div className="flex justify-between items-center p-6 border-b border-gray-100">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <AlertCircle className="text-amber-500" size={24} />
+                  Partial Batch Warning
+                </h3>
+                <button
+                  onClick={() => setPartialBatchConfirmOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="p-6">
+                <p className="text-gray-600 mb-4">
+                  You selected only some ready payouts for booking <strong>{partialBatchBookingRef}</strong>. Processing now will create a partial batch.
+                </p>
+                <p className="text-gray-600 font-medium">
+                  It is recommended to process all ready payouts for the same booking together.
+                </p>
+              </div>
+
+              <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
+                <button
+                  onClick={() => setPartialBatchConfirmOpen(false)}
+                  className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    const actorId = user?.id || profile?.id;
+                    if (actorId) {
+                      executeProcessPayouts(actorId);
+                    }
+                  }}
+                  disabled={processing}
+                  className="px-4 py-2 bg-amber-500 text-white font-medium hover:bg-amber-600 rounded-lg shadow-sm transition-colors disabled:opacity-50"
+                >
+                  {processing ? 'Processing...' : 'Continue Processing'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 };

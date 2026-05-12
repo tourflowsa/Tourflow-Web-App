@@ -1,0 +1,31 @@
+./pages/admin/PayoutsPage.tsx:            .eq('id', p.provider_id)
+./pages/admin/PayoutsPage.tsx:        .eq('batch_id', batch.id);
+./pages/admin/UserDetail.tsx:    const { data: pData } = await supabase.from('profiles').select('*').eq('id', id).single();
+./pages/admin/UserDetail.tsx:    const { data: dData } = await supabase.from('documents').select('*').eq('user_id', id);
+./pages/admin/UserDetail.tsx:        .eq('id', id);
+./pages/admin/AdminPayoutDetail.tsx:        .eq('id', providerId)
+./pages/admin/AdminPayoutsList.tsx:        .eq('role', 'operator')
+./pages/admin/AdminBookingDetail.tsx:        .eq('id', id)
+./pages/admin/AdminBookingDetail.tsx:          .eq('id', bData.vehicle_id)
+./pages/admin/AdminBookingDetail.tsx:        .eq('booking_id', id);
+./pages/admin/AdminBookingDetail.tsx:            .eq('id', a.resource_id)
+./pages/admin/AdminBookingDetail.tsx:        .eq('booking_id', id);
+./pages/operator/TourDetail.tsx:    const { data } = await supabase.from('tours').select('*').eq('id', id).single();
+./pages/operator/ToursList.tsx:      .eq('is_active', true);
+./pages/operator/ToursList.tsx:      query = query.eq('operator_id', user.id);
+./pages/operator/MyRequestsPage.tsx:      .eq('operator_id', user.id)
+./pages/operator/MyRequestsPage.tsx:      .eq('is_active', true)
+./pages/operator/PayoutDetail.tsx:        .eq('id', payout.provider_id)
+./pages/operator/BookingDetail.tsx:      const { data: bData } = await supabase.from('bookings').select('vehicle_id').eq('id', id).single();
+./pages/operator/BookingDetail.tsx:        const { data: vData } = await supabase.from('vehicles').select('owner_id').eq('id', bData.vehicle_id).single();
+./pages/operator/TourForm.tsx:    const { data, error } = await supabase.from('tours').select('*').eq('id', tourId).single();
+./pages/operator/TourForm.tsx:        ? supabase.from('tours').update(payload).eq('id', id)
+./pages/operator/BookingForm.tsx:      .eq('operator_id', user.id)
+./pages/operator/BookingForm.tsx:      .eq('is_active', true)
+./pages/shared/EditProfile.tsx:        .eq('id', user.id);
+./pages/dashboards/OperatorDashboard.tsx:      const { count: tourCount } = await supabase.from('tours').select('*', { count: 'exact', head: true }).eq('operator_id', user.id);
+./pages/dashboards/OperatorDashboard.tsx:        supabase.from('payout_ledger').select('booking_id').eq('operator_id', user.id).eq('is_on_hold', true)
+./pages/dashboards/AdminDashboard.tsx:      .eq('role', 'operator');
+./pages/Login.tsx:          .eq('id', authData.user.id)
+./components/documents/DocumentManager.tsx:    await supabase.from('documents').delete().eq('id', docId);
+./contexts/AuthContext.tsx:        .eq('id', userId)

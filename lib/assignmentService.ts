@@ -356,31 +356,43 @@ export async function respondToAssignment(id: string, status: "accepted" | "reje
     throw error;
   }
 
-  if (data?.booking_id) {
-    syncBookingFinancialSnapshot(data.booking_id).catch(err =>
-      console.error(
-        "[assignmentService] syncBookingFinancialSnapshot failed after assignment response:",
-        err
-      )
-    );
-  }
+  // Handle case where data might be an array or null
+  const assignmentFromRpc = Array.isArray(data) ? data[0] : data;
 
+  // Run follow-up tasks in background
   (async () => {
     try {
-      if (!data?.booking_id) return;
+      // Ensure we have the assignment data for post-processing
+      let assignmentData = assignmentFromRpc;
+      if (!assignmentData?.booking_id) {
+        const { data: fetched } = await supabase
+          .from('booking_assignments')
+          .select('booking_id, resource_id, resource_type')
+          .eq('id', id)
+          .single();
+        if (fetched) assignmentData = fetched;
+      }
+
+      if (!assignmentData?.booking_id) return;
+
+      // Sync financials
+      await syncBookingFinancialSnapshot(assignmentData.booking_id).catch(err =>
+        console.error(
+          "[assignmentService] syncBookingFinancialSnapshot failed after assignment response:",
+          err
+        )
+      );
 
       const { data: booking } = await supabase
         .from("bookings")
         .select("operator_id, booking_reference")
-        .eq("id", data.booking_id)
-        .single();
-
-      if (!booking) return;
+        .eq("id", assignmentData.booking_id)
+        .maybeSingle();
 
       const { data: profile } = await supabase
         .from("profiles")
         .select("full_name, company_name, email")
-        .eq("id", data.resource_id)
+        .eq("id", assignmentData.resource_id)
         .maybeSingle();
 
       const providerName =
@@ -392,25 +404,30 @@ export async function respondToAssignment(id: string, status: "accepted" | "reje
       const reasonSuffix =
         status === "rejected" && reason ? ` Reason: ${reason}` : "";
 
-      await createNotification({
-        user_id: booking.operator_id,
-        type: status === "rejected" ? "ASSIGNMENT_REJECTED" : "ASSIGNMENT_ACCEPTED",
-        title: status === "rejected" ? "Assignment Declined" : "Assignment Accepted",
-        message: `${providerName} ${status === "rejected" ? "declined" : "accepted"} the ${data.resource_type} assignment for booking ${booking.booking_reference}.${reasonSuffix}`,
-        link: `/operator/bookings/${data.booking_id}`
-      });
+      // Create notification for operator if booking found
+      if (booking?.operator_id) {
+        await createNotification({
+          user_id: booking.operator_id,
+          type: status === "rejected" ? "ASSIGNMENT_REJECTED" : "ASSIGNMENT_ACCEPTED",
+          title: status === "rejected" ? "Assignment Declined" : "Assignment Accepted",
+          message: `${providerName} ${status === "rejected" ? "declined" : "accepted"} the ${assignmentData.resource_type} assignment for booking ${booking.booking_reference || ''}.${reasonSuffix}`,
+          link: `/operator/bookings/${assignmentData.booking_id}`
+        }).catch(err => console.error("Failed to notify operator:", err));
+      }
 
+      // Log audit event (Robustly)
       const m = await import("./auditService");
       await m.logAuditEvent({
         action: status === "rejected" ? "ASSIGNMENT_DECLINED" : "ASSIGNMENT_ACCEPTED",
         entityType: "booking_assignments",
         entityId: id,
-        bookingId: data.booking_id,
+        bookingId: assignmentData.booking_id,
         metadata: {
-          booking_id: data.booking_id,
-          provider_id: data.resource_id,
-          role: data.resource_type,
-          booking_reference: booking.booking_reference,
+          booking_id: assignmentData.booking_id,
+          provider_id: assignmentData.resource_id,
+          provider_name: providerName,
+          role: assignmentData.resource_type,
+          booking_reference: booking?.booking_reference,
           decline_reason: reason ?? null
         }
       });
@@ -421,7 +438,7 @@ export async function respondToAssignment(id: string, status: "accepted" | "reje
 
   window.dispatchEvent(new CustomEvent("ASSIGNMENTS_UPDATED"));
 
-  return data;
+  return assignmentFromRpc;
 }
 
 export async function getAssignmentsForResource(resourceId: string, resourceType: 'driver' | 'guide') {

@@ -23,7 +23,9 @@ import {
   CreditCard,
   ArrowUpRight,
   ArrowDownRight,
-  Filter
+  Filter,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
 import { getAdminFinancialSummary } from '../../lib/payoutService';
@@ -78,8 +80,22 @@ export const AdminDashboard: React.FC = () => {
   const [operators, setOperators] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingFinancials, setLoadingFinancials] = useState(false);
+  const [loadingBacklog, setLoadingBacklog] = useState(false);
+  const [loadingHealth, setLoadingHealth] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [debugData, setDebugData] = useState<any>(null);
+
+  const [pipelineBacklog, setPipelineBacklog] = useState({
+    pendingDocs: 0,
+    readyForPayout: 0,
+    payoutsOnHold: 0
+  });
+
+  const [bookingHealth, setBookingHealth] = useState({
+    upcomingConfirmed: 0,
+    completed: 0,
+    cancelledNoShow: 0
+  });
 
   useEffect(() => {
     fetchAdminData();
@@ -98,7 +114,58 @@ export const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchFinancials();
+    fetchBookingHealth();
   }, [dateRange, selectedOperator]);
+
+  const fetchBookingHealth = async () => {
+    setLoadingHealth(true);
+    try {
+      // 1. Upcoming Confirmed
+      const upcomingQuery = supabase
+        .from('bookings')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'confirmed')
+        .gt('start_date', new Date().toISOString());
+      
+      if (selectedOperator !== 'all') upcomingQuery.eq('operator_id', selectedOperator);
+      
+      const { count: upcomingCount } = await upcomingQuery;
+
+      // 2. Completed
+      const completedQuery = supabase
+        .from('bookings')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'completed')
+        .gte('start_date', dateRange.start)
+        .lte('start_date', dateRange.end);
+        
+      if (selectedOperator !== 'all') completedQuery.eq('operator_id', selectedOperator);
+      
+      const { count: completedCount } = await completedQuery;
+
+      // 3. Cancelled / No-Show
+      const cancelledNoShowQuery = supabase
+        .from('bookings')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['cancelled', 'no_show'])
+        .gte('start_date', dateRange.start)
+        .lte('start_date', dateRange.end);
+        
+      if (selectedOperator !== 'all') cancelledNoShowQuery.eq('operator_id', selectedOperator);
+      
+      const { count: cancelledCount } = await cancelledNoShowQuery;
+
+      setBookingHealth({
+        upcomingConfirmed: upcomingCount || 0,
+        completed: completedCount || 0,
+        cancelledNoShow: cancelledCount || 0
+      });
+    } catch (err) {
+      console.error('Booking Health Error:', err);
+    } finally {
+      setLoadingHealth(false);
+    }
+  };
 
   const fetchOperators = async () => {
     const { data } = await supabase
@@ -131,14 +198,18 @@ export const AdminDashboard: React.FC = () => {
 
   const fetchAdminData = async () => {
     setLoading(true);
+    setLoadingBacklog(true);
     setError(null);
 
     try {
-      const [metricsRes, extendedRes, usersRes, dCount] = await Promise.all([
+      const [metricsRes, extendedRes, usersRes, dCount, pendingDocsRes, readyPayoutsRes, holdPayoutsRes] = await Promise.all([
         supabase.rpc('admin_overview'),
         supabase.rpc('admin_overview_extended_secure_v2'),
         supabase.rpc('admin_users', { limit_count: 50, offset_count: 0 }),
-        getActiveDisputeCount()
+        getActiveDisputeCount(),
+        supabase.from('documents').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('payout_ledger').select('*', { count: 'exact', head: true }).eq('status', 'pending').eq('is_on_hold', false),
+        supabase.from('payout_ledger').select('*', { count: 'exact', head: true }).eq('is_on_hold', true)
       ]);
 
       if (metricsRes.error) throw metricsRes.error;
@@ -153,11 +224,17 @@ export const AdminDashboard: React.FC = () => {
       setRow(r);
       setUsers(u);
       setActiveDisputeCount(dCount);
+      setPipelineBacklog({
+        pendingDocs: pendingDocsRes.count || 0,
+        readyForPayout: readyPayoutsRes.count || 0,
+        payoutsOnHold: holdPayoutsRes.count || 0
+      });
     } catch (err: any) {
       console.error('Admin Dashboard Fetch Error:', err);
       setError(err?.message || 'Dashboard failed to load.');
     } finally {
       setLoading(false);
+      setLoadingBacklog(false);
     }
   };
 
@@ -332,6 +409,101 @@ export const AdminDashboard: React.FC = () => {
             <div className="mt-2 flex items-center gap-1 text-[10px] text-brand-coral font-bold">
               <ArrowDownRight size={12} />
               <span>Unpaid Payout Rows</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Pipeline Backlog Section */}
+      <div className="mb-10">
+        <div className="flex items-center gap-2 mb-6">
+          <Clock className="text-brand-teal" size={24} />
+          <h2 className="text-xl font-bold text-brand-charcoal">Pipeline Backlog</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Link to="/admin/verifications" className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-2xl ${pipelineBacklog.pendingDocs > 0 ? 'bg-brand-gold/10 text-brand-gold' : 'bg-gray-50 text-gray-400'}`}>
+                <FileWarning size={24} />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Pending Document Reviews</p>
+                <p className="text-3xl font-bold text-brand-charcoal">{loadingBacklog ? '...' : pipelineBacklog.pendingDocs}</p>
+              </div>
+              <ArrowUpRight className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-brand-gold" size={16} />
+            </div>
+          </Link>
+
+          <Link to="/admin/payouts" className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-2xl ${pipelineBacklog.readyForPayout > 0 ? 'bg-brand-teal/10 text-brand-teal' : 'bg-gray-50 text-gray-400'}`}>
+                <CreditCard size={24} />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Ready for Payout</p>
+                <p className="text-3xl font-bold text-brand-charcoal">{loadingBacklog ? '...' : pipelineBacklog.readyForPayout}</p>
+              </div>
+              <ArrowUpRight className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-brand-teal" size={16} />
+            </div>
+          </Link>
+
+          <Link to="/admin/payouts" className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-2xl ${pipelineBacklog.payoutsOnHold > 0 ? 'bg-red-50 text-brand-coral' : 'bg-gray-50 text-gray-400'}`}>
+                <AlertCircle size={24} />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Payouts on Hold</p>
+                <p className="text-3xl font-bold text-brand-charcoal">{loadingBacklog ? '...' : pipelineBacklog.payoutsOnHold}</p>
+              </div>
+              <ArrowUpRight className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-brand-coral" size={16} />
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* Booking Health Section */}
+      <div className="mb-10">
+        <div className="flex items-center gap-2 mb-6">
+          <Calendar className="text-brand-teal" size={24} />
+          <h2 className="text-xl font-bold text-brand-charcoal">Booking Health</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-brand-teal/10 text-brand-teal rounded-2xl">
+                <CalendarDays size={24} />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Upcoming Confirmed</p>
+                <p className="text-3xl font-bold text-brand-charcoal">{loadingHealth ? '...' : bookingHealth.upcomingConfirmed}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                <CheckCircle size={24} />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Completed</p>
+                <p className="text-3xl font-bold text-brand-charcoal">{loadingHealth ? '...' : bookingHealth.completed}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-red-50 text-red-600 rounded-2xl">
+                <XCircle size={24} />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Cancelled / No-Show</p>
+                <p className="text-3xl font-bold text-brand-charcoal">{loadingHealth ? '...' : bookingHealth.cancelledNoShow}</p>
+              </div>
             </div>
           </div>
         </div>

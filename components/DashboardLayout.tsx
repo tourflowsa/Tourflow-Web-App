@@ -31,7 +31,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { UserRole } from '../types';
 import { getPendingRequestsCount, getPendingRequestsCountForGuide, getPendingRequestsCountForDriver, getPendingRequestsCountForVehicleOwner } from '../lib/bookingService';
 import { getPendingAssignmentsCount } from '../lib/assignmentService';
-import { getActiveDisputeCount } from '../lib/adminPayoutService';
+import { getActiveDisputeCount, getRequestedWithdrawalCount } from '../lib/adminPayoutService';
 import { getPendingDocumentsCountAdmin } from '../lib/documentService';
 
 interface NavItem {
@@ -104,6 +104,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   const [pendingAssignmentsCount, setPendingAssignmentsCount] = useState(0);
   const [disputeCount, setDisputeCount] = useState(0);
   const [pendingDocsCount, setPendingDocsCount] = useState(0);
+  const [requestedWithdrawalsCount, setRequestedWithdrawalsCount] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const fetchCount = async () => {
@@ -114,10 +115,12 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       let assignmentsCount = 0;
       let dCount = 0;
       let pdCount = 0;
+      let rwCount = 0;
 
       if (profile.role === 'admin') {
         dCount = await getActiveDisputeCount();
         pdCount = await getPendingDocumentsCountAdmin();
+        rwCount = await getRequestedWithdrawalCount();
       } else if (profile.role === 'operator') {
         count = await getPendingRequestsCount(profile.id);
       } else if (profile.role === 'guide') {
@@ -134,6 +137,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       setPendingAssignmentsCount(assignmentsCount);
       setDisputeCount(dCount);
       setPendingDocsCount(pdCount);
+      setRequestedWithdrawalsCount(rwCount);
     } catch (err) {
       console.error('Failed to fetch pending requests count:', err);
     }
@@ -149,11 +153,13 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     window.addEventListener('ASSIGNMENTS_UPDATED', handleUpdate);
     window.addEventListener('DISPUTE_UPDATED', handleUpdate);
     window.addEventListener('DOCUMENTS_UPDATED', handleUpdate);
+    window.addEventListener('PAYOUTS_UPDATED', handleUpdate);
     return () => {
       window.removeEventListener('PENDING_REQUESTS_UPDATED', handleUpdate);
       window.removeEventListener('ASSIGNMENTS_UPDATED', handleUpdate);
       window.removeEventListener('DISPUTE_UPDATED', handleUpdate);
       window.removeEventListener('DOCUMENTS_UPDATED', handleUpdate);
+      window.removeEventListener('PAYOUTS_UPDATED', handleUpdate);
     };
   }, [profile]);
 
@@ -213,6 +219,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
               {item.label === 'Assignments' && pendingAssignmentsCount > 0 && ` (${pendingAssignmentsCount})`}
               {item.label === 'Disputes' && disputeCount > 0 && <span className="ml-2 bg-brand-coral text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{disputeCount}</span>}
               {item.label === 'Document Reviews' && pendingDocsCount > 0 && <span className="ml-2 bg-brand-teal text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{pendingDocsCount}</span>}
+              {item.label === 'Payouts' && requestedWithdrawalsCount > 0 && <span className="ml-2 bg-brand-teal text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{requestedWithdrawalsCount}</span>}
             </span>
           </NavLink>
         ))}

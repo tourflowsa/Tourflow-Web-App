@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { listOperatorPayouts, processPayouts, PAYOUT_STATUS_LABELS, updatePayoutLedgerStatus, archiveOperatorPayout, unarchiveOperatorPayout } from '../../lib/payoutService';
+import { listOperatorPayouts, PAYOUT_STATUS_LABELS, archiveOperatorPayout, unarchiveOperatorPayout } from '../../lib/payoutService';
 import { formatCurrency, formatDate } from '../../lib/formatUtils';
 import { supabase } from '../../lib/supabase';
 import { Loader2, CheckCircle2, AlertCircle, Download, Archive, Search, Eye, ShieldAlert, Banknote, ChevronRight, ChevronDown } from 'lucide-react';
@@ -11,8 +11,6 @@ export const OperatorPayoutsPage: React.FC = () => {
   const { user, profile } = useAuth();
   const [payouts, setPayouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('Open');
@@ -167,8 +165,6 @@ export const OperatorPayoutsPage: React.FC = () => {
       else if (hasPendingAppr) groupStatus = 'Ready for Payout';
       else groupStatus = statuses[0];
 
-      const eligibleIds = group.filter(p => ['pending', 'approved'].includes((p.status || '').toLowerCase()) && !p.is_on_hold && !p.batch_id).map(p => p.id);
-
       return {
         id: booking_id || group[0].id,
         booking_id,
@@ -178,33 +174,10 @@ export const OperatorPayoutsPage: React.FC = () => {
         providerCount,
         totalAmount,
         groupStatus,
-        eligibleIds,
         items: group
       };
     });
   }, [filteredPayouts]);
-
-  const handleApprove = async (id: string) => {
-    try {
-      await updatePayoutLedgerStatus(id, 'approved', user!.id);
-      await loadPayouts();
-      setSuccess('Payout approved successfully.');
-    } catch (err) {
-      console.error(err);
-      setError('Failed to approve payout.');
-    }
-  };
-
-  const handleMarkAsPaid = async (id: string) => {
-    try {
-      await updatePayoutLedgerStatus(id, 'paid', user!.id);
-      await loadPayouts();
-      setSuccess('Payout marked as paid successfully.');
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message === 'PAYOUT_PAID' ? 'Payout already marked as paid.' : (err.message || 'Failed to mark payout as paid.'));
-    }
-  };
 
   const handleArchive = async (id: string) => {
     try {
@@ -245,46 +218,6 @@ export const OperatorPayoutsPage: React.FC = () => {
     }
   };
 
-  const handleProcess = async () => {
-    const actorId = user?.id || profile?.id;
-
-    if (!actorId) {
-      setError('Unable to process payouts. Missing user identity.');
-      setProcessing(false);
-      return;
-    }
-
-    const eligibleIds = selectedIds.filter(id => {
-      const p = payouts.find(p => p.id === id);
-      const isProcessableStatus = ['pending', 'approved'].includes((p?.status || '').toLowerCase());
-      const allowedWithdrawal = !p?.withdrawal_request_status || ['requested', 'approved', 'queued'].includes(p.withdrawal_request_status);
-      return p && isProcessableStatus && !p.is_on_hold && allowedWithdrawal && !p.batch_id;
-    });
-    if (eligibleIds.length === 0) return;
-    setProcessing(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      const { batch, skippedCount } = await processPayouts(eligibleIds, actorId);
-      let msg = `Successfully processed ${batch.total_count || batch.payout_count} payouts for a total of ${formatCurrency(batch.total_amount)}.`;
-      if (skippedCount > 0) {
-        msg += ` ${skippedCount} selected payouts were no longer eligible and were removed from selection.`;
-      }
-      setSuccess(msg);
-    } catch (err: any) {
-      console.error(err);
-      setError('Failed to process payouts: ' + err.message);
-    } finally {
-      setSelectedIds([]);
-      await loadPayouts();
-      setProcessing(false);
-    }
-  };
-
-  const toggleSelect = (id: string) => {
-    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-  };
-
   const exportCsv = () => {
     const headers = ['batch_id', 'payout_reference', 'provider_name', 'provider_company', 'booking_reference', 'service_date', 'amount_gross', 'platform_fee', 'amount_net', 'status', 'is_on_hold'];
     const rows = filteredPayouts.map(p => [
@@ -322,7 +255,7 @@ export const OperatorPayoutsPage: React.FC = () => {
       {success && <div className="bg-green-100 text-green-700 p-4 rounded mb-4 flex items-center gap-2"><CheckCircle2 size={16} /> {success}</div>}
       
       {/* Summary Row */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Total Outstanding</span>
           <div className="text-xl font-bold text-brand-charcoal">
@@ -343,13 +276,6 @@ export const OperatorPayoutsPage: React.FC = () => {
             {formatCurrency(payouts.filter(p => p.is_on_hold).reduce((acc, p) => acc + getPayableAmount(p), 0))}
           </div>
           <span className="text-[10px] text-gray-400">{payouts.filter(p => p.is_on_hold).length} items</span>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Selected for Batch</span>
-          <div className="text-xl font-bold text-brand-teal">
-            {formatCurrency(payouts.filter(p => selectedIds.includes(p.id)).reduce((acc, p) => acc + getPayableAmount(p), 0))}
-          </div>
-          <span className="text-[10px] text-gray-400">{selectedIds.length} items</span>
         </div>
       </div>
 
@@ -373,14 +299,6 @@ export const OperatorPayoutsPage: React.FC = () => {
               <input type="checkbox" checked={includeArchived} onChange={e => setIncludeArchived(e.target.checked)} />
               Include Archived
             </label>
-            <button 
-              onClick={handleProcess}
-              disabled={selectedIds.length === 0 || processing}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400 flex items-center gap-2"
-            >
-              {processing ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-              Process Payout ({selectedIds.length})
-            </button>
             <button 
               onClick={exportCsv}
               className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 flex items-center gap-2"
@@ -406,15 +324,7 @@ export const OperatorPayoutsPage: React.FC = () => {
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-b">
-            <th className="p-2 text-left w-10">
-              <input type="checkbox" 
-                checked={selectedIds.length > 0 && selectedIds.length === groupedPayouts.filter(g => g.eligibleIds.length > 0).map(g => g.eligibleIds).flat().length} 
-                onChange={() => {
-                  const allEligibleIds = groupedPayouts.map(g => g.eligibleIds).flat();
-                  setSelectedIds(selectedIds.length === allEligibleIds.length && allEligibleIds.length > 0 ? [] : allEligibleIds);
-                }} 
-              />
-            </th>
+            <th className="p-2 text-left w-10"></th>
             <th className="p-2 text-left w-10"></th>
             <th className="p-2 text-left">Booking Ref / Provider</th>
             <th className="p-2 text-left">Tour / Type</th>
@@ -443,18 +353,6 @@ export const OperatorPayoutsPage: React.FC = () => {
                   {/* Parent Row */}
                   <tr className="border-b bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer" onClick={() => setExpandedGroups(prev => prev.includes(group.id) ? prev.filter(id => id !== group.id) : [...prev, group.id])}>
                     <td className="p-2" onClick={(e) => e.stopPropagation()}>
-                      {group.eligibleIds.length > 0 && (
-                        <input type="checkbox" 
-                          checked={group.eligibleIds.every(id => selectedIds.includes(id))} 
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedIds(prev => Array.from(new Set([...prev, ...group.eligibleIds])));
-                            } else {
-                              setSelectedIds(prev => prev.filter(id => !group.eligibleIds.includes(id)));
-                            }
-                          }} 
-                        />
-                      )}
                     </td>
                     <td className="p-2">
                        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
@@ -507,7 +405,6 @@ export const OperatorPayoutsPage: React.FC = () => {
                       className="border-b hover:bg-gray-50 transition-colors cursor-pointer bg-white"
                     >
                       <td className="p-2" onClick={(e) => e.stopPropagation()}>
-                        {['pending', 'approved'].includes((p.status || '').toLowerCase()) && !p.is_on_hold && !p.batch_id && <input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => toggleSelect(p.id)} />}
                       </td>
                       <td className="p-2"></td>
                       <td className="p-2 pl-6 flex items-center gap-2">
@@ -559,28 +456,6 @@ export const OperatorPayoutsPage: React.FC = () => {
                           >
                             <Eye size={16} />
                           </button>
-                          {p.status === 'pending' && !p.is_on_hold && p.status !== 'paid' && (
-                            <button 
-                              onClick={(e) => { 
-                                e.stopPropagation(); 
-                                handleApprove(p.id); 
-                              }} 
-                              className="text-blue-600 hover:underline text-sm font-medium"
-                            >
-                              Approve
-                            </button>
-                          )}
-                          {p.status === 'approved' && !p.is_on_hold && p.status !== 'paid' && (
-                            <button 
-                              onClick={(e) => { 
-                                e.stopPropagation(); 
-                                handleMarkAsPaid(p.id); 
-                              }} 
-                              className="text-green-600 hover:underline text-sm font-medium"
-                            >
-                              Mark as Paid
-                            </button>
-                          )}
                           {p.status === 'paid' && !p.operator_archived_at && <button onClick={(e) => { e.stopPropagation(); handleArchive(p.id); }} className="text-gray-600 hover:underline text-sm flex items-center gap-1 font-medium"><Archive size={14} /> Archive</button>}
                         </div>
                       </td>

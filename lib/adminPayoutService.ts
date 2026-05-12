@@ -639,6 +639,19 @@ export const getActiveDisputeCount = async (): Promise<number> => {
   return count || 0;
 };
 
+export const getRequestedWithdrawalCount = async (): Promise<number> => {
+  const { count, error } = await supabase
+    .from('payout_ledger')
+    .select('*', { count: 'exact', head: true })
+    .eq('withdrawal_request_status', 'requested');
+
+  if (error) {
+    console.error('Error fetching requested withdrawal count:', error);
+    return 0;
+  }
+  return count || 0;
+};
+
 export const resolvePayoutDispute = async (
   disputeId: string, 
   adminId: string, 

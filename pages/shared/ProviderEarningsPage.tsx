@@ -366,61 +366,72 @@ export const ProviderEarningsPage: React.FC = () => {
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
+        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+              <RefreshCw size={18} />
+            </div>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pending</span>
+          </div>
+          <h2 className="text-xl font-bold text-indigo-700">{formatCurrency(payoutSummary?.pending || 0)}</h2>
+          <p className="text-[10px] text-gray-500 mt-1">Earned, Unapproved</p>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-brand-teal/10 text-brand-teal rounded-lg">
-              <DollarSign size={20} />
+              <DollarSign size={18} />
             </div>
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Available</span>
           </div>
-          <h2 className="text-2xl font-bold text-brand-teal">{formatCurrency(payoutSummary?.available || 0)}</h2>
+          <h2 className="text-xl font-bold text-brand-teal">{formatCurrency(payoutSummary?.available || 0)}</h2>
           <div className="flex items-center justify-between mt-1">
-            <p className="text-sm text-gray-500">Ready to Withdraw</p>
+            <p className="text-[10px] text-gray-500">Ready to Withdraw</p>
             {payoutSummary?.available > 0 && (
               <button 
                 onClick={handleRequestFromSummaryCard}
                 disabled={requesting || eligiblePayouts.length === 0}
-                className="bg-brand-teal text-white px-3 py-1 rounded-lg font-bold text-xs flex items-center gap-1 hover:bg-brand-teal/90 transition-all disabled:opacity-50"
+                className="bg-brand-teal text-white px-2 py-0.5 rounded-lg font-bold text-[9px] flex items-center gap-1 hover:bg-brand-teal/90 transition-all disabled:opacity-50"
               >
-                {requesting ? <RefreshCw className="animate-spin" size={12} /> : <Send size={12} />}
+                {requesting ? <RefreshCw className="animate-spin" size={10} /> : <Send size={10} />}
                 Request
               </button>
             )}
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-blue-100 text-blue-700 rounded-lg">
-              <Send size={20} />
+              <Send size={18} />
             </div>
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Requested</span>
           </div>
-          <h2 className="text-2xl font-bold text-blue-700">{formatCurrency(payoutSummary?.withdrawalRequested || 0)}</h2>
-          <p className="text-sm text-gray-500 mt-1">Withdrawal Requested</p>
+          <h2 className="text-xl font-bold text-blue-700">{formatCurrency(payoutSummary?.withdrawalRequested || 0)}</h2>
+          <p className="text-[10px] text-gray-500 mt-1">Waiting for Admin</p>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-red-100 text-red-700 rounded-lg">
-              <ShieldAlert size={20} />
+              <ShieldAlert size={18} />
             </div>
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">On Hold</span>
           </div>
-          <h2 className="text-2xl font-bold text-red-700">{formatCurrency(payoutSummary?.onHold || 0)}</h2>
-          <p className="text-sm text-gray-500 mt-1">Blocked Earnings</p>
+          <h2 className="text-xl font-bold text-red-700">{formatCurrency(payoutSummary?.onHold || 0)}</h2>
+          <p className="text-[10px] text-gray-500 mt-1">Blocked Earnings</p>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-green-100 text-green-700 rounded-lg">
-              <CheckCircle2 size={20} />
+              <CheckCircle2 size={18} />
             </div>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Settled</span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Paid</span>
           </div>
-          <h2 className="text-2xl font-bold text-green-700">{formatCurrency(payoutSummary?.paid || 0)}</h2>
-          <p className="text-sm text-gray-500 mt-1">Total Paid Out</p>
+          <h2 className="text-xl font-bold text-green-700">{formatCurrency(payoutSummary?.paid || 0)}</h2>
+          <p className="text-[10px] text-gray-500 mt-1">Total Paid Out</p>
         </div>
       </div>
 

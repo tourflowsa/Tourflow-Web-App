@@ -1,0 +1,987 @@
+./pages/admin/Diagnostics.tsx:  status: 'pending' | 'running' | 'pass' | 'fail';
+./pages/admin/Diagnostics.tsx:    { id: 'auth', name: 'Identity Resolution', status: 'pending' },
+./pages/admin/Diagnostics.tsx:    { id: 'rls_bookings', name: 'RLS: Global Bookings Visibility', status: 'pending' },
+./pages/admin/Diagnostics.tsx:    { id: 'rls_assignments', name: 'RLS: Global Assignments Visibility', status: 'pending' },
+./pages/admin/Diagnostics.tsx:    { id: 'rls_payouts', name: 'RLS: Payout Ledger Access', status: 'pending' },
+./pages/admin/Diagnostics.tsx:    { id: 'rls_vehicles', name: 'RLS: Fleet Discovery', status: 'pending' },
+./pages/admin/Diagnostics.tsx:    { id: 'rls_docs', name: 'RLS: Compliance Document Access', status: 'pending' },
+./pages/admin/Diagnostics.tsx:  const updateResult = (id: string, status: 'pass' | 'fail', message: string, details?: string) => {
+./pages/admin/Diagnostics.tsx:    setResults(prev => prev.map(r => r.id === id ? { ...r, status, message, details } : r));
+./pages/admin/Diagnostics.tsx:    // Reset statuses to running
+./pages/admin/Diagnostics.tsx:    setResults(prev => prev.map(r => ({ ...r, status: 'running', message: '', details: '' })));
+./pages/admin/Diagnostics.tsx:                    {check.status === 'pending' && <div className="w-6 h-6 rounded-full border-2 border-gray-200"></div>}
+./pages/admin/Diagnostics.tsx:                    {check.status === 'running' && <Loader2 className="animate-spin text-brand-teal" size={24} />}
+./pages/admin/Diagnostics.tsx:                    {check.status === 'pass' && <CheckCircle2 className="text-green-500" size={24} />}
+./pages/admin/Diagnostics.tsx:                    {check.status === 'fail' && <XCircle className="text-red-500" size={24} />}
+./pages/admin/Diagnostics.tsx:                      <p className={`mt-1 text-sm ${check.status === 'fail' ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
+./pages/admin/Diagnostics.tsx:                    {check.status === 'fail' && (
+./pages/admin/PayoutsPage.tsx:  const [statusFilter, setStatusFilter] = useState('All');
+./pages/admin/PayoutsPage.tsx:  }, [user, statusFilter, withdrawalFilter, includeArchived, activeTab, batchStatusFilter, reconciliationFilter, startDate, endDate]);
+./pages/admin/PayoutsPage.tsx:        status: batchStatusFilter,
+./pages/admin/PayoutsPage.tsx:      const status = statusFilter === 'All' ? undefined : statusFilter.toLowerCase();
+./pages/admin/PayoutsPage.tsx:        status: status === 'ready' ? 'pending' : status, 
+./pages/admin/PayoutsPage.tsx:    const isProcessableStatus = ['pending', 'approved'].includes((p.status || '').toLowerCase());
+./pages/admin/PayoutsPage.tsx:    const allowedWithdrawal = !p.withdrawal_request_status || 
+./pages/admin/PayoutsPage.tsx:                             ['requested', 'approved', 'queued'].includes(p.withdrawal_request_status);
+./pages/admin/PayoutsPage.tsx:        status:
+./pages/admin/PayoutsPage.tsx:          row.payout_batches?.status ??
+./pages/admin/PayoutsPage.tsx:          row.payout_batch?.status ??
+./pages/admin/PayoutsPage.tsx:          row.batch?.status ??
+./pages/admin/PayoutsPage.tsx:        reconciliation_status:
+./pages/admin/PayoutsPage.tsx:          row.payout_batches?.reconciliation_status ??
+./pages/admin/PayoutsPage.tsx:          row.payout_batch?.reconciliation_status ??
+./pages/admin/PayoutsPage.tsx:          row.batch?.reconciliation_status ??
+./pages/admin/PayoutsPage.tsx:      if (p.status === 'paid') {
+./pages/admin/PayoutsPage.tsx:  const handleUpdateBatchStatus = async (batchId: string, status: 'processing' | 'completed') => {
+./pages/admin/PayoutsPage.tsx:      await updateBatchStatus(batchId, status, user.id);
+./pages/admin/PayoutsPage.tsx:      setError("Failed to update status: " + err.message);
+./pages/admin/PayoutsPage.tsx:  const readyTotal = filteredPayouts.filter(p => p.status === 'pending' && !p.archived_at && !p.is_on_hold).reduce((sum, p) => sum + getPayableAmount(p), 0);
+./pages/admin/PayoutsPage.tsx:  const approvedTotal = filteredPayouts.filter(p => p.status === 'approved' && !p.archived_at && !p.is_on_hold).reduce((sum, p) => sum + getPayableAmount(p), 0);
+./pages/admin/PayoutsPage.tsx:  const requestedTotal = filteredPayouts.filter(p => ['requested', 'approved'].includes(p.withdrawal_request_status || '') && !p.archived_at && !p.is_on_hold).reduce((sum, p) => sum + getPayableAmount(p), 0);
+./pages/admin/PayoutsPage.tsx:  const paidTotal = filteredPayouts.filter(p => p.status === 'paid' && !p.archived_at).reduce((sum, p) => sum + getPayableAmount(p), 0);
+./pages/admin/PayoutsPage.tsx:              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="border p-2 rounded">
+./pages/admin/PayoutsPage.tsx:                      p.status,
+./pages/admin/PayoutsPage.tsx:                  const isMissingDetails = !hasBankDetails && p.status !== 'paid';
+./pages/admin/PayoutsPage.tsx:                              p.status === 'paid' ? 'bg-green-50 text-green-700 border-green-100' : 
+./pages/admin/PayoutsPage.tsx:                              p.status === 'approved' && p.adjusted_amount > 0 && p.adjusted_amount < (p.original_amount || p.amount_net) ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
+./pages/admin/PayoutsPage.tsx:                              p.status === 'approved' && p.adjusted_amount > 0 ? 'bg-blue-50 text-blue-700 border-blue-100' :
+./pages/admin/PayoutsPage.tsx:                              p.withdrawal_request_status === 'requested' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+./pages/admin/PayoutsPage.tsx:                              p.withdrawal_request_status === 'approved' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+./pages/admin/PayoutsPage.tsx:                              p.withdrawal_request_status === 'rejected' ? 'bg-red-50 text-red-700 border-red-100' :
+./pages/admin/PayoutsPage.tsx:                              p.status === 'approved' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' : 
+./pages/admin/PayoutsPage.tsx:                              {p.status === 'approved' && p.adjusted_amount > 0 && p.adjusted_amount < (p.original_amount || p.amount_net) ? 'Resolved: Reduced' :
+./pages/admin/PayoutsPage.tsx:                               p.status === 'approved' && p.adjusted_amount > 0 ? 'Resolved: Approved' :
+./pages/admin/PayoutsPage.tsx:                               p.status === 'paid' ? 'PAID' :
+./pages/admin/PayoutsPage.tsx:                               p.withdrawal_request_status === 'requested' ? 'REQUESTED' :
+./pages/admin/PayoutsPage.tsx:                               p.withdrawal_request_status === 'approved' ? 'APPROVED FOR PAYOUT' :
+./pages/admin/PayoutsPage.tsx:                               p.withdrawal_request_status === 'rejected' ? 'REJECTED' :
+./pages/admin/PayoutsPage.tsx:                               p.status === 'approved' ? 'AVAILABLE' :
+./pages/admin/PayoutsPage.tsx:                               PAYOUT_STATUS_LABELS[p.status] || p.status.toUpperCase()}
+./pages/admin/PayoutsPage.tsx:                            {p.withdrawal_request_status === 'paid' && (
+./pages/admin/PayoutsPage.tsx:                        {p.status === 'paid' && !p.archived_at && (
+./pages/admin/PayoutsPage.tsx:                        {p.status !== 'paid' && !p.is_on_hold && (
+./pages/admin/PayoutsPage.tsx:                        {p.withdrawal_request_status === 'requested' && p.status !== 'paid' && (
+./pages/admin/PayoutsPage.tsx:                            group.batch.status === 'completed' ? 'bg-green-100 text-green-800' : 
+./pages/admin/PayoutsPage.tsx:                            group.batch.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+./pages/admin/PayoutsPage.tsx:                            {group.batch.status}
+./pages/admin/PayoutsPage.tsx:                                        p.status === 'paid' ? 'bg-green-50 text-green-700 border-green-100' : 
+./pages/admin/PayoutsPage.tsx:                                        p.status === 'approved' && p.adjusted_amount > 0 && p.adjusted_amount < (p.original_amount || p.amount_net) ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
+./pages/admin/PayoutsPage.tsx:                                        p.status === 'approved' && p.adjusted_amount > 0 ? 'bg-blue-50 text-blue-700 border-blue-100' :
+./pages/admin/PayoutsPage.tsx:                                        p.status === 'approved' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
+./pages/admin/PayoutsPage.tsx:                                         p.status === 'approved' && p.adjusted_amount > 0 && p.adjusted_amount < (p.original_amount || p.amount_net) ? 'Resolved: Reduced' :
+./pages/admin/PayoutsPage.tsx:                                         p.status === 'approved' && p.adjusted_amount > 0 ? 'Resolved: Approved' :
+./pages/admin/PayoutsPage.tsx:                                         p.status === 'approved' ? 'Available' :
+./pages/admin/PayoutsPage.tsx:                                         PAYOUT_STATUS_LABELS[p.status] || p.status.toUpperCase()}
+./pages/admin/PayoutsPage.tsx:                                        {p.status !== 'paid' && !p.is_on_hold && (
+./pages/admin/PayoutsPage.tsx:                        b.status === 'completed' ? 'bg-green-100 text-green-700' :
+./pages/admin/PayoutsPage.tsx:                        b.status === 'processing' ? 'bg-blue-100 text-blue-700' :
+./pages/admin/PayoutsPage.tsx:                        b.status === 'processed' ? 'bg-purple-100 text-purple-700' :
+./pages/admin/PayoutsPage.tsx:                        {b.status}
+./pages/admin/PayoutsPage.tsx:                        b.reconciliation_status === 'matched' ? 'bg-green-100 text-green-700' :
+./pages/admin/PayoutsPage.tsx:                        b.reconciliation_status === 'mismatch' ? 'bg-red-100 text-red-700' :
+./pages/admin/PayoutsPage.tsx:                        {b.reconciliation_status || 'pending'}
+./pages/admin/PayoutsPage.tsx:                        {b.status === 'created' && (
+./pages/admin/PayoutsPage.tsx:                        {b.status === 'processing' && (
+./pages/admin/PayoutsPage.tsx:                    <p className="text-xl font-bold text-brand-charcoal uppercase">{selectedBatchForDetail?.status}</p>
+./pages/admin/PayoutsPage.tsx:                                {p.status}
+./pages/admin/DocumentReviews.tsx:  const [statusFilter, setStatusFilter] = useState('pending'); // Default to pending
+./pages/admin/DocumentReviews.tsx:      // We fetch ALL docs and filter client side for better UX with the new computed statuses
+./pages/admin/DocumentReviews.tsx:        status: 'valid', 
+./pages/admin/DocumentReviews.tsx:        status: 'rejected',
+./pages/admin/DocumentReviews.tsx:    // Use computed status for filtering so admin sees expired docs correctly
+./pages/admin/DocumentReviews.tsx:    if (statusFilter === 'all') return true;
+./pages/admin/DocumentReviews.tsx:    return displayStatus === statusFilter;
+./pages/admin/DocumentReviews.tsx:              value={statusFilter}
+./pages/admin/DocumentReviews.tsx:                // Determine display status based on role rules
+./pages/admin/AdminBookingsList.tsx:  const [status, setStatus] = useState("all");
+./pages/admin/AdminBookingsList.tsx:        .select('booking_id, status')
+./pages/admin/AdminBookingsList.tsx:        .select('booking_id, resource_type, status')
+./pages/admin/AdminBookingsList.tsx:        if (a.resource_type === 'driver') amap[a.booking_id].driverStatus = a.status;
+./pages/admin/AdminBookingsList.tsx:        if (a.resource_type === 'guide') amap[a.booking_id].guideStatus = a.status;
+./pages/admin/AdminBookingsList.tsx:    if (status !== "all" && normalizeText(b.status) !== normalizeText(status)) {
+./pages/admin/AdminBookingsList.tsx:}, [rows, profilesById, search, status, showArchived]);
+./pages/admin/AdminBookingsList.tsx:      if (p.status === 'paid') map[p.booking_id].paid++;
+./pages/admin/AdminBookingsList.tsx:    const status = b.escrow_status || b.payment_status;
+./pages/admin/AdminBookingsList.tsx:    switch(status) {
+./pages/admin/AdminBookingsList.tsx:    const status = assignmentMap[b.id];
+./pages/admin/AdminBookingsList.tsx:    if (!status || (!status.driverStatus && !status.guideStatus)) {
+./pages/admin/AdminBookingsList.tsx:    const statuses = [status.driverStatus, status.guideStatus].filter(Boolean);
+./pages/admin/AdminBookingsList.tsx:    if (statuses.some(s => s === 'rejected')) {
+./pages/admin/AdminBookingsList.tsx:    if (statuses.some(s => s === 'pending')) {
+./pages/admin/AdminBookingsList.tsx:    if (statuses.every(s => s === 'accepted')) {
+./pages/admin/AdminBookingsList.tsx:    // In real app, we'd fetch compliance status
+./pages/admin/AdminBookingsList.tsx:    if (b.status === 'confirmed') {
+./pages/admin/AdminBookingsList.tsx:      b.status,
+./pages/admin/AdminBookingsList.tsx:          value={status}
+./pages/admin/AdminBookingsList.tsx:          <option value="all">All statuses</option>
+./pages/admin/AdminBookingsList.tsx:                    const st = String(b.status ?? "unknown").toUpperCase();
+./pages/admin/AdminBookingsList.tsx:                            const isCompleted = normalizeText(b.status) === 'completed';
+./pages/admin/AdminBookingsList.tsx:                            let label = String(b.payment_status || 'pending').replace('_', ' ');
+./pages/admin/AdminBookingsList.tsx:                            } else if (isCompleted || b.payment_status === 'payout_ready' || b.payment_status === 'funds_received') {
+./pages/admin/UserDetail.tsx:        .update({ verification_status: newStatus })
+./pages/admin/UserDetail.tsx:          previous_status: profile.verification_status, 
+./pages/admin/UserDetail.tsx:          new_status: newStatus,
+./pages/admin/UserDetail.tsx:      console.error("Failed to update user status:", err);
+./pages/admin/UserDetail.tsx:  const updateDocStatus = async (docId: string, status: DocumentStatus) => {
+./pages/admin/UserDetail.tsx:    await supabase.from('documents').update({ status }).eq('id', docId);
+./pages/admin/UserDetail.tsx:      action: `DOCUMENT_${status.toUpperCase()}`,
+./pages/admin/UserDetail.tsx:                 profile.verification_status === 'verified' ? 'bg-green-100 text-green-700 border-green-200' :
+./pages/admin/UserDetail.tsx:                 profile.verification_status === 'pending' ? 'bg-amber-100 text-amber-700 border-amber-200' :
+./pages/admin/UserDetail.tsx:                 profile.verification_status === 'rejected' ? 'bg-red-100 text-red-700 border-red-200' :
+./pages/admin/UserDetail.tsx:                 {profile.verification_status}
+./pages/admin/UserDetail.tsx:            {profile.verification_status !== 'verified' && (
+./pages/admin/UserDetail.tsx:            {profile.verification_status !== 'rejected' && (
+./pages/admin/UserDetail.tsx:                           {doc.status !== 'valid' && (
+./pages/admin/UserDetail.tsx:                           {doc.status !== 'rejected' && (
+./pages/admin/UserDetail.tsx:                            doc.status === 'valid' ? 'bg-green-50 text-green-700 border-green-100' :
+./pages/admin/UserDetail.tsx:                            doc.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-100' :
+./pages/admin/UserDetail.tsx:                            {doc.status}
+./pages/admin/AdminPayoutBatchDetail.tsx:      p.status,
+./pages/admin/AdminPayoutBatchDetail.tsx:          <div><span className="text-gray-500">Status:</span> <span className="uppercase">{data.batch.status}</span></div>
+./pages/admin/AdminPayoutBatchDetail.tsx:                <td className="p-2">{p.status.toUpperCase()}</td>
+./pages/admin/AdminReconciliationPage.tsx:            .filter((row: any) => row.status === 'paid')
+./pages/admin/AdminReconciliationPage.tsx:          <p className="text-2xl font-bold text-blue-700">{formatCurrency(summary?.statusTotals?.pending?.total || 0)}</p>
+./pages/admin/AdminReconciliationPage.tsx:          <p className="text-sm text-blue-600 mt-1">{summary?.statusTotals?.pending?.count || 0} rows</p>
+./pages/admin/AdminReconciliationPage.tsx:          <p className="text-2xl font-bold text-amber-700">{formatCurrency(summary?.statusTotals?.approved?.total || 0)}</p>
+./pages/admin/AdminReconciliationPage.tsx:          <p className="text-sm text-amber-600 mt-1">{summary?.statusTotals?.approved?.count || 0} rows</p>
+./pages/admin/AdminReconciliationPage.tsx:          <p className="text-2xl font-bold text-green-700">{formatCurrency(summary?.statusTotals?.paid?.total || 0)}</p>
+./pages/admin/AdminReconciliationPage.tsx:          <p className="text-sm text-green-600 mt-1">{summary?.statusTotals?.paid?.count || 0} rows</p>
+./pages/admin/AdminReconciliationPage.tsx:                            <p className="text-xs text-gray-500 uppercase font-bold">{d.statuses}</p>
+./pages/admin/AdminPayoutDetail.tsx:      setActionError("Failed to update status: " + err.message);
+./pages/admin/AdminPayoutDetail.tsx:  const getStatusColor = (status: string) => {
+./pages/admin/AdminPayoutDetail.tsx:    // Prioritize withdrawal request status
+./pages/admin/AdminPayoutDetail.tsx:    if (payout?.withdrawal_request_status) {
+./pages/admin/AdminPayoutDetail.tsx:      switch (payout.withdrawal_request_status) {
+./pages/admin/AdminPayoutDetail.tsx:    switch (status) {
+./pages/admin/AdminPayoutDetail.tsx:    // Prioritize withdrawal request status
+./pages/admin/AdminPayoutDetail.tsx:    if (payout.withdrawal_request_status) {
+./pages/admin/AdminPayoutDetail.tsx:      switch (payout.withdrawal_request_status) {
+./pages/admin/AdminPayoutDetail.tsx:    if (payout.status === 'approved') return 'AVAILABLE';
+./pages/admin/AdminPayoutDetail.tsx:    return payout.status.toUpperCase();
+./pages/admin/AdminPayoutDetail.tsx:          {payout.status !== 'paid' && (
+./pages/admin/AdminPayoutDetail.tsx:               <span className={`px-2.5 py-1 rounded text-xs font-bold uppercase ${getStatusColor(payout.status)}`}>
+./pages/admin/AdminPayoutDetail.tsx:             {payout.withdrawal_request_status === 'rejected' && (
+./pages/admin/AdminPayoutDetail.tsx:             {payout.status === 'pending' && !payout.is_on_hold && (
+./pages/admin/AdminPayoutDetail.tsx:             {payout.status === 'paid' && (
+./pages/admin/AdminPayoutsList.tsx:  const [statusFilter, setStatusFilter] = useState('all');
+./pages/admin/AdminPayoutsList.tsx:  }, [statusFilter, withdrawalFilter, operatorFilter, providerFilter, startDate, endDate, showArchived, search]);
+./pages/admin/AdminPayoutsList.tsx:          status: statusFilter,
+./pages/admin/AdminPayoutsList.tsx:  const getStatusColor = (status: string) => {
+./pages/admin/AdminPayoutsList.tsx:    switch (status) {
+./pages/admin/AdminPayoutsList.tsx:                 p.status,
+./pages/admin/AdminPayoutsList.tsx:                  value={statusFilter}
+./pages/admin/AdminPayoutsList.tsx:                        ) : p.withdrawal_request_status ? (
+./pages/admin/AdminPayoutsList.tsx:                            p.withdrawal_request_status === 'requested' ? 'bg-blue-100 text-blue-700' :
+./pages/admin/AdminPayoutsList.tsx:                            p.withdrawal_request_status === 'approved' ? 'bg-purple-100 text-purple-700' :
+./pages/admin/AdminPayoutsList.tsx:                            p.withdrawal_request_status === 'rejected' ? 'bg-red-100 text-red-700' :
+./pages/admin/AdminPayoutsList.tsx:                            p.withdrawal_request_status === 'paid' ? 'bg-green-100 text-green-700' :
+./pages/admin/AdminPayoutsList.tsx:                            {p.withdrawal_request_status === 'approved' ? 'APPROVED FOR PAYOUT' : p.withdrawal_request_status.toUpperCase()}
+./pages/admin/AdminPayoutsList.tsx:                          <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase w-fit ${getStatusColor(p.status)}`}>
+./pages/admin/AdminPayoutsList.tsx:                            {p.status === 'approved' ? 'AVAILABLE' : p.status.toUpperCase()}
+./pages/admin/AdminPayoutsList.tsx:                        {p.status !== 'paid' && !p.is_on_hold && (
+./pages/admin/PayoutDisputesPage.tsx:  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'resolved'>('all');
+./pages/admin/PayoutDisputesPage.tsx:      d.status,
+./pages/admin/PayoutDisputesPage.tsx:    const matchesStatus = statusFilter === 'all' || d.status === statusFilter;
+./pages/admin/PayoutDisputesPage.tsx:    open: disputes.filter(d => d.status === 'open').length,
+./pages/admin/PayoutDisputesPage.tsx:    resolved: disputes.filter(d => d.status === 'resolved').length,
+./pages/admin/PayoutDisputesPage.tsx:      .filter(d => d.status === 'open')
+./pages/admin/PayoutDisputesPage.tsx:            value={statusFilter}
+./pages/admin/PayoutDisputesPage.tsx:                        {dispute.status === 'resolved' ? (
+./pages/admin/PayoutDisputesPage.tsx:                          {dispute.status === 'open' ? (
+./pages/admin/PayoutDisputesPage.tsx:                                    {dispute.status === 'resolved' ? (
+./pages/admin/AdminBookingDetail.tsx:        .select('status, amount_net, adjusted_amount, provider_id')
+./pages/admin/AdminBookingDetail.tsx:    return payoutLedgers.some(p => p.status === 'paid');
+./pages/admin/AdminBookingDetail.tsx:      .filter(l => l.status === 'paid')
+./pages/admin/AdminBookingDetail.tsx:        const paymentStatus = String(b?.payment_status || '').toLowerCase();
+./pages/admin/AdminBookingDetail.tsx:        const escrowStatus = String(b?.escrow_status || '').toLowerCase();
+./pages/admin/AdminBookingDetail.tsx:    const paid = payoutLedgers.filter(p => p.status === 'paid').length;
+./pages/admin/AdminBookingDetail.tsx:    const isCompleted = booking?.status === 'completed';
+./pages/admin/AdminBookingDetail.tsx:    if (isCompleted || booking?.payment_status === 'payout_ready' || booking?.payment_status === 'funds_received') {
+./pages/admin/AdminBookingDetail.tsx:    const isEscrowFunded = booking?.payment_status === 'funds_held' || booking?.escrow_status === 'funds_received';
+./pages/admin/AdminBookingDetail.tsx:    if ((!booking?.payment_status || booking?.payment_status === 'payment_pending') && (hasSpentFunds || isEscrowFunded)) {
+./pages/admin/AdminBookingDetail.tsx:    return { label: booking?.payment_status?.replace('_', ' ') || 'Pending', className: 'bg-gray-100 text-gray-500' };
+./pages/admin/AdminBookingDetail.tsx:  }, [payoutLedgers, booking?.status, booking?.payment_status, booking?.funds_received_amount, booking?.funds_held_amount, booking?.escrow_held, booking?.escrow_status]);
+./pages/admin/AdminBookingDetail.tsx:                  <BookingStatusBadge status={booking.status} className="mt-1" />
+./pages/admin/AdminBookingDetail.tsx:                      driverAssign.status === 'accepted' || driverAssign.status === 'completed'
+./pages/admin/AdminBookingDetail.tsx:                        : driverAssign.status === 'rejected'
+./pages/admin/AdminBookingDetail.tsx:                    {driverAssign.status}
+./pages/admin/AdminBookingDetail.tsx:                      guideAssign.status === 'accepted' || guideAssign.status === 'completed'
+./pages/admin/AdminBookingDetail.tsx:                        : guideAssign.status === 'rejected'
+./pages/admin/AdminBookingDetail.tsx:                    {guideAssign.status}
+./pages/admin/AdminBookingDetail.tsx:            {booking.payment_status && (
+./pages/admin/AdminBookingDetail.tsx:                {booking.payment_status === 'payment_pending' ? 'Mark Funds Received' : 'Update Funds Received'}
+./pages/admin/SystemAudit.tsx:    const summaryKeys = ['booking_reference', 'status', 'amount', 'reason', 'notes', 'email', 'id'];
+./pages/admin/UserVerification.tsx:      query = query.eq('verification_status', filter);
+./pages/admin/UserVerification.tsx:  const getStatusBadge = (status: VerificationStatus) => {
+./pages/admin/UserVerification.tsx:    switch(status) {
+./pages/admin/UserVerification.tsx:                    {getStatusBadge(u.verification_status)}
+./pages/admin/AdminUserDirectory.tsx:  verification_status?: string;
+./pages/admin/AdminUserDirectory.tsx:  const [statusFilter, setStatusFilter] = useState('all');
+./pages/admin/AdminUserDirectory.tsx:    const matchesStatus = statusFilter === 'all' || user.verification_status === statusFilter;
+./pages/admin/AdminUserDirectory.tsx:              value={statusFilter}
+./pages/admin/AdminUserDirectory.tsx:                        u.verification_status === 'verified' ? 'bg-green-100 text-green-700 border border-green-200' :
+./pages/admin/AdminUserDirectory.tsx:                        u.verification_status === 'rejected' ? 'bg-red-100 text-red-700 border border-red-200' :
+./pages/admin/AdminUserDirectory.tsx:                        {u.verification_status || 'unknown'}
+./pages/operator/TourDetail.tsx:      status: 'draft',
+./pages/operator/TourDetail.tsx:    await supabase.from('tours').update({ is_active: false, status: 'archived' }).eq('id', tour.id);
+./pages/operator/TourDetail.tsx:                   tour.status === 'published' ? 'bg-green-100/90 text-green-800' : 'bg-gray-100/90 text-gray-800'
+./pages/operator/TourDetail.tsx:                   {tour.status}
+./pages/operator/ToursList.tsx:  const filteredTours = tours.filter(t => filter === 'all' || t.status === filter);
+./pages/operator/ToursList.tsx:  const getStatusBadge = (status: string) => {
+./pages/operator/ToursList.tsx:    switch (status) {
+./pages/operator/ToursList.tsx:                    {getStatusBadge(tour.status)}
+./pages/operator/ProviderDirectory.tsx:  const isVerifiedStatus = (status: any) => String(status || "").toLowerCase() === "verified";
+./pages/operator/ProviderDirectory.tsx:    return getProfileFromVehicle(v).some((p: any) => isVerifiedStatus(p.verification_status));
+./pages/operator/ProviderDirectory.tsx:    if (isDriversVerifiedOnly && !isVerifiedStatus(driver.verification_status || driver.metadata?.verification_status)) return false;
+./pages/operator/ProviderDirectory.tsx:    if (isGuidesVerifiedOnly && !isVerifiedStatus(guide.verification_status || guide.metadata?.verification_status)) return false;
+./pages/operator/ProviderDirectory.tsx:    return link ? String(link.status).toLowerCase() : 'none';
+./pages/operator/ProviderDirectory.tsx:    l.status === 'approved' || l.status === 'pending'
+./pages/operator/ProviderDirectory.tsx:          My Hired Fleet ({hiredDisplayList.filter(l => l.status === 'approved').length})
+./pages/operator/ProviderDirectory.tsx:              const verificationStatus = profile?.verification_status;
+./pages/operator/ProviderDirectory.tsx:                  const isPending = item.status === 'pending';
+./pages/operator/ProviderDirectory.tsx:                              item.status === 'approved' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-amber-50 text-amber-700 border-amber-100'
+./pages/operator/ProviderDirectory.tsx:                              {item.status}
+./pages/operator/MyRequestsPage.tsx:      .eq('status', 'published')
+./pages/operator/MyRequestsPage.tsx:        (b.status === 'draft' || b.status === 'confirmed') && !b.archived_at
+./pages/operator/MyRequestsPage.tsx:  const pendingVehiclesCount = requests.filter(r => r.status === 'pending').length;
+./pages/operator/MyRequestsPage.tsx:  const pendingDriversCount = driverRequests.filter(r => r.status === 'pending').length;
+./pages/operator/MyRequestsPage.tsx:  const pendingGuidesCount = guideRequests.filter(r => r.status === 'pending').length;
+./pages/operator/MyRequestsPage.tsx:                        req.status === 'accepted' ? 'bg-green-100 text-green-800' :
+./pages/operator/MyRequestsPage.tsx:                        req.status === 'declined' ? 'bg-red-100 text-red-800' :
+./pages/operator/MyRequestsPage.tsx:                        req.status === 'cancelled' ? 'bg-gray-100 text-gray-800' :
+./pages/operator/MyRequestsPage.tsx:                        {req.status}
+./pages/operator/MyRequestsPage.tsx:                        {req.status === 'pending' && "Waiting for fleet owner response"}
+./pages/operator/MyRequestsPage.tsx:                        {req.status === 'accepted' && "Ready to use in a booking"}
+./pages/operator/MyRequestsPage.tsx:                        {req.status === 'declined' && "Request declined, try another vehicle"}
+./pages/operator/MyRequestsPage.tsx:                        {req.status === 'cancelled' && "Request was cancelled"}
+./pages/operator/MyRequestsPage.tsx:                    {req.status === 'accepted' && !req.converted_booking_id && (
+./pages/operator/MyRequestsPage.tsx:                          req.status === 'accepted' ? 'bg-green-100 text-green-800' :
+./pages/operator/MyRequestsPage.tsx:                          req.status === 'declined' ? 'bg-red-100 text-red-800' :
+./pages/operator/MyRequestsPage.tsx:                          req.status === 'cancelled' ? 'bg-gray-100 text-gray-800' :
+./pages/operator/MyRequestsPage.tsx:                          {req.status}
+./pages/operator/MyRequestsPage.tsx:                          {req.status === 'pending' && "Waiting for driver response"}
+./pages/operator/MyRequestsPage.tsx:                          {req.status === 'accepted' && "Driver is available"}
+./pages/operator/MyRequestsPage.tsx:                          {req.status === 'declined' && "Driver declined request"}
+./pages/operator/MyRequestsPage.tsx:                          {req.status === 'cancelled' && "Request was cancelled"}
+./pages/operator/MyRequestsPage.tsx:                      {req.status === 'pending' && (
+./pages/operator/MyRequestsPage.tsx:                      {req.status === 'accepted' && !req.converted_booking_id && (
+./pages/operator/MyRequestsPage.tsx:                          req.status === 'accepted' ? 'bg-green-100 text-green-800' :
+./pages/operator/MyRequestsPage.tsx:                          req.status === 'declined' ? 'bg-red-100 text-red-800' :
+./pages/operator/MyRequestsPage.tsx:                          req.status === 'cancelled' ? 'bg-gray-100 text-gray-800' :
+./pages/operator/MyRequestsPage.tsx:                          {req.status}
+./pages/operator/MyRequestsPage.tsx:                          {req.status === 'pending' && "Waiting for guide response"}
+./pages/operator/MyRequestsPage.tsx:                          {req.status === 'accepted' && "Guide is available"}
+./pages/operator/MyRequestsPage.tsx:                          {req.status === 'declined' && "Guide declined request"}
+./pages/operator/MyRequestsPage.tsx:                          {req.status === 'cancelled' && "Request was cancelled"}
+./pages/operator/MyRequestsPage.tsx:                      {req.status === 'pending' && (
+./pages/operator/MyRequestsPage.tsx:                      {req.status === 'accepted' && !req.converted_booking_id && (
+./pages/operator/PayoutDetail.tsx:  const getStatusColor = (status: string) => {
+./pages/operator/PayoutDetail.tsx:    switch (status) {
+./pages/operator/PayoutDetail.tsx:  const getStatusLabel = (status: string) => {
+./pages/operator/PayoutDetail.tsx:    if (status === 'approved' && (payout?.adjusted_amount ?? 0) > 0 && (payout?.adjusted_amount ?? 0) < (payout?.original_amount || payout?.amount_net || 0)) {
+./pages/operator/PayoutDetail.tsx:    if (status === 'approved' && (payout?.adjusted_amount ?? 0) > 0) {
+./pages/operator/PayoutDetail.tsx:    switch (status) {
+./pages/operator/PayoutDetail.tsx:      default: return status.toUpperCase();
+./pages/operator/PayoutDetail.tsx:      {isBlocked && gateResult && payout.status === 'pending' && (
+./pages/operator/PayoutDetail.tsx:               <span className={`px-2.5 py-1 rounded text-xs font-bold uppercase border ${getStatusColor(payout.status)}`}>
+./pages/operator/PayoutDetail.tsx:                 {getStatusLabel(payout.status)}
+./pages/operator/PayoutDetail.tsx:             {payout.status === 'pending' && (
+./pages/operator/PayoutDetail.tsx:             {payout.status === 'paid' && (
+./pages/operator/BookingsList.tsx:    (b.status === 'confirmed' || b.status === 'pending') && 
+./pages/operator/BookingsList.tsx:  const getAssignmentStatusLabel = (status: string) => {
+./pages/operator/BookingsList.tsx:    switch (status.toLowerCase()) {
+./pages/operator/BookingsList.tsx:      default: return status;
+./pages/operator/BookingsList.tsx:            .eq('status', 'open')
+./pages/operator/BookingsList.tsx:          // Resolve current status and names for each booking
+./pages/operator/BookingsList.tsx:              driverStatus: currentDriver?.status || undefined,
+./pages/operator/BookingsList.tsx:              guideStatus: currentGuide?.status || undefined,
+./pages/operator/BookingsList.tsx:    const status = b.escrow_status || b.payment_status;
+./pages/operator/BookingsList.tsx:    switch(status) {
+./pages/operator/BookingsList.tsx:    const status = assignmentMap[b.id];
+./pages/operator/BookingsList.tsx:    if (!status || (!status.driverStatus && !status.guideStatus)) {
+./pages/operator/BookingsList.tsx:    const statuses = [status.driverStatus, status.guideStatus].filter(Boolean);
+./pages/operator/BookingsList.tsx:    if (statuses.some(s => s === 'rejected')) {
+./pages/operator/BookingsList.tsx:    if (statuses.some(s => s === 'pending')) {
+./pages/operator/BookingsList.tsx:    if (statuses.every(s => s === 'accepted' || s === 'completed')) {
+./pages/operator/BookingsList.tsx:      const isCompleted = statuses.every(s => s === 'completed');
+./pages/operator/BookingsList.tsx:    if (booking.status !== 'completed') return { label: '-', color: 'text-gray-400' };
+./pages/operator/BookingsList.tsx:    const pending = bookingLedgers.filter(l => l.status === 'pending');
+./pages/operator/BookingsList.tsx:    const approved = bookingLedgers.filter(l => l.status === 'approved');
+./pages/operator/BookingsList.tsx:    const paid = bookingLedgers.filter(l => l.status === 'paid');
+./pages/operator/BookingsList.tsx:    const matchesStatus = filterStatus === 'all' || b.status === filterStatus;
+./pages/operator/BookingsList.tsx:  const AssignmentStatusBadge = ({ status }: { status?: string }) => {
+./pages/operator/BookingsList.tsx:    if (!status) return <span className="text-[10px] text-gray-400 uppercase font-medium">None</span>;
+./pages/operator/BookingsList.tsx:    const config = colors[status.toLowerCase()] || 'bg-gray-50 text-gray-500 border-gray-100';
+./pages/operator/BookingsList.tsx:        {getAssignmentStatusLabel(status)}
+./pages/operator/BookingsList.tsx:                          <BookingStatusBadge status={b.status} />
+./pages/operator/BookingsList.tsx:                            <AssignmentStatusBadge status={assignmentMap[b.id]?.driverStatus} />
+./pages/operator/BookingsList.tsx:                            <AssignmentStatusBadge status={assignmentMap[b.id]?.guideStatus} />
+./pages/operator/BookingsList.tsx:                            b.status === 'completed' &&
+./pages/operator/BookingsList.tsx:                    <BookingStatusBadge status={b.status} />
+./pages/operator/BookingsList.tsx:                        <AssignmentStatusBadge status={assignmentMap[b.id]?.driverStatus} />
+./pages/operator/BookingsList.tsx:                        <AssignmentStatusBadge status={assignmentMap[b.id]?.guideStatus} />
+./pages/operator/VehicleDetailPage.tsx:      // If operator is viewing someone else's vehicle, fetch link status and rates
+./pages/operator/VehicleDetailPage.tsx:        const status = await getVehicleLinkStatus(data.id, user.id);
+./pages/operator/VehicleDetailPage.tsx:        setLinkStatus(status);
+./pages/operator/VehicleDetailPage.tsx:        if (status === 'approved') {
+./pages/operator/VehicleDetailPage.tsx:      // Refresh status from DB to avoid any mismatch
+./pages/operator/VehicleDetailPage.tsx:      const status = await getVehicleLinkStatus(vehicle.id, user.id);
+./pages/operator/VehicleDetailPage.tsx:      setLinkStatus(status ?? res.status);
+./pages/operator/VehicleDetailPage.tsx:  const getStatusColor = (status: string) => {
+./pages/operator/VehicleDetailPage.tsx:    switch (status) {
+./pages/operator/VehicleDetailPage.tsx:  const isInactive = vehicle.status === 'Inactive';
+./pages/operator/VehicleDetailPage.tsx:                <span className={`px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wide shadow-sm ${getStatusColor(vehicle.status)}`}>
+./pages/operator/VehicleDetailPage.tsx:                  {isInactive ? 'Archived' : vehicle.status}
+./pages/operator/VehicleDetailPage.tsx:                { id: 'active', label: 'Status is active', helper: 'Set status to active', done: (vehicle.status as any) === 'active' || (vehicle.status as any) === 'Active' }
+./pages/operator/VehicleDetailPage.tsx:                        {provider.verification_status?.toLowerCase() === 'verified' && (
+./pages/operator/VehicleDetailPage.tsx:                      <p className="text-[11px] text-gray-400 italic">Compliance status unavailable</p>
+./pages/operator/VehicleDetailPage.tsx:                    rateLink.rate_status === 'accepted' ? 'bg-green-50 text-green-700 border-green-100' :
+./pages/operator/VehicleDetailPage.tsx:                    rateLink.rate_status === 'countered' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+./pages/operator/VehicleDetailPage.tsx:                    {rateLink.rate_status}
+./pages/operator/VehicleDetailPage.tsx:                {rateLink?.rate_status === 'accepted' ? (
+./pages/operator/VehicleDetailPage.tsx:                    {rateLink && rateLink.rate_status !== 'none' && (
+./pages/operator/VehicleDetailPage.tsx:                      {(!rateLink || rateLink.rate_status === 'none') && (
+./pages/operator/VehicleDetailPage.tsx:                      {rateLink?.rate_status === 'proposed' && (
+./pages/operator/VehicleDetailPage.tsx:                      {rateLink?.rate_status === 'countered' && (
+./pages/operator/PayoutsList.tsx:  const initialStatus = searchParams.get('status');
+./pages/operator/PayoutsList.tsx:  const [statusFilter, setStatusFilter] = useState(initialStatus ? initialStatus.charAt(0).toUpperCase() + initialStatus.slice(1) : 'All');
+./pages/operator/PayoutsList.tsx:    const matchesStatus = statusFilter === 'All' || p.status.toLowerCase() === statusFilter.toLowerCase();
+./pages/operator/PayoutsList.tsx:  const getStatusColor = (status: string) => {
+./pages/operator/PayoutsList.tsx:    switch (status) {
+./pages/operator/PayoutsList.tsx:                   value={statusFilter}
+./pages/operator/PayoutsList.tsx:                       <span className={`px-2.5 py-1 rounded text-xs font-bold uppercase ${getStatusColor(p.status)}`}>
+./pages/operator/PayoutsList.tsx:                         {p.status}
+./pages/operator/BookingDetail.tsx:function getAllowedActions(status: string, isArchived: boolean) {
+./pages/operator/BookingDetail.tsx:  switch (status) {
+./pages/operator/BookingDetail.tsx:const getStatusDisplay = (status: string | null | undefined) => {
+./pages/operator/BookingDetail.tsx:  if (!status) return '';
+./pages/operator/BookingDetail.tsx:  switch (status.toLowerCase()) {
+./pages/operator/BookingDetail.tsx:    default: return status;
+./pages/operator/BookingDetail.tsx:  return payoutLedgers.some(p => p.provider_id === vehicle.owner_id && p.status === 'paid');
+./pages/operator/BookingDetail.tsx:  return payoutLedgers.some(p => p.provider_id === vehicle.owner_id && p.status === 'approved');
+./pages/operator/BookingDetail.tsx:  return payoutLedgers.some(p => p.provider_id === resourceId && p.status === 'paid');
+./pages/operator/BookingDetail.tsx:  return payoutLedgers.some(p => p.provider_id === resourceId && p.status === 'approved');
+./pages/operator/BookingDetail.tsx:const getStatusBadgeClass = (status: string | null | undefined) => {
+./pages/operator/BookingDetail.tsx:  if (!status) return '';
+./pages/operator/BookingDetail.tsx:  switch (status.toLowerCase()) {
+./pages/operator/BookingDetail.tsx:  const [statusHistory, setStatusHistory] = useState<any[]>([]);
+./pages/operator/BookingDetail.tsx:  const [statusHistoryLoading, setStatusHistoryLoading] = useState(false);
+./pages/operator/BookingDetail.tsx:  const [statusHistoryError, setStatusHistoryError] = useState(false);
+./pages/operator/BookingDetail.tsx:    return payoutLedgers.some(p => p.status === 'paid');
+./pages/operator/BookingDetail.tsx:  const isDriverLocked = (driverPayout && driverPayout.status !== 'pending') || isFinanciallyLocked;
+./pages/operator/BookingDetail.tsx:  const isGuideLocked = (guidePayout && guidePayout.status !== 'pending') || isFinanciallyLocked;
+./pages/operator/BookingDetail.tsx:  const isVehicleLocked = (vehiclePayout && vehiclePayout.status !== 'pending') || isFinanciallyLocked;
+./pages/operator/BookingDetail.tsx:  const isTripInfoLocked = booking?.status === 'completed' || booking?.status === 'cancelled' || !!booking?.archived_at || isFinanciallyLocked;
+./pages/operator/BookingDetail.tsx:    if (!assignedDriver || assignedDriver.status === 'rejected') return 0;
+./pages/operator/BookingDetail.tsx:    if (!assignedGuide || assignedGuide.status === 'rejected') return 0;
+./pages/operator/BookingDetail.tsx:  const isDriverAccepted = assignedDriver?.status === 'accepted' || assignedDriver?.status === 'completed';
+./pages/operator/BookingDetail.tsx:  const isGuideAccepted = assignedGuide?.status === 'accepted' || assignedGuide?.status === 'completed';
+./pages/operator/BookingDetail.tsx:      .filter(l => l.status === 'paid')
+./pages/operator/BookingDetail.tsx:    if (assignedDriver && assignedDriver.resource_id !== user?.id && ['pending', 'invited', 'requested'].includes((assignedDriver.status || '').toLowerCase())) {
+./pages/operator/BookingDetail.tsx:      pending.push({ type: 'Driver', status: assignedDriver.status || 'pending' });
+./pages/operator/BookingDetail.tsx:    if (assignedGuide && assignedGuide.resource_id !== user?.id && ['pending', 'invited', 'requested'].includes((assignedGuide.status || '').toLowerCase())) {
+./pages/operator/BookingDetail.tsx:      pending.push({ type: 'Guide', status: assignedGuide.status || 'pending' });
+./pages/operator/BookingDetail.tsx:    if (vehicleAssignment && vehicleAssignment.resource_id !== user?.id && ['pending', 'invited', 'requested'].includes((vehicleAssignment.status || '').toLowerCase())) {
+./pages/operator/BookingDetail.tsx:      pending.push({ type: 'Vehicle', status: vehicleAssignment.status || 'pending' });
+./pages/operator/BookingDetail.tsx:        supabase.from('payout_disputes').select('*').eq('booking_id', id).eq('status', 'open')
+./pages/operator/BookingDetail.tsx:          if (comp.status === 'non_compliant') isCompliant = false;
+./pages/operator/BookingDetail.tsx:          if (comp.status === 'non_compliant') isCompliant = false;
+./pages/operator/BookingDetail.tsx:        status: row?.can_assign ? 'compliant' : 'non_compliant',
+./pages/operator/BookingDetail.tsx:    if (booking.status === 'completed' || booking.status === 'cancelled') {
+./pages/operator/BookingDetail.tsx:    const isApproved = payoutLedgers.some(p => p.provider_id === selectedVehicleDetails?.owner_id && p.status === 'approved');
+./pages/operator/BookingDetail.tsx:      if (payout?.status === 'paid') {
+./pages/operator/BookingDetail.tsx:      if (payout?.status === 'approved') {
+./pages/operator/BookingDetail.tsx:        if (r.status !== 'accepted') return false;
+./pages/operator/BookingDetail.tsx:    statusHistory.forEach(h => {
+./pages/operator/BookingDetail.tsx:        type: 'status',
+./pages/operator/BookingDetail.tsx:        label: `Booking status: ${h.old_status} → ${h.new_status}`,
+./pages/operator/BookingDetail.tsx:      if (a.updated_at && a.status && a.status !== 'pending') {
+./pages/operator/BookingDetail.tsx:        if (a.status === 'accepted') label = `${roleLabel} accepted`;
+./pages/operator/BookingDetail.tsx:        else if (a.status === 'rejected') label = `${roleLabel} declined`;
+./pages/operator/BookingDetail.tsx:        else if (a.status === 'completed') label = `${roleLabel} completed`;
+./pages/operator/BookingDetail.tsx:            source: a.status === 'cancelled' ? 'OPERATOR' : 'PROVIDER',
+./pages/operator/BookingDetail.tsx:  }, [statusHistory, assignments, auditLogs]);
+./pages/operator/BookingDetail.tsx:      const cDStatus = currentDriver?.status || null;
+./pages/operator/BookingDetail.tsx:      const cGStatus = currentGuide?.status || null;
+./pages/operator/BookingDetail.tsx:        assignmentStatus: assignments.find(a => a.id === showAssignmentNoShowModal.id)?.status,
+./pages/operator/BookingDetail.tsx:          if (assignedDriver.status === 'rejected') declined.push('Driver');
+./pages/operator/BookingDetail.tsx:          else if (!['accepted', 'completed'].includes(assignedDriver.status || '')) missingAcceptance.push('Driver');
+./pages/operator/BookingDetail.tsx:          if (assignedGuide.status === 'rejected') declined.push('Guide');
+./pages/operator/BookingDetail.tsx:          else if (!['accepted', 'completed'].includes(assignedGuide.status || '')) missingAcceptance.push('Guide');
+./pages/operator/BookingDetail.tsx:        if (assignedDriver && assignedDriver.status === 'accepted') {
+./pages/operator/BookingDetail.tsx:        if (assignedGuide && assignedGuide.status === 'accepted') {
+./pages/operator/BookingDetail.tsx:    if (booking?.status === 'completed') {
+./pages/operator/BookingDetail.tsx:      if (assignedDriver && (driverPayout?.status === 'paid' || isFinanciallyLocked) && !reviewedProviders.has(assignedDriver.resource_id)) {
+./pages/operator/BookingDetail.tsx:      if (assignedGuide && (guidePayout?.status === 'paid' || isFinanciallyLocked) && !reviewedProviders.has(assignedGuide.resource_id)) {
+./pages/operator/BookingDetail.tsx:      if (selectedVehicleDetails?.owner_id && (vehiclePayout?.status === 'paid' || isFinanciallyLocked) && !reviewedProviders.has(selectedVehicleDetails.owner_id)) {
+./pages/operator/BookingDetail.tsx:  }, [booking?.status, assignedDriver, driverPayout?.status, isFinanciallyLocked, reviewedProviders, assignedGuide, guidePayout?.status, selectedVehicleDetails, vehiclePayout?.status]);
+./pages/operator/BookingDetail.tsx:  const handleUpdatePayoutStatus = async (payoutLedgerId: string, status: 'approved' | 'paid', resource: 'driver' | 'guide' | 'vehicle') => {
+./pages/operator/BookingDetail.tsx:      const updated = await updatePayoutStatus(payoutLedgerId, status, booking.operator_id);
+./pages/operator/BookingDetail.tsx:        throw new Error("Payout status update failed. No data returned.");
+./pages/operator/BookingDetail.tsx:      showNotice('success', `Payout ${status} successfully.`);
+./pages/operator/BookingDetail.tsx:      showNotice('error', err.message || `Failed to ${status} payout.`);
+./pages/operator/BookingDetail.tsx:                  const isNonCompliant = v.ownerCompliance?.status === 'non_compliant';
+./pages/operator/BookingDetail.tsx:                                isCompliant: v.ownerCompliance.status !== 'non_compliant',
+./pages/operator/BookingDetail.tsx:                <BookingStatusBadge status={booking.status} />
+./pages/operator/BookingDetail.tsx:                {(booking.status === 'pending' || booking.status === 'draft') && (
+./pages/operator/BookingDetail.tsx:              booking.payment_status === 'payout_completed' ? 'bg-green-100 text-green-700' :
+./pages/operator/BookingDetail.tsx:              booking.payment_status === 'payout_ready' ? 'bg-blue-100 text-blue-700' :
+./pages/operator/BookingDetail.tsx:              (booking.payment_status === 'funds_held' || booking.payment_status === 'funds_received' || Number(booking.funds_received_amount) > 0 || Number(booking.funds_held_amount) > 0 || Number(booking.escrow_held) > 0 || booking.escrow_status === 'funds_received') ? 'bg-blue-100 text-blue-700' :
+./pages/operator/BookingDetail.tsx:              {booking.payment_status === 'payout_completed' && <CheckCircle2 size={12} />}
+./pages/operator/BookingDetail.tsx:              {((!booking.payment_status || booking.payment_status === 'payment_pending') && (Number(booking.funds_received_amount) > 0 || Number(booking.funds_held_amount) > 0 || Number(booking.escrow_held) > 0 || booking.escrow_status === 'funds_received')) ? 'FUNDS HELD' : booking.payment_status?.replace('_', ' ')}
+./pages/operator/BookingDetail.tsx:                    {!assignedDriver ? 'Missing' : assignedDriver.status === 'pending' ? 'Pending' : 'Accepted'}
+./pages/operator/BookingDetail.tsx:                    {!assignedGuide ? 'Missing' : assignedGuide.status === 'pending' ? 'Pending' : 'Accepted'}
+./pages/operator/BookingDetail.tsx:                const isFullyLocked = booking.status === 'completed' || booking.status === 'cancelled' || !!booking.archived_at;
+./pages/operator/BookingDetail.tsx:              {['confirmed', 'in_progress', 'assigned', 'pending'].includes(booking.status) && (
+./pages/operator/BookingDetail.tsx:                           const isReported = assignedDriver.status === 'no_show' || !!assignedDriver.incident_reported_at;
+./pages/operator/BookingDetail.tsx:                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getStatusBadgeClass(isReported ? 'no_show' : assignedDriver.status || 'accepted')}`}>
+./pages/operator/BookingDetail.tsx:                              {isReported ? 'REPORTED NO-SHOW' : getStatusDisplay(assignedDriver.status)}
+./pages/operator/BookingDetail.tsx:                       const isReported = assignedDriver.status === 'no_show' || !!assignedDriver.incident_reported_at;
+./pages/operator/BookingDetail.tsx:                        disabled={booking.status === 'completed' || booking.status === 'cancelled' || isAssignmentApproved(payoutLedgers, assignedDriver.resource_id) || isAssignmentPaid(payoutLedgers, assignedDriver.resource_id) || isFinanciallyLocked}
+./pages/operator/BookingDetail.tsx:                        disabled={booking.status === 'completed' || booking.status === 'cancelled' || isAssignmentApproved(payoutLedgers, assignedDriver.resource_id) || isAssignmentPaid(payoutLedgers, assignedDriver.resource_id) || isFinanciallyLocked}
+./pages/operator/BookingDetail.tsx:                      {booking.status === 'completed' && (driverPayout?.status === 'paid' || isFinanciallyLocked) && (
+./pages/operator/BookingDetail.tsx:                           const isReported = assignedGuide.status === 'no_show' || !!assignedGuide.incident_reported_at;
+./pages/operator/BookingDetail.tsx:                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getStatusBadgeClass(isReported ? 'no_show' : assignedGuide.status || 'accepted')}`}>
+./pages/operator/BookingDetail.tsx:                              {isReported ? 'REPORTED NO-SHOW' : getStatusDisplay(assignedGuide.status)}
+./pages/operator/BookingDetail.tsx:                       const isReported = assignedGuide.status === 'no_show' || !!assignedGuide.incident_reported_at;
+./pages/operator/BookingDetail.tsx:                        disabled={booking.status === 'completed' || booking.status === 'cancelled' || isAssignmentApproved(payoutLedgers, assignedGuide.resource_id) || isAssignmentPaid(payoutLedgers, assignedGuide.resource_id) || isFinanciallyLocked}
+./pages/operator/BookingDetail.tsx:                        disabled={booking.status === 'completed' || booking.status === 'cancelled' || isAssignmentApproved(payoutLedgers, assignedGuide.resource_id) || isAssignmentPaid(payoutLedgers, assignedGuide.resource_id) || isFinanciallyLocked}
+./pages/operator/BookingDetail.tsx:                      {booking.status === 'completed' && (guidePayout?.status === 'paid' || isFinanciallyLocked) && (
+./pages/operator/BookingDetail.tsx:                        const isReported = vAsgn?.status === 'no_show' || !!vAsgn?.incident_reported_at;
+./pages/operator/BookingDetail.tsx:                            <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getStatusBadgeClass(isReported ? 'no_show' : vAsgn?.status || 'accepted')}`}>
+./pages/operator/BookingDetail.tsx:                              {isReported ? 'REPORTED NO-SHOW' : getStatusDisplay(vAsgn?.status || 'accepted')}
+./pages/operator/BookingDetail.tsx:                        disabled={booking.status === 'completed' || booking.status === 'cancelled' || isVehicleApproved(payoutLedgers, selectedVehicleDetails) || isVehiclePaid(payoutLedgers, selectedVehicleDetails) || isFinanciallyLocked}
+./pages/operator/BookingDetail.tsx:                        disabled={booking.status === 'completed' || booking.status === 'cancelled' || isVehicleApproved(payoutLedgers, selectedVehicleDetails) || isVehiclePaid(payoutLedgers, selectedVehicleDetails) || isFinanciallyLocked}
+./pages/operator/BookingDetail.tsx:                      {booking.status === 'completed' && selectedVehicleDetails.owner_id && (vehiclePayout?.status === 'paid' || isFinanciallyLocked) && (
+./pages/operator/BookingDetail.tsx:                                      isCompliant: d.compliance.status !== 'non_compliant',
+./pages/operator/BookingDetail.tsx:                                      isCompliant: g.compliance.status !== 'non_compliant',
+./pages/operator/BookingDetail.tsx:              {statusHistoryLoading ? (
+./pages/operator/BookingDetail.tsx:              ) : statusHistoryError ? (
+./pages/operator/BookingDetail.tsx:                        event.type === 'status' ? 'bg-brand-teal' : 
+./pages/operator/BookingDetail.tsx:          {booking?.status && (
+./pages/operator/BookingDetail.tsx:                  const allowed = getAllowedActions(booking.status, !!booking.archived_at);
+./pages/operator/BookingDetail.tsx:                                  <li key={i} className="font-medium">{p.type}: {p.status.charAt(0).toUpperCase() + p.status.slice(1)}</li>
+./pages/operator/BookingDetail.tsx:                              Are you sure you want to mark this booking as a no-show? This status is for operational tracking only and does not automatically process payouts or penalties.
+./pages/operator/BookingDetail.tsx:                                <li key={i}>{p.type}: {p.status.charAt(0).toUpperCase() + p.status.slice(1)}</li>
+./pages/operator/BookingDetail.tsx:                              This marks only this specific assignment as no-show. The overall booking status remains unchanged unless manually updated.
+./pages/operator/BookingDetail.tsx:                          if (assignedDriver.status === 'rejected') declined.push('Driver');
+./pages/operator/BookingDetail.tsx:                          else if (!['accepted', 'completed'].includes(assignedDriver.status || '')) missingAcceptance.push('Driver');
+./pages/operator/BookingDetail.tsx:                          if (assignedGuide.status === 'rejected') declined.push('Guide');
+./pages/operator/BookingDetail.tsx:                          else if (!['accepted', 'completed'].includes(assignedGuide.status || '')) missingAcceptance.push('Guide');
+./pages/operator/BookingDetail.tsx:                          const paymentStatus = String(b?.payment_status || '').toLowerCase();
+./pages/operator/BookingDetail.tsx:                          const escrowStatus = String(b?.escrow_status || '').toLowerCase();
+./pages/operator/BookingDetail.tsx:                        if (booking.status === 'completed' || booking.status === 'cancelled') {
+./pages/operator/BookingDetail.tsx:                          blockedReason = `Booking is already ${booking.status}.`;
+./pages/operator/BookingDetail.tsx:                      {booking.status !== 'completed' && booking.status !== 'cancelled' && booking.status !== 'no_show' && !booking.archived_at && (
+./pages/operator/BookingDetail.tsx:                    disabled={booking?.status === 'completed'}
+./pages/operator/BookingDetail.tsx:                    disabled={booking?.status === 'completed'}
+./pages/operator/BookingDetail.tsx:                    disabled={booking?.status === 'completed'}
+./pages/operator/BookingDetail.tsx:                      disabled={!vehicleRateOverridden || booking?.status === 'completed'} 
+./pages/operator/BookingDetail.tsx:                  disabled={savingVehicle || !booking.vehicle_id || booking?.status === 'completed'} 
+./pages/operator/BookingDetail.tsx:                {isOperatorOrAdmin && booking?.status === 'completed' && !isFinanciallyLocked && (!driverPayout || !guidePayout || (booking.vehicle_id && !vehiclePayout)) && (
+./pages/operator/BookingDetail.tsx:              {(booking?.status === 'completed' || payoutLedgers.length > 0) && (
+./pages/operator/BookingDetail.tsx:                    driverPayout?.status === 'paid' ? 'text-green-600' :
+./pages/operator/BookingDetail.tsx:                    driverPayout?.status === 'approved' ? 'text-blue-600' :
+./pages/operator/BookingDetail.tsx:                    driverPayout?.status === 'pending' ? 'text-brand-teal' : 'text-amber-500'
+./pages/operator/BookingDetail.tsx:                      driverPayout.status === 'paid' ? (driverPayout.adjusted_amount !== null && driverPayout.adjusted_amount !== undefined && driverPayout.adjusted_amount < getOriginalAmount(driverPayout) ? 'Paid, Reduced' : 'Paid') :
+./pages/operator/BookingDetail.tsx:                      driverPayout.status === 'approved' ? (
+./pages/operator/BookingDetail.tsx:                      driverPayout.status === 'pending' ? 'Ready for Payout' : 'Ready'
+./pages/operator/BookingDetail.tsx:                    ) : (booking?.status === 'completed' ? '' : 'Pending')}
+./pages/operator/BookingDetail.tsx:                {isOperatorOrAdmin && booking?.status === 'completed' && (
+./pages/operator/BookingDetail.tsx:                    ) : driverPayout.status === 'pending' ? (
+./pages/operator/BookingDetail.tsx:                    ) : driverPayout.status === 'approved' ? (
+./pages/operator/BookingDetail.tsx:                    guidePayout?.status === 'paid' ? 'text-green-600' :
+./pages/operator/BookingDetail.tsx:                    guidePayout?.status === 'approved' ? 'text-blue-600' :
+./pages/operator/BookingDetail.tsx:                    guidePayout?.status === 'pending' ? 'text-brand-teal' : 'text-amber-500'
+./pages/operator/BookingDetail.tsx:                      guidePayout.status === 'paid' ? (guidePayout.adjusted_amount !== null && guidePayout.adjusted_amount !== undefined && guidePayout.adjusted_amount < getOriginalAmount(guidePayout) ? 'Paid, Reduced' : 'Paid') :
+./pages/operator/BookingDetail.tsx:                      guidePayout.status === 'approved' ? (
+./pages/operator/BookingDetail.tsx:                      guidePayout.status === 'pending' ? 'Ready for Payout' : 'Ready'
+./pages/operator/BookingDetail.tsx:                    ) : (booking?.status === 'completed' ? '' : 'Pending')}
+./pages/operator/BookingDetail.tsx:                {isOperatorOrAdmin && booking?.status === 'completed' && (
+./pages/operator/BookingDetail.tsx:                    ) : guidePayout.status === 'pending' ? (
+./pages/operator/BookingDetail.tsx:                    ) : guidePayout.status === 'approved' ? (
+./pages/operator/BookingDetail.tsx:                    vehiclePayout?.status === 'paid' ? 'text-green-600' :
+./pages/operator/BookingDetail.tsx:                    vehiclePayout?.status === 'approved' ? 'text-blue-600' :
+./pages/operator/BookingDetail.tsx:                    vehiclePayout?.status === 'pending' ? 'text-brand-teal' : 'text-amber-500'
+./pages/operator/BookingDetail.tsx:                      vehiclePayout.status === 'paid' ? (vehiclePayout.adjusted_amount !== null && vehiclePayout.adjusted_amount !== undefined && vehiclePayout.adjusted_amount < getOriginalAmount(vehiclePayout) ? 'Paid, Reduced' : 'Paid') :
+./pages/operator/BookingDetail.tsx:                      vehiclePayout.status === 'approved' ? (
+./pages/operator/BookingDetail.tsx:                      vehiclePayout.status === 'pending' ? 'Ready for Payout' : 'Ready'
+./pages/operator/BookingDetail.tsx:                    ) : (booking?.status === 'completed' ? '' : 'Pending')}
+./pages/operator/BookingDetail.tsx:                {isOperatorOrAdmin && booking?.status === 'completed' && (
+./pages/operator/BookingDetail.tsx:                    ) : vehiclePayout.status === 'pending' ? (
+./pages/operator/BookingDetail.tsx:                    ) : vehiclePayout.status === 'approved' ? (
+./pages/operator/FleetList.tsx:  const [statusFilter, setStatusFilter] = useState('Active');
+./pages/operator/FleetList.tsx:  }, [user, profile, statusFilter]);
+./pages/operator/FleetList.tsx:        status: (v.status ?? 'active') as any
+./pages/operator/FleetList.tsx:        statusFilter === 'All statuses'
+./pages/operator/FleetList.tsx:              const s = String(v.status ?? 'active').toLowerCase().trim();
+./pages/operator/FleetList.tsx:              if (statusFilter === 'Active') return s !== 'inactive';
+./pages/operator/FleetList.tsx:              if (statusFilter === 'Maintenance') return s === 'maintenance';
+./pages/operator/FleetList.tsx:              if (statusFilter === 'Inactive') return s === 'inactive';
+./pages/operator/FleetList.tsx:  const handleStatusChange = async (vId: string, status: 'Active' | 'Maintenance' | 'Inactive') => {
+./pages/operator/FleetList.tsx:      await setVehicleStatus(vId, user.id, status);
+./pages/operator/FleetList.tsx:      setToast({ message: `Vehicle marked as ${status}`, type: 'success' });
+./pages/operator/FleetList.tsx:  const normalizeStatus = (status?: string | null) => (status ?? 'active').toLowerCase().trim();
+./pages/operator/FleetList.tsx:  const getStatusColor = (status?: string | null) => {
+./pages/operator/FleetList.tsx:    const s = normalizeStatus(status);
+./pages/operator/FleetList.tsx:  const getStatusLabel = (status?: string | null) => {
+./pages/operator/FleetList.tsx:    const s = normalizeStatus(status);
+./pages/operator/FleetList.tsx:            value={statusFilter}
+./pages/operator/FleetList.tsx:            <option value="All statuses">All statuses</option>
+./pages/operator/FleetList.tsx:              {statusFilter === 'Active' ? 'No active vehicles in your fleet.' : 'Try adjusting your filters.'}
+./pages/operator/FleetList.tsx:            {statusFilter === 'Active' && (
+./pages/operator/FleetList.tsx:              const s = normalizeStatus(v.status as any);
+./pages/operator/FleetList.tsx:                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${getStatusColor(v.status as any)}`}>
+./pages/operator/FleetList.tsx:                      {getStatusLabel(v.status as any)}
+./pages/operator/PayoutsPage.tsx:  const [statusFilter, setStatusFilter] = useState('Open');
+./pages/operator/PayoutsPage.tsx:  }, [user, statusFilter, includeArchived]);
+./pages/operator/PayoutsPage.tsx:      let status: string | string[] | undefined = ['pending', 'approved'];
+./pages/operator/PayoutsPage.tsx:      if (statusFilter === 'Ready for Payout') status = 'pending';
+./pages/operator/PayoutsPage.tsx:      if (statusFilter === 'Approved') status = 'approved';
+./pages/operator/PayoutsPage.tsx:      if (statusFilter === 'Paid') status = 'paid';
+./pages/operator/PayoutsPage.tsx:      if (statusFilter === 'All') status = undefined;
+./pages/operator/PayoutsPage.tsx:      const data = await listOperatorPayouts(user!.id, { status, includeArchived });
+./pages/operator/PayoutsPage.tsx:      const statuses = group.map(p => (p.status || '').toLowerCase());
+./pages/operator/PayoutsPage.tsx:      const allPaid = statuses.every(s => s === 'paid');
+./pages/operator/PayoutsPage.tsx:      const hasPendingAppr = statuses.some(s => ['pending', 'approved'].includes(s));
+./pages/operator/PayoutsPage.tsx:      else if (statuses.includes('paid') && hasPendingAppr) groupStatus = 'Partially Paid';
+./pages/operator/PayoutsPage.tsx:      else groupStatus = statuses[0];
+./pages/operator/PayoutsPage.tsx:      const eligibleIds = group.filter(p => ['pending', 'approved'].includes((p.status || '').toLowerCase()) && !p.is_on_hold && !p.batch_id).map(p => p.id);
+./pages/operator/PayoutsPage.tsx:      await Promise.all(items.filter(p => !p.operator_archived_at && p.status === 'paid').map(p => archiveOperatorPayout(p.id)));
+./pages/operator/PayoutsPage.tsx:      setError('Could not update archived status. Please try again.');
+./pages/operator/PayoutsPage.tsx:      setError('Could not update archived status. Please try again.');
+./pages/operator/PayoutsPage.tsx:      const isProcessableStatus = ['pending', 'approved'].includes((p?.status || '').toLowerCase());
+./pages/operator/PayoutsPage.tsx:      const allowedWithdrawal = !p?.withdrawal_request_status || ['requested', 'approved', 'queued'].includes(p.withdrawal_request_status);
+./pages/operator/PayoutsPage.tsx:    const headers = ['batch_id', 'payout_reference', 'provider_name', 'provider_company', 'booking_reference', 'service_date', 'amount_gross', 'platform_fee', 'amount_net', 'status', 'is_on_hold'];
+./pages/operator/PayoutsPage.tsx:      p.status,
+./pages/operator/PayoutsPage.tsx:  const heading = statusFilter === 'Paid' ? 'Paid History' : (statusFilter === 'All' ? 'All Payouts' : 'Open Payouts');
+./pages/operator/PayoutsPage.tsx:            {formatCurrency(payouts.filter(p => p.status === 'paid').reduce((acc, p) => acc + getPayableAmount(p), 0))}
+./pages/operator/PayoutsPage.tsx:          <span className="text-[10px] text-gray-400">{payouts.filter(p => p.status === 'paid').length} items</span>
+./pages/operator/PayoutsPage.tsx:            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="border p-2 rounded">
+./pages/operator/PayoutsPage.tsx:                        {group.items.some(p => p.status === 'paid' && !p.operator_archived_at) && (
+./pages/operator/PayoutsPage.tsx:                        {['pending', 'approved'].includes((p.status || '').toLowerCase()) && !p.is_on_hold && !p.batch_id && <input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => toggleSelect(p.id)} />}
+./pages/operator/PayoutsPage.tsx:                              p.status === 'paid' ? 'bg-green-50 text-green-700 border-green-100' : 
+./pages/operator/PayoutsPage.tsx:                              p.status === 'approved' && p.adjusted_amount > 0 && (p.adjusted_amount < (p.original_amount || p.amount_net)) ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
+./pages/operator/PayoutsPage.tsx:                              p.status === 'approved' && p.adjusted_amount > 0 ? 'bg-blue-50 text-blue-700 border-blue-100' :
+./pages/operator/PayoutsPage.tsx:                              p.status === 'approved' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' : 
+./pages/operator/PayoutsPage.tsx:                              {p.status === 'approved' && p.adjusted_amount > 0 && (p.adjusted_amount < (p.original_amount || p.amount_net)) ? 'Resolved, Reduced' :
+./pages/operator/PayoutsPage.tsx:                               p.status === 'approved' && p.adjusted_amount > 0 ? 'Resolved, Approved' :
+./pages/operator/PayoutsPage.tsx:                               p.status === 'approved' ? 'Available' :
+./pages/operator/PayoutsPage.tsx:                               p.status === 'pending' ? 'Ready for Payout' :
+./pages/operator/PayoutsPage.tsx:                               PAYOUT_STATUS_LABELS[p.status] || p.status.toUpperCase()}
+./pages/operator/PayoutsPage.tsx:                        {p.status === 'paid' && p.paid_at && <div className="text-[10px] text-gray-400 font-mono mt-1">{formatDate(p.paid_at)}</div>}
+./pages/operator/PayoutsPage.tsx:                          {p.status === 'pending' && !p.is_on_hold && p.status !== 'paid' && (
+./pages/operator/PayoutsPage.tsx:                          {p.status === 'approved' && !p.is_on_hold && p.status !== 'paid' && (
+./pages/operator/PayoutsPage.tsx:                          {p.status === 'paid' && !p.operator_archived_at && <button onClick={(e) => { e.stopPropagation(); handleArchive(p.id); }} className="text-gray-600 hover:underline text-sm flex items-center gap-1 font-medium"><Archive size={14} /> Archive</button>}
+./pages/operator/TourForm.tsx:  const [status, setStatus] = useState<TourStatus>('draft');
+./pages/operator/TourForm.tsx:      setStatus(data.status);
+./pages/operator/TourForm.tsx:    const finalStatus = targetStatus || status;
+./pages/operator/TourForm.tsx:      status: finalStatus,
+./pages/operator/TourForm.tsx:          status: finalStatus,
+./pages/operator/FinancialDashboard.tsx:  const [statusFilter, setStatusFilter] = useState('all');
+./pages/operator/FinancialDashboard.tsx:      const matchesStatus = statusFilter === 'all' || b.status === statusFilter;
+./pages/operator/FinancialDashboard.tsx:        (riskFilter === 'critical' && b.financial_status === 'critical') ||
+./pages/operator/FinancialDashboard.tsx:        (riskFilter === 'warning' && b.financial_status === 'warning');
+./pages/operator/FinancialDashboard.tsx:  }, [bookings, searchTerm, statusFilter, riskFilter]);
+./pages/operator/FinancialDashboard.tsx:      b.status,
+./pages/operator/FinancialDashboard.tsx:          readiness.status === 'ready' ? 'bg-green-50 border-green-100' :
+./pages/operator/FinancialDashboard.tsx:          readiness.status === 'at_risk' ? 'bg-amber-50 border-amber-100' :
+./pages/operator/FinancialDashboard.tsx:                readiness.status === 'ready' ? 'bg-green-500 text-white' :
+./pages/operator/FinancialDashboard.tsx:                readiness.status === 'at_risk' ? 'bg-amber-500 text-white' :
+./pages/operator/FinancialDashboard.tsx:                {readiness.status === 'ready' ? <ShieldCheck size={28} /> : 
+./pages/operator/FinancialDashboard.tsx:                 readiness.status === 'at_risk' ? <ShieldAlert size={28} /> : 
+./pages/operator/FinancialDashboard.tsx:                  Payment Readiness: {readiness.status.toUpperCase().replace('_', ' ')}
+./pages/operator/FinancialDashboard.tsx:              value={statusFilter}
+./pages/operator/FinancialDashboard.tsx:                      b.financial_status === 'critical' ? 'bg-red-50/30' : 
+./pages/operator/FinancialDashboard.tsx:                      b.financial_status === 'warning' ? 'bg-amber-50/30' : ''
+./pages/operator/FinancialDashboard.tsx:                        b.status === 'completed' ? 'bg-green-100 text-green-700' : 
+./pages/operator/FinancialDashboard.tsx:                        b.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+./pages/operator/FinancialDashboard.tsx:                        {b.status}
+./pages/operator/FinancialDashboard.tsx:                          b.financial_status === 'critical' ? 'bg-red-500 animate-pulse' :
+./pages/operator/FinancialDashboard.tsx:                          b.financial_status === 'warning' ? 'bg-amber-500' :
+./pages/operator/FinancialDashboard.tsx:                          b.financial_status === 'critical' ? 'text-red-600' :
+./pages/operator/FinancialDashboard.tsx:                          b.financial_status === 'warning' ? 'text-amber-600' :
+./pages/operator/FinancialDashboard.tsx:                          {b.financial_status}
+./pages/operator/FinancialDashboard.tsx:                        {b.financial_status === 'critical' && (
+./pages/operator/FinancialDashboard.tsx:              {selectedBooking.financial_status !== 'ok' && (
+./pages/operator/FinancialDashboard.tsx:                  selectedBooking.financial_status === 'critical' ? 'bg-red-50 border-red-100' : 'bg-amber-50 border-amber-100'
+./pages/operator/FinancialDashboard.tsx:                  <AlertCircle size={20} className={selectedBooking.financial_status === 'critical' ? 'text-red-500' : 'text-amber-500'} />
+./pages/operator/FinancialDashboard.tsx:                    <p className={`font-bold text-sm ${selectedBooking.financial_status === 'critical' ? 'text-red-800' : 'text-amber-800'}`}>
+./pages/operator/FinancialDashboard.tsx:                      {selectedBooking.financial_status === 'critical' ? 'Reconciliation Mismatch' : 'Low Profit Warning'}
+./pages/operator/FinancialDashboard.tsx:                    <p className={`text-xs ${selectedBooking.financial_status === 'critical' ? 'text-red-600' : 'text-amber-600'}`}>
+./pages/operator/FinancialDashboard.tsx:                      {selectedBooking.financial_status === 'critical' 
+./pages/operator/BookingForm.tsx:      .eq('status', 'published')
+./pages/operator/BookingForm.tsx:        status: 'draft',
+./pages/operator/BookingForm.tsx:        status: 'confirmed',
+./pages/operator/BookingForm.tsx:        if (data.status === 'confirmed' && data.total_amount > 0) {
+./pages/operator/DocumentsPage.tsx:          // Use the computed status to "fake" the status passed to the card if needed, 
+./pages/operator/DocumentsPage.tsx:          // or just pass the doc. The card mostly cares about existence and DB status, 
+./pages/operator/DocumentsPage.tsx:            // Override status field strictly for UI display logic in child
+./pages/operator/DocumentsPage.tsx:            status: (computedStatus === 'expired' || computedStatus === 'expiring_soon') 
+./pages/operator/DocumentsPage.tsx:              : existingRaw.status
+./pages/operator/ProviderProfilePage.tsx:  const isPendingCompliance = compliance?.status === 'non_compliant' && hasPendingOnly;
+./pages/operator/ProviderProfilePage.tsx:  const isNonCompliant = compliance?.status === 'non_compliant' && !hasPendingOnly;
+./pages/operator/ProviderProfilePage.tsx:  if (profile.verification_status === 'verified') {
+./pages/operator/ProviderProfilePage.tsx:                    <p className="text-gray-400 text-sm italic">Compliance status pending verification.</p>
+./pages/operator/ProviderProfilePage.tsx:                  {profile.verification_status === 'verified' && compliance?.status === 'compliant' ? (
+./pages/operator/ProviderProfilePage.tsx:                  ) : profile.verification_status === 'verified' ? (
+./pages/shared/ProviderEarningsPage.tsx:  const [statusFilter, setStatusFilter] = useState('all');
+./pages/shared/ProviderEarningsPage.tsx:        listProviderPayouts(user.id, { status: 'All' }),
+./pages/shared/ProviderEarningsPage.tsx:      if (e.status === 'paid') {
+./pages/shared/ProviderEarningsPage.tsx:      } else if (['pending', 'approved'].includes(e.status)) {
+./pages/shared/ProviderEarningsPage.tsx:      if (statusFilter !== 'all') {
+./pages/shared/ProviderEarningsPage.tsx:        const filter = statusFilter.toLowerCase();
+./pages/shared/ProviderEarningsPage.tsx:          if (e.status !== 'approved' || e.is_on_hold || e.withdrawal_request_status) return false;
+./pages/shared/ProviderEarningsPage.tsx:          if (e.status !== 'approved' || e.withdrawal_request_status !== 'requested') return false;
+./pages/shared/ProviderEarningsPage.tsx:          if (e.withdrawal_request_status !== 'approved' || e.status === 'paid') return false;
+./pages/shared/ProviderEarningsPage.tsx:          if (e.withdrawal_request_status !== 'rejected') return false;
+./pages/shared/ProviderEarningsPage.tsx:          if (e.status !== 'paid') return false;
+./pages/shared/ProviderEarningsPage.tsx:          if (e.status !== 'pending' || e.is_on_hold) return false;
+./pages/shared/ProviderEarningsPage.tsx:        } else if (e.status !== filter) {
+./pages/shared/ProviderEarningsPage.tsx:  }, [earnings, statusFilter, dateRange, searchTerm]);
+./pages/shared/ProviderEarningsPage.tsx:      e.status,
+./pages/shared/ProviderEarningsPage.tsx:      e.withdrawal_request_status || 'N/A',
+./pages/shared/ProviderEarningsPage.tsx:      e.status === 'approved' && 
+./pages/shared/ProviderEarningsPage.tsx:      !e.withdrawal_request_status
+./pages/shared/ProviderEarningsPage.tsx:              value={statusFilter} 
+./pages/shared/ProviderEarningsPage.tsx:                  const isEligible = e.status === 'approved' && !e.is_on_hold && !e.withdrawal_request_status;
+./pages/shared/ProviderEarningsPage.tsx:                        ) : e.withdrawal_request_status === 'requested' ? (
+./pages/shared/ProviderEarningsPage.tsx:                        ) : e.withdrawal_request_status === 'approved' && e.status !== 'paid' ? (
+./pages/shared/ProviderEarningsPage.tsx:                        ) : e.withdrawal_request_status === 'rejected' ? (
+./pages/shared/ProviderEarningsPage.tsx:                            e.status === 'paid' ? 'bg-green-100 text-green-700' : 
+./pages/shared/ProviderEarningsPage.tsx:                            e.status === 'approved' ? 'bg-brand-teal/10 text-brand-teal' : 
+./pages/shared/ProviderEarningsPage.tsx:                            {e.status === 'paid' ? <CheckCircle2 size={10} /> : <Clock size={10} />}
+./pages/shared/ProviderEarningsPage.tsx:                            {e.status === 'paid' ? (e.adjusted_amount !== null && e.adjusted_amount !== undefined && e.adjusted_amount < getOriginalAmount(e) ? 'PAID, REDUCED' : 'PAID') : (e.status === 'approved' ? 'READY FOR PAYOUT' : e.status.toUpperCase())}
+./pages/shared/ProviderEarningsPage.tsx:                        {e.withdrawal_request_status === 'rejected' && e.withdrawal_notes && (
+./pages/shared/DocumentsChecklist.tsx:    const status = computeDerivedStatus(doc, requiresExpiry);
+./pages/shared/DocumentsChecklist.tsx:    switch (status) {
+./pages/shared/DocumentsChecklist.tsx:            const status = getStatusDisplay(doc, req.requiresExpiry);
+./pages/shared/DocumentsChecklist.tsx:                  <div className={`p-3 rounded-lg ${doc?.status === 'valid' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
+./pages/shared/DocumentsChecklist.tsx:                    {doc?.rejection_reason && doc.status === 'rejected' && (
+./pages/shared/DocumentsChecklist.tsx:                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold w-full justify-center ${status.color}`}>
+./pages/shared/DocumentsChecklist.tsx:                    {status.icon}
+./pages/shared/DocumentsChecklist.tsx:                    {status.label}
+./pages/dashboards/GuideDashboard.tsx:      const data = await listProviderPayouts(user.id, { status: payoutFilter });
+./pages/dashboards/GuideDashboard.tsx:      if (archivedIdsResult.status === 'fulfilled') {
+./pages/dashboards/GuideDashboard.tsx:      if (assignmentsResult.status === 'fulfilled') {
+./pages/dashboards/GuideDashboard.tsx:      if (summaryResult.status === 'fulfilled') {
+./pages/dashboards/GuideDashboard.tsx:      if (docsResult.status === 'fulfilled') {
+./pages/dashboards/GuideDashboard.tsx:      if (ratingResult.status === 'fulfilled') {
+./pages/dashboards/GuideDashboard.tsx:  const pendingCount = assignments.filter(a => a.status === 'pending').length;
+./pages/dashboards/GuideDashboard.tsx:  const acceptedCount = assignments.filter(a => a.status === 'accepted').length;
+./pages/dashboards/GuideDashboard.tsx:  const completedCount = assignments.filter(a => a.status === 'completed').length;
+./pages/dashboards/GuideDashboard.tsx:      <StatusBanner status={onboardingStatus} />
+./pages/dashboards/GuideDashboard.tsx:                          a.status === 'accepted' || a.status === 'completed' ? 'bg-green-100 text-green-700 border border-green-200' :
+./pages/dashboards/GuideDashboard.tsx:                          a.status === 'pending' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
+./pages/dashboards/GuideDashboard.tsx:                          {a.status === 'pending' ? 'Pending Acceptance' : a.status === 'rejected' ? 'Declined' : a.status}
+./pages/dashboards/GuideDashboard.tsx:                       {a.status === 'accepted' ? (
+./pages/dashboards/GuideDashboard.tsx:                       ) : a.status === 'pending' ? (
+./pages/dashboards/GuideDashboard.tsx:                            p.withdrawal_request_status === 'requested' ? 'bg-blue-100 text-blue-700' :
+./pages/dashboards/GuideDashboard.tsx:                            p.withdrawal_request_status === 'approved' ? 'bg-purple-100 text-purple-700' :
+./pages/dashboards/GuideDashboard.tsx:                            p.withdrawal_request_status === 'rejected' ? 'bg-red-100 text-red-700' :
+./pages/dashboards/GuideDashboard.tsx:                            p.status === 'paid' ? 'bg-green-50 text-green-600' :
+./pages/dashboards/GuideDashboard.tsx:                            p.status === 'approved' ? 'bg-brand-teal/10 text-brand-teal' :
+./pages/dashboards/GuideDashboard.tsx:                             p.withdrawal_request_status === 'requested' ? 'Requested' :
+./pages/dashboards/GuideDashboard.tsx:                             p.withdrawal_request_status === 'approved' ? 'Ready for Payout' :
+./pages/dashboards/GuideDashboard.tsx:                             p.withdrawal_request_status === 'rejected' ? 'Rejected' :
+./pages/dashboards/GuideDashboard.tsx:                             p.status === 'paid' ? (p.adjusted_amount !== null && p.adjusted_amount !== undefined && p.adjusted_amount < getOriginalAmount(p) ? 'Paid, Reduced' : 'Paid') :
+./pages/dashboards/GuideDashboard.tsx:                             p.status === 'approved' ? 'Ready for Payout' : p.status}
+./pages/dashboards/OperatorDashboard.tsx:        if (booking.status === 'confirmed') stats.confirmed += 1;
+./pages/dashboards/OperatorDashboard.tsx:        if (booking.status === 'completed') stats.completed += 1;
+./pages/dashboards/OperatorDashboard.tsx:        if (booking.status === 'cancelled') stats.cancelled += 1;
+./pages/dashboards/OperatorDashboard.tsx:        supabase.from('payout_disputes').select('booking_id').eq('operator_id', user.id).eq('status', 'open'),
+./pages/dashboards/OperatorDashboard.tsx:      {compliance && compliance.status !== 'compliant' && (
+./pages/dashboards/OperatorDashboard.tsx:          compliance.status === 'non_compliant' 
+./pages/dashboards/OperatorDashboard.tsx:            {compliance.status === 'non_compliant' ? (
+./pages/dashboards/OperatorDashboard.tsx:                {compliance.status === 'non_compliant' 
+./pages/dashboards/OperatorDashboard.tsx:                {compliance.status === 'non_compliant'
+./pages/dashboards/OperatorDashboard.tsx:              compliance.status === 'non_compliant'
+./pages/dashboards/OperatorDashboard.tsx:          disabled={onboardingStatus !== 'verified' || compliance?.status === 'non_compliant'}
+./pages/dashboards/OperatorDashboard.tsx:      <StatusBanner status={onboardingStatus} />
+./pages/dashboards/OperatorDashboard.tsx:          readiness.status === 'ready' ? 'bg-green-50 border-green-100' :
+./pages/dashboards/OperatorDashboard.tsx:          readiness.status === 'at_risk' ? 'bg-amber-50 border-amber-100' :
+./pages/dashboards/OperatorDashboard.tsx:                  readiness.status === 'ready' ? 'bg-green-500 text-white' :
+./pages/dashboards/OperatorDashboard.tsx:                  readiness.status === 'at_risk' ? 'bg-amber-500 text-white' :
+./pages/dashboards/OperatorDashboard.tsx:                  {readiness.status === 'ready' ? <ShieldCheck size={28} /> : 
+./pages/dashboards/OperatorDashboard.tsx:                   readiness.status === 'at_risk' ? <ShieldAlert size={28} /> : 
+./pages/dashboards/OperatorDashboard.tsx:                        Payment Readiness: {readiness.status.toUpperCase().replace('_', ' ')}
+./pages/dashboards/OperatorDashboard.tsx:                onClick={() => navigate('/operator/payouts?status=pending')}
+./pages/dashboards/OperatorDashboard.tsx:                onClick={() => navigate('/operator/payouts?status=approved')}
+./pages/dashboards/OperatorDashboard.tsx:                          p.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+./pages/dashboards/OperatorDashboard.tsx:                          {p.status}
+./pages/dashboards/VehicleOwnerDashboard.tsx:      const data = await listProviderPayouts(user.id, { status: payoutFilter });
+./pages/dashboards/VehicleOwnerDashboard.tsx:      <StatusBanner status={onboardingStatus} />
+./pages/dashboards/VehicleOwnerDashboard.tsx:                            p.withdrawal_request_status === 'requested' ? 'bg-blue-100 text-blue-700' :
+./pages/dashboards/VehicleOwnerDashboard.tsx:                            p.withdrawal_request_status === 'approved' ? 'bg-purple-100 text-purple-700' :
+./pages/dashboards/VehicleOwnerDashboard.tsx:                            p.withdrawal_request_status === 'rejected' ? 'bg-red-100 text-red-700' :
+./pages/dashboards/VehicleOwnerDashboard.tsx:                            p.status === 'paid' ? 'bg-green-50 text-green-600' :
+./pages/dashboards/VehicleOwnerDashboard.tsx:                            p.status === 'approved' ? 'bg-brand-teal/10 text-brand-teal' :
+./pages/dashboards/VehicleOwnerDashboard.tsx:                             p.withdrawal_request_status === 'requested' ? 'Requested' :
+./pages/dashboards/VehicleOwnerDashboard.tsx:                             p.withdrawal_request_status === 'approved' ? 'Ready for Payout' :
+./pages/dashboards/VehicleOwnerDashboard.tsx:                             p.withdrawal_request_status === 'rejected' ? 'Rejected' :
+./pages/dashboards/VehicleOwnerDashboard.tsx:                             p.status === 'paid' ? (p.adjusted_amount !== null && p.adjusted_amount !== undefined && p.adjusted_amount < getOriginalAmount(p) ? 'Paid, Reduced' : 'Paid') :
+./pages/dashboards/VehicleOwnerDashboard.tsx:                             p.status === 'approved' ? 'Ready for Payout' : p.status}
+./pages/dashboards/VehicleOwnerDashboard.tsx:              const currentStatus = String(v.status ?? 'Active').trim();
+./pages/dashboards/DriverDashboard.tsx:      const data = await listProviderPayouts(user.id, { status: payoutFilter });
+./pages/dashboards/DriverDashboard.tsx:      if (archivedIdsResult.status === 'fulfilled') {
+./pages/dashboards/DriverDashboard.tsx:      if (assignmentsResult.status === 'fulfilled') {
+./pages/dashboards/DriverDashboard.tsx:      if (summaryResult.status === 'fulfilled') {
+./pages/dashboards/DriverDashboard.tsx:      if (docsResult.status === 'fulfilled') {
+./pages/dashboards/DriverDashboard.tsx:      if (ratingResult.status === 'fulfilled') {
+./pages/dashboards/DriverDashboard.tsx:  const pendingCount = assignments.filter(a => a.status === 'pending').length;
+./pages/dashboards/DriverDashboard.tsx:  const acceptedCount = assignments.filter(a => a.status === 'accepted').length;
+./pages/dashboards/DriverDashboard.tsx:  const completedCount = assignments.filter(a => a.status === 'completed').length;
+./pages/dashboards/DriverDashboard.tsx:      <StatusBanner status={onboardingStatus} />
+./pages/dashboards/DriverDashboard.tsx:                          a.status === 'accepted' || a.status === 'completed' ? 'bg-green-100 text-green-700 border border-green-200' :
+./pages/dashboards/DriverDashboard.tsx:                          a.status === 'rejected' || a.status === 'cancelled' ? 'bg-red-100 text-red-700 border border-red-200' :
+./pages/dashboards/DriverDashboard.tsx:                          {a.status === 'pending' ? 'Pending Acceptance' : a.status === 'rejected' ? 'Declined' : a.status}
+./pages/dashboards/DriverDashboard.tsx:                       {a.status === 'accepted' ? (
+./pages/dashboards/DriverDashboard.tsx:                       ) : a.status === 'pending' ? (
+./pages/dashboards/DriverDashboard.tsx:                            p.withdrawal_request_status === 'requested' ? 'bg-blue-100 text-blue-700' :
+./pages/dashboards/DriverDashboard.tsx:                            p.withdrawal_request_status === 'approved' ? 'bg-purple-100 text-purple-700' :
+./pages/dashboards/DriverDashboard.tsx:                            p.withdrawal_request_status === 'rejected' ? 'bg-red-100 text-red-700' :
+./pages/dashboards/DriverDashboard.tsx:                            p.status === 'paid' ? 'bg-green-50 text-green-600' :
+./pages/dashboards/DriverDashboard.tsx:                            p.status === 'approved' ? 'bg-brand-teal/10 text-brand-teal' :
+./pages/dashboards/DriverDashboard.tsx:                             p.withdrawal_request_status === 'requested' ? 'Requested' :
+./pages/dashboards/DriverDashboard.tsx:                             p.withdrawal_request_status === 'approved' ? 'Ready for Payout' :
+./pages/dashboards/DriverDashboard.tsx:                             p.withdrawal_request_status === 'rejected' ? 'Rejected' :
+./pages/dashboards/DriverDashboard.tsx:                             p.status === 'paid' ? (p.adjusted_amount !== null && p.adjusted_amount !== undefined && p.adjusted_amount < getOriginalAmount(p) ? 'Paid, Reduced' : 'Paid') :
+./pages/dashboards/DriverDashboard.tsx:                             p.status === 'approved' ? 'Ready for Payout' : p.status}
+./pages/owner/VehicleRequestsPage.tsx:                        req.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+./pages/owner/VehicleRequestsPage.tsx:                        req.status === 'accepted' ? 'bg-green-100 text-green-700' :
+./pages/owner/VehicleRequestsPage.tsx:                        {req.status === 'pending' && <Clock size={12} />}
+./pages/owner/VehicleRequestsPage.tsx:                        {req.status === 'accepted' && <Check size={12} />}
+./pages/owner/VehicleRequestsPage.tsx:                        {req.status === 'declined' && <X size={12} />}
+./pages/owner/VehicleRequestsPage.tsx:                        {req.status}
+./pages/owner/VehicleRequestsPage.tsx:                      {req.status === 'pending' && (
+./pages/owner/BookingList.tsx:    return bookings.filter((b: any) => String(b.status).toLowerCase() === filter);
+./pages/owner/BookingList.tsx:  const getStatusLabel = (status: string) => {
+./pages/owner/BookingList.tsx:    switch (status) {
+./pages/owner/BookingList.tsx:      default: return status;
+./pages/owner/BookingList.tsx:                      b.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600'
+./pages/owner/BookingList.tsx:                      {String(b.status || '').toUpperCase()}
+./pages/owner/BookingList.tsx:                        payout.status === 'paid' ? 'bg-green-100 text-green-700 border-green-200' :
+./pages/owner/BookingList.tsx:                        payout.status === 'approved' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+./pages/owner/BookingList.tsx:                        {getStatusLabel(payout.status)}: ZAR {payout.amount_net.toLocaleString()}
+./pages/owner/LinkRequestsPage.tsx:        status: activeTab,
+./pages/owner/LinkRequestsPage.tsx:  // Implemented status update handler for approving/rejecting links
+./pages/owner/LinkRequestsPage.tsx:  const handleStatusUpdate = async (linkId: string, status: 'approved' | 'rejected') => {
+./pages/owner/LinkRequestsPage.tsx:      await setVehicleLinkStatus(linkId, status);
+./pages/owner/LinkRequestsPage.tsx:      setToast({ type: 'success', message: `Request ${status === 'approved' ? 'approved' : 'rejected'}` });
+./pages/owner/LinkRequestsPage.tsx:                          item.status === 'approved' ? 'bg-green-50 text-green-700 border-green-100' :
+./pages/owner/LinkRequestsPage.tsx:                          item.status === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+./pages/owner/LinkRequestsPage.tsx:                          {item.status}
+./pages/owner/LinkRequestsPage.tsx:                                rateLink.rate_status === 'accepted' ? 'bg-green-50 text-green-700 border-green-100' :
+./pages/owner/LinkRequestsPage.tsx:                                rateLink.rate_status === 'countered' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+./pages/owner/LinkRequestsPage.tsx:                                {rateLink.rate_status}
+./pages/owner/LinkRequestsPage.tsx:                                  {rateLink?.rate_status === 'proposed' && (
+./pages/driver/AssignmentsList.tsx:const getStatusDisplay = (status: string, bookingStatus?: string) => {
+./pages/driver/AssignmentsList.tsx:  switch (status) {
+./pages/driver/AssignmentsList.tsx:    default: return status;
+./pages/driver/AssignmentsList.tsx:const getPayoutStatusDisplay = (status: string) => {
+./pages/driver/AssignmentsList.tsx:  switch (status) {
+./pages/driver/AssignmentsList.tsx:    default: return status;
+./pages/driver/AssignmentsList.tsx:const getPayoutStatusBadgeClass = (status: string) => {
+./pages/driver/AssignmentsList.tsx:  switch (status) {
+./pages/driver/AssignmentsList.tsx:const getStatusBadgeClass = (status: string, bookingStatus?: string) => {
+./pages/driver/AssignmentsList.tsx:  if (bookingStatus === 'completed' || status === 'completed') return 'bg-green-100 text-green-700 border border-green-200';
+./pages/driver/AssignmentsList.tsx:  if (bookingStatus === 'cancelled' || status === 'cancelled') return 'bg-red-100 text-red-700 border border-red-200';
+./pages/driver/AssignmentsList.tsx:  switch (status) {
+./pages/driver/AssignmentsList.tsx:      (a.status === 'accepted' || a.status === 'pending') && 
+./pages/driver/AssignmentsList.tsx:      a.bookings?.status !== 'completed' && 
+./pages/driver/AssignmentsList.tsx:      a.bookings?.status !== 'cancelled' &&
+./pages/driver/AssignmentsList.tsx:      a.status !== 'cancelled'
+./pages/driver/AssignmentsList.tsx:      (a.status === 'rejected' || 
+./pages/driver/AssignmentsList.tsx:      a.status === 'cancelled' ||
+./pages/driver/AssignmentsList.tsx:      a.bookings?.status === 'completed' || 
+./pages/driver/AssignmentsList.tsx:      a.bookings?.status === 'cancelled')
+./pages/driver/AssignmentsList.tsx:    const isPending = a.status === 'pending' && a.bookings?.status !== 'completed' && a.bookings?.status !== 'cancelled';
+./pages/driver/AssignmentsList.tsx:            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getStatusBadgeClass(a.status, booking?.status)}`}>
+./pages/driver/AssignmentsList.tsx:              {getStatusDisplay(a.status, booking?.status)}
+./pages/driver/AssignmentsList.tsx:            {booking?.status === 'completed' && (
+./pages/driver/AssignmentsList.tsx:              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getPayoutStatusBadgeClass(payout?.status || 'pending')}`}>
+./pages/driver/AssignmentsList.tsx:                {payout ? getPayoutStatusDisplay(payout.status) : 'Payout Pending'}
+./pages/driver/AssignmentsList.tsx:                ((a.status === 'pending' || a.status === 'accepted') && 
+./pages/driver/AssignmentsList.tsx:                 booking?.status !== 'completed' && 
+./pages/driver/AssignmentsList.tsx:                 booking?.status !== 'cancelled')
+./pages/driver/AssignmentsList.tsx:                (a.status === 'pending' || a.status === 'accepted') && 
+./pages/driver/AssignmentsList.tsx:                booking?.status !== 'completed' && 
+./pages/driver/AssignmentsList.tsx:                booking?.status !== 'cancelled' 
+./pages/driver/AssignmentDetail.tsx:  const bookingStatus = String(a?.bookings?.status || a?.booking?.status || '').toLowerCase();
+./pages/driver/AssignmentDetail.tsx:  const assignmentStatus = String(a?.status || '').toLowerCase();
+./pages/driver/AssignmentDetail.tsx:const getPayoutStatusDisplay = (status: string) => {
+./pages/driver/AssignmentDetail.tsx:  switch (status) {
+./pages/driver/AssignmentDetail.tsx:    default: return status;
+./pages/driver/AssignmentDetail.tsx:const getPayoutStatusBadgeClass = (status: string) => {
+./pages/driver/AssignmentDetail.tsx:  switch (status) {
+./pages/driver/AssignmentDetail.tsx:    const bookingStatus = String(assignment.bookings?.status || '').toLowerCase();
+./pages/driver/AssignmentDetail.tsx:    const bookingStatus = String(assignment.bookings?.status || '').toLowerCase();
+./pages/driver/AssignmentDetail.tsx:          : err?.message || 'Failed to update assignment status.';
+./pages/driver/AssignmentDetail.tsx:          {assignment.bookings?.status === 'completed' && (
+./pages/driver/AssignmentDetail.tsx:                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold uppercase ${getPayoutStatusBadgeClass(payout.status)}`}>
+./pages/driver/AssignmentDetail.tsx:                      {getPayoutStatusDisplay(payout.status)}
+./pages/driver/DriverRequestsPage.tsx:  const handleAction = async (requestId: string, status: 'accepted' | 'declined') => {
+./pages/driver/DriverRequestsPage.tsx:      await updateDriverAvailabilityRequestStatus(requestId, user.id, status);
+./pages/driver/DriverRequestsPage.tsx:      console.error(`Failed to ${status} request:`, err);
+./pages/driver/DriverRequestsPage.tsx:      setError(`Failed to ${status} request: ${err.message || 'Unknown error'}`);
+./pages/driver/DriverRequestsPage.tsx:                        req.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+./pages/driver/DriverRequestsPage.tsx:                        req.status === 'accepted' ? 'bg-green-100 text-green-700' :
+./pages/driver/DriverRequestsPage.tsx:                        req.status === 'declined' ? 'bg-red-100 text-red-700' :
+./pages/driver/DriverRequestsPage.tsx:                        {req.status === 'pending' && <Clock size={12} />}
+./pages/driver/DriverRequestsPage.tsx:                        {req.status === 'accepted' && <Check size={12} />}
+./pages/driver/DriverRequestsPage.tsx:                        {req.status === 'declined' && <X size={12} />}
+./pages/driver/DriverRequestsPage.tsx:                        {req.status}
+./pages/driver/DriverRequestsPage.tsx:                      {req.status === 'pending' && (
+./pages/guide/AssignmentDetail.tsx:  const bookingStatus = String(a?.bookings?.status || a?.booking?.status || '').toLowerCase();
+./pages/guide/AssignmentDetail.tsx:  const assignmentStatus = String(a?.status || '').toLowerCase();
+./pages/guide/AssignmentDetail.tsx:const getPayoutStatusDisplay = (status: string) => {
+./pages/guide/AssignmentDetail.tsx:  switch (status) {
+./pages/guide/AssignmentDetail.tsx:    default: return status;
+./pages/guide/AssignmentDetail.tsx:const getPayoutStatusBadgeClass = (status: string) => {
+./pages/guide/AssignmentDetail.tsx:  switch (status) {
+./pages/guide/AssignmentDetail.tsx:    const bookingStatus = String(assignment.bookings?.status || '').toLowerCase();
+./pages/guide/AssignmentDetail.tsx:    const bookingStatus = String(assignment.bookings?.status || '').toLowerCase();
+./pages/guide/AssignmentDetail.tsx:          : err?.message || 'Failed to update assignment status.';
+./pages/guide/AssignmentDetail.tsx:          {assignment.bookings?.status === 'completed' && (
+./pages/guide/AssignmentDetail.tsx:                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold uppercase ${getPayoutStatusBadgeClass(payout.status)}`}>
+./pages/guide/AssignmentDetail.tsx:                      {getPayoutStatusDisplay(payout.status)}
+./pages/guide/GuideRequestsPage.tsx:  const handleAction = async (requestId: string, status: 'accepted' | 'declined') => {
+./pages/guide/GuideRequestsPage.tsx:      await updateGuideAvailabilityRequestStatus(requestId, user.id, status);
+./pages/guide/GuideRequestsPage.tsx:      console.error(`Failed to ${status} request:`, err);
+./pages/guide/GuideRequestsPage.tsx:      setError(`Failed to ${status} request: ${err.message || 'Unknown error'}`);
+./pages/guide/GuideRequestsPage.tsx:                        req.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+./pages/guide/GuideRequestsPage.tsx:                        req.status === 'accepted' ? 'bg-green-100 text-green-700' :
+./pages/guide/GuideRequestsPage.tsx:                        req.status === 'declined' ? 'bg-red-100 text-red-700' :
+./pages/guide/GuideRequestsPage.tsx:                        {req.status === 'pending' && <Clock size={12} />}
+./pages/guide/GuideRequestsPage.tsx:                        {req.status === 'accepted' && <Check size={12} />}
+./pages/guide/GuideRequestsPage.tsx:                        {req.status === 'declined' && <X size={12} />}
+./pages/guide/GuideRequestsPage.tsx:                        {req.status}
+./pages/guide/GuideRequestsPage.tsx:                      {req.status === 'pending' && (
+./pages/guide/AssignmentsList.tsx:const getStatusDisplay = (status: string, bookingStatus?: string) => {
+./pages/guide/AssignmentsList.tsx:  switch (status) {
+./pages/guide/AssignmentsList.tsx:    default: return status;
+./pages/guide/AssignmentsList.tsx:const getPayoutStatusDisplay = (status: string) => {
+./pages/guide/AssignmentsList.tsx:  switch (status) {
+./pages/guide/AssignmentsList.tsx:    default: return status;
+./pages/guide/AssignmentsList.tsx:const getPayoutStatusBadgeClass = (status: string) => {
+./pages/guide/AssignmentsList.tsx:  switch (status) {
+./pages/guide/AssignmentsList.tsx:const getStatusBadgeClass = (status: string, bookingStatus?: string) => {
+./pages/guide/AssignmentsList.tsx:  if (bookingStatus === 'completed' || status === 'completed') return 'bg-green-100 text-green-700 border border-green-200';
+./pages/guide/AssignmentsList.tsx:  if (bookingStatus === 'cancelled' || status === 'cancelled') return 'bg-red-100 text-red-700 border border-red-200';
+./pages/guide/AssignmentsList.tsx:  switch (status) {
+./pages/guide/AssignmentsList.tsx:      (a.status === 'accepted' || a.status === 'pending') && 
+./pages/guide/AssignmentsList.tsx:      a.bookings?.status !== 'completed' && 
+./pages/guide/AssignmentsList.tsx:      a.bookings?.status !== 'cancelled' &&
+./pages/guide/AssignmentsList.tsx:      a.status !== 'cancelled'
+./pages/guide/AssignmentsList.tsx:      (a.status === 'rejected' || 
+./pages/guide/AssignmentsList.tsx:      a.status === 'cancelled' ||
+./pages/guide/AssignmentsList.tsx:      a.bookings?.status === 'completed' || 
+./pages/guide/AssignmentsList.tsx:      a.bookings?.status === 'cancelled')
+./pages/guide/AssignmentsList.tsx:    const isPending = a.status === 'pending' && a.bookings?.status !== 'completed' && a.bookings?.status !== 'cancelled';
+./pages/guide/AssignmentsList.tsx:            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getStatusBadgeClass(a.status, booking?.status)}`}>
+./pages/guide/AssignmentsList.tsx:              {getStatusDisplay(a.status, booking?.status)}
+./pages/guide/AssignmentsList.tsx:            {booking?.status === 'completed' && (
+./pages/guide/AssignmentsList.tsx:              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getPayoutStatusBadgeClass(payout?.status || 'pending')}`}>
+./pages/guide/AssignmentsList.tsx:                {payout ? getPayoutStatusDisplay(payout.status) : 'Payout Pending'}
+./pages/guide/AssignmentsList.tsx:                ((a.status === 'pending' || a.status === 'accepted') && 
+./pages/guide/AssignmentsList.tsx:                 booking?.status !== 'completed' && 
+./pages/guide/AssignmentsList.tsx:                 booking?.status !== 'cancelled')
+./pages/guide/AssignmentsList.tsx:                (a.status === 'pending' || a.status === 'accepted') && 
+./pages/guide/AssignmentsList.tsx:                booking?.status !== 'completed' && 
+./pages/guide/AssignmentsList.tsx:                booking?.status !== 'cancelled' 
+./components/fleet/VehicleForm.tsx:  status: VehicleStatus;
+./components/fleet/VehicleForm.tsx:  status: 'Active',
+./components/fleet/VehicleForm.tsx:        status: initialData.status,
+./components/fleet/VehicleForm.tsx:      status: form.status,
+./components/fleet/VehicleForm.tsx:             <select name="status" className="w-full border border-gray-300 rounded-lg p-2.5 bg-white" value={form.status} onChange={handleTextChange as any}>
+./components/onboarding/StatusBanner.tsx:  status: OnboardingStep;
+./components/onboarding/StatusBanner.tsx:export const StatusBanner: React.FC<Props> = ({ status }) => {
+./components/onboarding/StatusBanner.tsx:  if (status === 'verified') return null;
+./components/onboarding/StatusBanner.tsx:  const current = config[status];
+./components/common/PayoutDetailDrawer.tsx:  const getStatusColor = (status: string) => {
+./components/common/PayoutDetailDrawer.tsx:    // Prioritize withdrawal request status
+./components/common/PayoutDetailDrawer.tsx:    if (payout.withdrawal_request_status) {
+./components/common/PayoutDetailDrawer.tsx:      switch (payout.withdrawal_request_status) {
+./components/common/PayoutDetailDrawer.tsx:    switch (status.toLowerCase()) {
+./components/common/PayoutDetailDrawer.tsx:  const getStatusLabel = (status: string) => {
+./components/common/PayoutDetailDrawer.tsx:    // Prioritize withdrawal request status
+./components/common/PayoutDetailDrawer.tsx:    if (payout.withdrawal_request_status) {
+./components/common/PayoutDetailDrawer.tsx:      switch (payout.withdrawal_request_status) {
+./components/common/PayoutDetailDrawer.tsx:    if (status.toLowerCase() === 'approved' && (payout.adjusted_amount ?? 0) > 0 && (payout.adjusted_amount ?? 0) < (payout.original_amount || payout.amount_net)) {
+./components/common/PayoutDetailDrawer.tsx:    if (status.toLowerCase() === 'approved' && (payout.adjusted_amount ?? 0) > 0) {
+./components/common/PayoutDetailDrawer.tsx:    switch (status.toLowerCase()) {
+./components/common/PayoutDetailDrawer.tsx:      default: return status.toUpperCase();
+./components/common/PayoutDetailDrawer.tsx:                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase ${getStatusColor(payout.status)}`}>
+./components/common/PayoutDetailDrawer.tsx:                  {getStatusLabel(payout.status)}
+./components/common/ComplianceBadge.tsx:             isCompliant: result.status === 'compliant' || result.status === 'warn_only',
+./components/common/ComplianceBadge.tsx:  let status: 'verified' | 'expired' | 'expiring_soon' | 'missing' | 'pending' | 'rejected' = 'verified';
+./components/common/ComplianceBadge.tsx:  if (expiredCount > 0) status = 'expired';
+./components/common/ComplianceBadge.tsx:  else if (rejectedCount > 0) status = 'rejected';
+./components/common/ComplianceBadge.tsx:  else if (missingCount > 0) status = 'missing';
+./components/common/ComplianceBadge.tsx:  else if (pendingReviewCount > 0) status = 'pending';
+./components/common/ComplianceBadge.tsx:  else if (expiringSoonCount > 0) status = 'expiring_soon';
+./components/common/ComplianceBadge.tsx:  else if (!isCompliant) status = 'missing';
+./components/common/ComplianceBadge.tsx:    switch (status) {
+./components/common/PayoutAuditTimeline.tsx:                  {(log.metadata.previous_status || log.metadata.new_status) && (
+./components/common/PayoutAuditTimeline.tsx:                      <span className="text-gray-400">{log.metadata.previous_status || 'NONE'}</span>
+./components/common/PayoutAuditTimeline.tsx:                      <span className="text-brand-teal">{log.metadata.new_status || 'NONE'}</span>
+./components/readiness/ReadinessDetailModal.tsx:                                <p className="text-xs font-bold text-amber-600 uppercase">{item.dispute_status.replace('_', ' ')}</p>
+./components/providers/ProviderComplianceSummary.tsx:  if (issues.length === 0 && compliance.status === 'compliant') {
+./components/providers/ProviderComplianceSummary.tsx:          compliance.status === 'compliant' ? 'bg-green-50 text-green-700 border-green-200' :
+./components/providers/ProviderComplianceSummary.tsx:          compliance.status === 'warn_only' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+./components/providers/ProviderComplianceSummary.tsx:          {compliance.status.replace('_', ' ')}
+./components/providers/ProviderCard.tsx:                {provider.verification_status === 'verified' && complianceLoaded && isCompliant && (
+./components/ConnectionHealthCheck.tsx:  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+./components/ConnectionHealthCheck.tsx:              {status === 'loading' && (
+./components/ConnectionHealthCheck.tsx:              {status === 'success' && (
+./components/ConnectionHealthCheck.tsx:              {status === 'error' && (
+./components/ConnectionHealthCheck.tsx:        {status === 'success' && latency && (
+./components/ConnectionHealthCheck.tsx:        {status === 'error' && (
+./components/bookings/BookingCalendar.tsx:  const getAssignmentColor = (status?: string) => {
+./components/bookings/BookingCalendar.tsx:    if (!status) return 'bg-red-50 text-red-600 border-red-100';
+./components/bookings/BookingCalendar.tsx:    switch (status.toLowerCase()) {
+./components/bookings/BookingCalendar.tsx:  const getEventStyle = (status: string) => {
+./components/bookings/BookingCalendar.tsx:    switch(status) {
+./components/bookings/BookingCalendar.tsx:                      className={`w-full text-left text-xs p-1.5 rounded truncate transition-colors border-l-2 mb-1 shadow-sm ${getEventStyle(b.status)} ${isMultiDay ? 'opacity-90' : ''}`}
+./components/bookings/BookingCalendar.tsx:                      title={`${b.booking_reference} - ${b.status} (${b.start_date} to ${b.end_date})`}
+./components/bookings/BookingStatusBadge.tsx:  status: BookingStatus | string;
+./components/bookings/BookingStatusBadge.tsx:export const BookingStatusBadge: React.FC<Props> = ({ status, className = '' }) => {
+./components/bookings/BookingStatusBadge.tsx:  switch(status) {
+./components/bookings/BookingStatusBadge.tsx:          <AlertCircle size={12} /> {status}
+./components/bookings/BookingFinancialBreakdown.tsx:  const getStatusColor = (status: string) => {
+./components/bookings/BookingFinancialBreakdown.tsx:    switch (status?.toLowerCase()) {
+./components/bookings/BookingFinancialBreakdown.tsx:  const getStatusIcon = (status: string) => {
+./components/bookings/BookingFinancialBreakdown.tsx:    switch (status?.toLowerCase()) {
+./components/bookings/BookingFinancialBreakdown.tsx:  const getStatusLabel = (status: string, isDisputed: boolean) => {
+./components/bookings/BookingFinancialBreakdown.tsx:    switch (status?.toLowerCase()) {
+./components/bookings/BookingFinancialBreakdown.tsx:      default: return status.replace(/_/g, ' ');
+./components/bookings/BookingFinancialBreakdown.tsx:                          <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase w-fit ${getStatusColor(p.payout_status)}`}>
+./components/bookings/BookingFinancialBreakdown.tsx:                            {getStatusIcon(p.payout_status)}
+./components/bookings/BookingFinancialBreakdown.tsx:                            {getStatusLabel(p.payout_status, p.is_disputed)}
+./components/bookings/BookingFinancialBreakdown.tsx:                          {(p as any).resolution_status && p.payout_status.toLowerCase() === 'paid' && (
+./components/bookings/BookingFinancialBreakdown.tsx:                              <CheckCircle2 size={10} /> {getStatusLabel((p as any).resolution_status, false)}
+./components/BankDetailsForm.tsx:  const status = getBankStatus(details);
+./components/BankDetailsForm.tsx:  const statusColors = {
+./components/BankDetailsForm.tsx:        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase border ${statusColors[status as keyof typeof statusColors]}`}>
+./components/BankDetailsForm.tsx:          {status}
+./components/BankDetailsForm.tsx:              Changing bank details will reset your verification status.
+./components/documents/DocumentCard.tsx:  let statusUI = 'missing';
+./components/documents/DocumentCard.tsx:    if (existingDoc.status === 'valid') statusUI = 'approved';
+./components/documents/DocumentCard.tsx:    else if (existingDoc.status === 'rejected') statusUI = 'rejected';
+./components/documents/DocumentCard.tsx:    else statusUI = 'uploaded'; // pending
+./components/documents/DocumentCard.tsx:            statusUI === 'approved' ? 'bg-green-100 text-green-600' :
+./components/documents/DocumentCard.tsx:            statusUI === 'rejected' ? 'bg-red-100 text-red-600' :
+./components/documents/DocumentCard.tsx:            statusUI === 'uploaded' ? 'bg-blue-100 text-blue-600' :
+./components/documents/DocumentCard.tsx:           statusUI === 'approved' ? 'bg-green-100 text-green-700' :
+./components/documents/DocumentCard.tsx:           statusUI === 'rejected' ? 'bg-red-100 text-red-700' :
+./components/documents/DocumentCard.tsx:           statusUI === 'uploaded' ? 'bg-blue-100 text-blue-700' :
+./components/documents/DocumentCard.tsx:          {statusUI}
+./components/documents/DocumentCard.tsx:        {statusUI === 'rejected' && (
+./components/documents/DocumentManager.tsx:              // Pass requiresExpiry to compute status correctly
+./components/documents/DocumentManager.tsx:              const statusConfig = {
+./components/documents/DocumentManager.tsx:              const currentStatus = isUploaded ? statusConfig[displayStatus as keyof typeof statusConfig] : null;
+./components/DashboardLayout.tsx:             <p className="text-[10px] text-gray-400 truncate uppercase tracking-tighter">{profile.verification_status}</p>
+./components/OperatorBankDetailsForm.tsx:  const status = getOperatorBankStatus(details);
+./components/OperatorBankDetailsForm.tsx:  const statusColors = {
+./components/OperatorBankDetailsForm.tsx:        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase border ${statusColors[status as keyof typeof statusColors]}`}>
+./components/OperatorBankDetailsForm.tsx:          {status}
