@@ -1260,7 +1260,7 @@ export const checkProviderConflicts = async (
     .from('booking_assignments')
     .select('id, bookings(start_date, end_date)')
     .eq('resource_id', providerId)
-    .in('status', ['accepted', 'pending', 'completed'])
+    .in('status', ['accepted', 'pending'])
     .not('booking_id', 'eq', excludeBookingId);
 
   if (error) throw error;
