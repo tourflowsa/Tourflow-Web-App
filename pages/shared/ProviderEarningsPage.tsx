@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatCurrency, formatDate } from '../../lib/formatUtils';
 import { getPayableAmount, getOriginalAmount } from '../../lib/payoutUtils';
@@ -19,13 +20,15 @@ import {
   ShieldAlert,
   Send,
   X,
-  Info
+  Info,
+  Eye
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import { generatePayoutStatement } from '../../lib/pdfGenerator';
 import { getProviderPayoutSummary, requestWithdrawal, listProviderPayouts } from '../../lib/payoutService';
 import { getBankDetails, getBankStatus } from '../../lib/bankDetailsService';
+import { PayoutDetailDrawer } from '../../components/common/PayoutDetailDrawer';
 
 export const ProviderEarningsPage: React.FC = () => {
   const { user, profile } = useAuth();
@@ -38,6 +41,10 @@ export const ProviderEarningsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [bankDetails, setBankDetails] = useState<any>(null);
+  
+  // Drawer State
+  const [selectedPayout, setSelectedPayout] = useState<any | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -347,20 +354,20 @@ export const ProviderEarningsPage: React.FC = () => {
         </div>
       )}
 
-      {getBankStatus(bankDetails) === 'Missing' && (
+      {['Missing', 'Incomplete'].includes(getBankStatus(bankDetails)) && (
         <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center gap-3">
             <AlertCircle className="text-amber-600" size={24} />
             <div>
-              <p className="font-bold">Bank Details Missing</p>
-              <p className="text-sm text-amber-700">Please provide your bank details to ensure you can receive payouts.</p>
+              <p className="font-bold">Bank Details {getBankStatus(bankDetails)}</p>
+              <p className="text-sm text-amber-700">Please provide or complete your bank details to ensure you can receive payouts.</p>
             </div>
           </div>
           <a 
-            href="#/profile" 
+            href="#/profile#bank-details" 
             className="bg-amber-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-amber-700 transition-colors whitespace-nowrap"
           >
-            Add Bank Details
+            Update Bank Details
           </a>
         </div>
       )}
@@ -463,7 +470,7 @@ export const ProviderEarningsPage: React.FC = () => {
             <option value="all">All Statuses</option>
             <option value="Available">Available</option>
             <option value="Requested">Requested</option>
-            <option value="Approved">Approved for Processing</option>
+            <option value="Approved">Processing</option>
             <option value="Rejected">Rejected</option>
             <option value="On Hold">On Hold</option>
             <option value="Paid">Paid</option>
@@ -520,10 +527,14 @@ export const ProviderEarningsPage: React.FC = () => {
         </div>
 
         {/* Helper text explaining amounts */}
-        <div className="px-6 py-3 bg-gray-50 border-b border-gray-100">
+        <div className="px-6 py-3 bg-gray-50 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <p className="text-[11px] text-gray-500 flex items-center gap-1.5 font-medium">
             <Info size={14} className="text-brand-teal shrink-0" />
             Gross payout is the agreed provider amount. Platform fee is deducted before the net payout is released.
+          </p>
+          <p className="text-[11px] text-blue-600 font-bold flex items-center gap-1">
+            <Eye size={12} />
+            Select View Details to see payout breakdown, audit history, and support options.
           </p>
         </div>
 
@@ -611,21 +622,37 @@ export const ProviderEarningsPage: React.FC = () => {
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1">
                         {e.is_on_hold ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold uppercase w-fit bg-red-100 text-red-700">
-                            <ShieldAlert size={10} /> {e.hold_reason === 'dispute' ? 'ON HOLD DUE TO DISPUTE' : 'ON HOLD'}
-                          </span>
+                          <div className="flex flex-col gap-1">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold uppercase w-fit bg-red-100 text-red-700">
+                              <ShieldAlert size={10} /> {e.hold_reason === 'dispute' ? 'ON HOLD DUE TO DISPUTE' : 'ON HOLD'}
+                            </span>
+                            <Link 
+                              to={`/contact?topic=payout&ref=${e.payout_reference || e.id}`} 
+                              className="text-[10px] text-brand-charcoal hover:text-brand-teal underline font-bold"
+                            >
+                              Contact Support
+                            </Link>
+                          </div>
                         ) : e.withdrawal_request_status === 'requested' ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold uppercase w-fit bg-blue-100 text-blue-700">
                             <Send size={10} /> REQUESTED
                           </span>
                         ) : e.withdrawal_request_status === 'approved' && e.status !== 'paid' ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold uppercase w-fit bg-purple-100 text-purple-700">
-                            <CheckCircle2 size={10} /> APPROVED FOR PROCESSING
+                            <CheckCircle2 size={10} /> PROCESSING
                           </span>
                         ) : e.withdrawal_request_status === 'rejected' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold uppercase w-fit bg-red-100 text-red-700" title={e.withdrawal_notes}>
-                            <X size={10} /> REJECTED
-                          </span>
+                          <div className="flex flex-col gap-1">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold uppercase w-fit bg-red-100 text-red-700" title={e.withdrawal_notes}>
+                              <X size={10} /> REJECTED
+                            </span>
+                            <Link 
+                              to={`/contact?topic=payout&ref=${e.payout_reference || e.id}`} 
+                              className="text-[10px] text-brand-charcoal hover:text-brand-teal underline font-bold"
+                            >
+                              Contact Support
+                            </Link>
+                          </div>
                         ) : (
                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold uppercase w-fit ${
                             e.status === 'paid' ? 'bg-green-100 text-green-700' : 
@@ -640,13 +667,18 @@ export const ProviderEarningsPage: React.FC = () => {
                         {/* Status Reasons */}
                         {e.is_on_hold && e.hold_reason && e.hold_reason !== 'dispute' && (
                           <span className="text-[10px] text-red-600 font-medium leading-tight max-w-[150px]">
-                            {e.hold_reason}
+                            Hold Reason: {e.hold_reason}
                           </span>
                         )}
                         {e.is_on_hold && e.hold_reason === 'dispute' && e.dispute_reason && (
                           <span className="text-[10px] text-amber-600 font-medium leading-tight max-w-[150px]">
                             Dispute: {e.dispute_reason}
                           </span>
+                        )}
+                        {e.adjustment_reason && (
+                           <span className="text-[10px] text-blue-600 font-medium leading-tight max-w-[150px]">
+                             Resolution: {e.adjustment_reason}
+                           </span>
                         )}
                         {e.withdrawal_request_status === 'rejected' && e.withdrawal_notes && (
                           <span className="text-[10px] text-red-600 font-medium leading-tight max-w-[150px]">
@@ -674,13 +706,25 @@ export const ProviderEarningsPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <button 
-                        onClick={() => handleDownloadStatement(e)}
-                        className="p-2 text-gray-400 hover:text-brand-teal hover:bg-brand-teal/5 rounded-lg transition-all"
-                        title="Download Statement"
-                      >
-                        <Download size={18} />
-                      </button>
+                      <div className="flex items-center justify-center gap-2">
+                        <button 
+                          onClick={() => {
+                            setSelectedPayout(e);
+                            setIsDrawerOpen(true);
+                          }}
+                          className="p-2 text-gray-400 hover:text-brand-teal hover:bg-brand-teal/5 rounded-lg transition-all"
+                          title="View payout details"
+                        >
+                          <Eye size={18} />
+                        </button>
+                        <button 
+                          onClick={() => handleDownloadStatement(e)}
+                          className="p-2 text-gray-400 hover:text-brand-teal hover:bg-brand-teal/5 rounded-lg transition-all"
+                          title="Download Statement"
+                        >
+                          <Download size={18} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -690,6 +734,12 @@ export const ProviderEarningsPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      <PayoutDetailDrawer 
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        payout={selectedPayout}
+      />
     </div>
   );
 };

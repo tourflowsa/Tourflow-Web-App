@@ -10,6 +10,8 @@ export const FleetList: React.FC = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
 
+  const basePath = profile?.role === 'vehicle_owner' ? '/owner/vehicles' : '/operator/vehicles';
+
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -174,7 +176,7 @@ export const FleetList: React.FC = () => {
           <p className="text-gray-500 mt-1">Manage your vehicles and logistics</p>
         </div>
         <Link
-          to="/operator/vehicles/new"
+          to={`${basePath}/new`}
           className="bg-brand-teal text-white px-4 py-2 rounded-2xl font-bold flex items-center gap-2 hover:bg-brand-teal/90 transition-colors shadow-sm"
         >
           <Plus size={18} /> Add Vehicle
@@ -221,7 +223,7 @@ export const FleetList: React.FC = () => {
               {statusFilter === 'Active' ? 'No active vehicles in your fleet.' : 'Try adjusting your filters.'}
             </p>
             {statusFilter === 'Active' && (
-              <Link to="/operator/vehicles/new" className="text-brand-teal font-bold hover:underline">
+              <Link to={`${basePath}/new`} className="text-brand-teal font-bold hover:underline">
                 Add Vehicle
               </Link>
             )}
@@ -288,7 +290,7 @@ export const FleetList: React.FC = () => {
 
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => navigate(`/operator/vehicles/${v.id}`)}
+                        onClick={() => navigate(`${basePath}/${v.id}`)}
                         className="p-2 text-gray-400 hover:text-brand-teal hover:bg-brand-teal/5 rounded transition-colors"
                         title="View Details"
                       >
@@ -296,7 +298,7 @@ export const FleetList: React.FC = () => {
                       </button>
 
                       <button
-                        onClick={() => navigate(`/operator/vehicles/${v.id}/edit`)}
+                        onClick={() => navigate(`${basePath}/${v.id}/edit`)}
                         className="p-2 text-gray-400 hover:text-brand-teal hover:bg-brand-teal/5 rounded transition-colors"
                         title="Edit Vehicle"
                       >

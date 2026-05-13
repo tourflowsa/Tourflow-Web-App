@@ -281,6 +281,9 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/owner/vehicles/new" element={<ProtectedRoute allowedRoles={['vehicle_owner']}><DashboardLayout><VehicleFormPage /></DashboardLayout></ProtectedRoute>} />
+          <Route path="/owner/vehicles/:id" element={<ProtectedRoute allowedRoles={['vehicle_owner']}><DashboardLayout><VehicleDetailPage /></DashboardLayout></ProtectedRoute>} />
+          <Route path="/owner/vehicles/:id/edit" element={<ProtectedRoute allowedRoles={['vehicle_owner']}><DashboardLayout><VehicleFormPage /></DashboardLayout></ProtectedRoute>} />
           
           <Route
             path="/owner/link-requests"

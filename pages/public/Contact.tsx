@@ -1,8 +1,31 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Mail, MessageSquare, Clock, ArrowRight, CheckCircle2, Send } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Mail, MessageSquare, Clock, ArrowRight, CheckCircle2, Send, Info, AlertCircle } from 'lucide-react';
 
 export function Contact() {
+  const location = useLocation();
+  const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const topic = params.get('topic');
+  const ref = params.get('ref');
+
+  const prefillMessage = useMemo(() => {
+    if (!topic && !ref) return '';
+    let msg = `Hi TourFlow Support,\n\n`;
+    
+    if (topic === 'document') {
+      msg += `I need assistance with one of my verification documents.`;
+    } else if (topic === 'booking') {
+      msg += `I have a question regarding booking ${ref || '[Reference]'}.`;
+    } else if (topic === 'payout') {
+      msg += `I have a question regarding payout ${ref || '[Reference]'}.`;
+    } else if (ref) {
+      msg += `I'm reaching out regarding reference ${ref}.`;
+    }
+    
+    msg += `\n\n[Please add more details about your inquiry here]`;
+    return msg;
+  }, [topic, ref]);
+
   return (
     <div className="bg-brand-white font-sans text-brand-charcoal">
       {/* SECTION 1: HERO */}
@@ -82,6 +105,20 @@ export function Contact() {
       <section className="py-24 bg-brand-white border-y border-gray-100">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto bg-white p-10 md:p-16 rounded-[40px] shadow-2xl shadow-brand-charcoal/5">
+            {topic && (
+              <div className="mb-8 p-4 bg-brand-teal/5 border border-brand-teal/20 rounded-2xl flex items-start gap-4">
+                <div className="p-2 bg-brand-teal text-white rounded-xl">
+                  <Info size={20} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-brand-charcoal">Support Context Detected</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    You're contacting us about a <span className="font-bold text-brand-teal capitalize">{topic.replace('_', ' ')}</span> Issue
+                    {ref && <span> for reference <span className="font-mono font-bold">{ref}</span></span>}.
+                  </p>
+                </div>
+              </div>
+            )}
             <h2 className="text-3xl font-bold mb-10 text-center">Send Us a Message</h2>
             <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -113,7 +150,8 @@ export function Contact() {
               <div className="space-y-2">
                 <label className="text-sm font-bold uppercase tracking-wider text-gray-500 ml-1">Message</label>
                 <textarea 
-                  rows={5}
+                  rows={8}
+                  defaultValue={prefillMessage}
                   placeholder="Tell us how we can help..."
                   className="w-full px-6 py-4 bg-brand-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-brand-teal focus:border-brand-teal outline-none transition-all resize-none"
                 ></textarea>

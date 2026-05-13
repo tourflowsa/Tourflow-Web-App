@@ -620,7 +620,7 @@ export const EditProfile: React.FC = () => {
       </form>
 
       {isProvider && user && (
-        <div className="mt-8 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div id="bank-details" className="mt-8 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-8">
             <BankDetailsForm 
               providerId={user.id} 

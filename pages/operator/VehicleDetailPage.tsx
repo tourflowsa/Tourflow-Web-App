@@ -48,7 +48,7 @@ export const VehicleDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
@@ -385,7 +385,8 @@ export const VehicleDetailPage: React.FC = () => {
   const operatorId = vehicle.operator_id;
   const isViewingOwnVehicle = (ownerId === user?.id) || (operatorId === user?.id);
 
-  const backTo = isViewingOwnVehicle ? '/operator/vehicles' : '/operator/directory';
+  const basePath = profile?.role === 'vehicle_owner' ? '/owner/vehicles' : '/operator/vehicles';
+  const backTo = isViewingOwnVehicle ? basePath : '/operator/directory';
 
   const renderLinkCta = () => {
     if (isViewingOwnVehicle) return null;
@@ -586,7 +587,7 @@ export const VehicleDetailPage: React.FC = () => {
               )}
 
               <Link
-                to={`/operator/vehicles/${vehicle.id}/edit`}
+                to={`${basePath}/${vehicle.id}/edit`}
                 className="px-4 py-2 bg-brand-teal text-white rounded-2xl font-bold text-sm hover:bg-brand-teal/90 flex items-center gap-2"
               >
                 <Edit2 size={16} /> Edit Vehicle
@@ -789,7 +790,7 @@ export const VehicleDetailPage: React.FC = () => {
 
                   {percentage < 100 && (
                     <Link
-                      to={`/operator/vehicles/${vehicle.id}/edit`}
+                      to={`${basePath}/${vehicle.id}/edit`}
                       className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-brand-teal text-white rounded-xl font-bold text-sm hover:bg-brand-teal/90 transition-all shadow-sm"
                     >
                       <Edit2 size={14} /> Edit Vehicle Profile

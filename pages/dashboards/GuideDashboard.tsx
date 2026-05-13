@@ -442,7 +442,7 @@ export const GuideDashboard: React.FC = () => {
                           }`}>
                             {p.is_on_hold ? 'On Hold' : 
                              p.withdrawal_request_status === 'requested' ? 'Requested' :
-                             p.withdrawal_request_status === 'approved' ? 'Approved for Processing' :
+                             p.withdrawal_request_status === 'approved' ? 'Processing' :
                              p.withdrawal_request_status === 'rejected' ? 'Rejected' :
                              p.status === 'paid' ? 'Paid' :
                              p.status === 'approved' ? 'Available' : 

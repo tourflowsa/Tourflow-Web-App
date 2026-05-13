@@ -28,10 +28,10 @@ export const UserVerification: React.FC = () => {
 
   const getStatusBadge = (status: VerificationStatus) => {
     switch(status) {
-      case 'verified': return <span className="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold uppercase"><CheckCircle2 size={12}/> Verified</span>;
-      case 'pending': return <span className="flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-bold uppercase"><AlertCircle size={12}/> Pending</span>;
-      case 'rejected': return <span className="flex items-center gap-1 bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold uppercase"><XCircle size={12}/> Rejected</span>;
-      default: return <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded text-xs font-bold uppercase">Unverified</span>;
+      case 'verified': return <span className="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold uppercase"><CheckCircle2 size={12}/> Account Verified</span>;
+      case 'pending': return <span className="flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-bold uppercase"><AlertCircle size={12}/> Account Pending</span>;
+      case 'rejected': return <span className="flex items-center gap-1 bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold uppercase"><XCircle size={12}/> Account Rejected</span>;
+      default: return <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded text-xs font-bold uppercase">Account Unverified</span>;
     }
   };
 

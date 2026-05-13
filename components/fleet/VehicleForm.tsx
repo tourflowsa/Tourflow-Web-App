@@ -489,13 +489,12 @@ export const VehicleForm: React.FC<Props> = ({ initialData, onSubmit, loading, m
         </div>
       </Section>
 
-      <Section title="Marketplace Readiness" icon={Info}>
-         <label className="block text-sm font-bold text-gray-700 mb-1">Public Marketplace Description</label>
+      <Section title="Vehicle Profile" icon={Info}>
+         <label className="block text-sm font-bold text-gray-700 mb-1">Vehicle Description</label>
          <p className="text-[11px] text-gray-500 mb-3 leading-relaxed">
-           This description may be visible to operators when they view your vehicle profile. 
-           Do not include phone numbers, email addresses, websites, bank details, addresses, or direct payment instructions.
+           Describe the vehicle’s condition, comfort, features, and anything operators should know before booking it. Do not include phone numbers, email addresses, websites, bank details, or direct payment instructions.
          </p>
-         <textarea name="notes" className="w-full border border-gray-300 rounded-lg p-3 h-32 resize-none focus:ring-2 focus:ring-brand-teal focus:border-transparent" placeholder="Describe the vehicle condition, interior quality, and unique features for marketplace visibility..." value={form.notes} onChange={handleTextChange} maxLength={1000} />
+         <textarea name="notes" className="w-full border border-gray-300 rounded-lg p-3 h-32 resize-none focus:ring-2 focus:ring-brand-teal focus:border-transparent" placeholder="Example: Clean 13-seater Toyota Quantum with air conditioning, comfortable seats, luggage space, and suitable for airport transfers or day tours." value={form.notes} onChange={handleTextChange} maxLength={1000} />
          <div className="text-right text-xs text-gray-400 mt-1">{form.notes.length}/1000</div>
       </Section>
 

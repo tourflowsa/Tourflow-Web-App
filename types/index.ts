@@ -404,6 +404,7 @@ export interface Payout {
   hold_at?: string | null;
   released_at?: string | null;
   released_by?: string | null;
+  dispute_reason?: string | null;
   
   // Withdrawal Support
   withdrawal_request_status?: 'available' | 'requested' | 'approved' | 'rejected' | 'paid' | null;

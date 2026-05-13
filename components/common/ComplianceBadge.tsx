@@ -117,7 +117,7 @@ export const ComplianceBadge: React.FC<ComplianceBadgeProps> = ({
         return {
           color: 'bg-blue-50 text-blue-600 border-blue-100',
           icon: <Clock size={14} />,
-          label: 'Pending Review'
+          label: 'Docs Pending Review'
         };
       case 'missing':
         return {
@@ -135,7 +135,7 @@ export const ComplianceBadge: React.FC<ComplianceBadgeProps> = ({
         return {
           color: 'bg-green-100 text-green-700 border-green-200',
           icon: <CheckCircle2 size={14} />,
-          label: 'Verified Compliant'
+          label: 'Fully Compliant'
         };
       default:
         return {

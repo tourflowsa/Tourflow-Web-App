@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { NotificationBell } from './NotificationBell';
 import { 
@@ -105,6 +106,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   const [disputeCount, setDisputeCount] = useState(0);
   const [pendingDocsCount, setPendingDocsCount] = useState(0);
   const [requestedWithdrawalsCount, setRequestedWithdrawalsCount] = useState(0);
+  const [pendingVerificationCount, setPendingVerificationCount] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const fetchCount = async () => {
@@ -116,11 +118,19 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       let dCount = 0;
       let pdCount = 0;
       let rwCount = 0;
+      let pvCount = 0;
 
       if (profile.role === 'admin') {
-        dCount = await getActiveDisputeCount();
-        pdCount = await getPendingDocumentsCountAdmin();
-        rwCount = await getRequestedWithdrawalCount();
+        const [dispute, docs, withdrawals, verification] = await Promise.all([
+          getActiveDisputeCount(),
+          getPendingDocumentsCountAdmin(),
+          getRequestedWithdrawalCount(),
+          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('verification_status', 'pending')
+        ]);
+        dCount = dispute;
+        pdCount = docs;
+        rwCount = withdrawals;
+        pvCount = verification.count || 0;
       } else if (profile.role === 'operator') {
         count = await getPendingRequestsCount(profile.id);
       } else if (profile.role === 'guide') {
@@ -138,6 +148,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       setDisputeCount(dCount);
       setPendingDocsCount(pdCount);
       setRequestedWithdrawalsCount(rwCount);
+      setPendingVerificationCount(pvCount);
     } catch (err) {
       console.error('Failed to fetch pending requests count:', err);
     }
@@ -219,6 +230,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
               {item.label === 'Assignments' && pendingAssignmentsCount > 0 && ` (${pendingAssignmentsCount})`}
               {item.label === 'Disputes' && disputeCount > 0 && <span className="ml-2 bg-brand-coral text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{disputeCount}</span>}
               {item.label === 'Document Reviews' && pendingDocsCount > 0 && <span className="ml-2 bg-brand-teal text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{pendingDocsCount}</span>}
+              {item.label === 'User Verification' && pendingVerificationCount > 0 && <span className="ml-2 bg-yellow-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{pendingVerificationCount}</span>}
               {item.label === 'Payouts' && requestedWithdrawalsCount > 0 && <span className="ml-2 bg-brand-teal text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{requestedWithdrawalsCount}</span>}
             </span>
           </NavLink>

@@ -1,10 +1,11 @@
 
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getRequirementsForRole, DOCUMENT_DEFINITIONS, DocumentTypeId, computeDerivedStatus } from '../../lib/complianceRequirements';
 import { getLatestDocumentsForUser, insertDocumentRecord, uploadDocumentFile, openDocument } from '../../lib/documentService';
 import { Document } from '../../types';
-import { FileText, Shield, AlertCircle, CheckCircle2, Upload, Loader2, XCircle, Clock, Eye } from 'lucide-react';
+import { FileText, Shield, AlertCircle, CheckCircle2, Upload, Loader2, XCircle, Clock, Eye, Info } from 'lucide-react';
 
 export const DocumentsChecklist: React.FC = () => {
   const { user, profile } = useAuth();
@@ -112,6 +113,22 @@ export const DocumentsChecklist: React.FC = () => {
         </p>
       </div>
 
+      {/* Help Bar */}
+      <div className="mb-8 p-4 bg-brand-charcoal text-white rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-white/10 rounded-lg text-brand-aqua">
+            <Info size={20} />
+          </div>
+          <p className="text-sm font-medium">Need help with your documents or verification status?</p>
+        </div>
+        <Link 
+          to="/contact?topic=document" 
+          className="px-4 py-2 bg-brand-teal hover:bg-brand-teal/90 text-white text-xs font-bold rounded-lg transition-colors whitespace-nowrap"
+        >
+          Contact Support
+        </Link>
+      </div>
+
       {errorMsg && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 flex items-center gap-2">
           <AlertCircle size={20} />
@@ -156,8 +173,11 @@ export const DocumentsChecklist: React.FC = () => {
                     <p className="text-xs text-gray-400 mt-1">Accepted: {def.acceptedFormats.join(', ')}</p>
                     
                     {doc?.rejection_reason && doc.status === 'rejected' && (
-                      <div className="mt-3 p-3 bg-red-50 text-red-800 text-sm rounded-lg border border-red-100">
-                        <strong>Rejection Reason:</strong> {doc.rejection_reason}
+                      <div className="mt-3 p-3 bg-red-50 text-red-800 text-sm rounded-lg border border-red-100 italic">
+                        <div className="flex items-center justify-between gap-2">
+                          <span><strong>Rejection Reason:</strong> {doc.rejection_reason}</span>
+                          <Link to="/contact?topic=document" className="text-brand-charcoal hover:text-brand-teal underline font-bold shrink-0">Contact Support</Link>
+                        </div>
                       </div>
                     )}
                   </div>

@@ -10,9 +10,9 @@ import { ArrowLeft, AlertCircle } from 'lucide-react';
 export const VehicleFormPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   
-  const backPath = user?.role === 'vehicle_owner' ? '/owner/vehicles' : '/operator/vehicles';
+  const backPath = profile?.role === 'vehicle_owner' ? '/owner/vehicles' : '/operator/vehicles';
   const isEditMode = !!id;
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(false);
@@ -65,7 +65,7 @@ export const VehicleFormPage: React.FC = () => {
         savedVehicle = await updateVehicle(id, { ...formData, photos: finalPhotos });
       } else {
         // Create flow: Create vehicle record first to get a real ID
-        const isOperator = user.role === 'operator';
+        const isOperator = profile?.role === 'operator';
         savedVehicle = await createVehicle({
           ...formData,
           owner_id: user.id,
@@ -93,11 +93,11 @@ export const VehicleFormPage: React.FC = () => {
         setLoading(false);
         // Delay redirect so user can see the warning
         setTimeout(() => {
-          const redirectPath = user.role === 'vehicle_owner' ? '/owner/vehicles' : '/operator/vehicles';
+          const redirectPath = profile?.role === 'vehicle_owner' ? '/owner/vehicles' : '/operator/vehicles';
           navigate(redirectPath);
         }, 4000);
       } else {
-        const redirectPath = user.role === 'vehicle_owner' ? '/owner/vehicles' : '/operator/vehicles';
+        const redirectPath = profile?.role === 'vehicle_owner' ? '/owner/vehicles' : '/operator/vehicles';
         navigate(redirectPath);
       }
     } catch (err: any) {

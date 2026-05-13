@@ -1907,7 +1907,7 @@ export const BookingDetail: React.FC = () => {
           <div className="p-2 bg-red-100 rounded-full shrink-0">
             <AlertTriangle size={20} className="text-red-600" />
           </div>
-          <div>
+          <div className="flex-1">
             <p className="font-bold text-sm">Payout dispute in progress</p>
             <p className="text-xs opacity-90 mb-2">
               One or more payouts for this booking are currently on hold and under review.
@@ -1921,6 +1921,12 @@ export const BookingDetail: React.FC = () => {
               ))}
             </ul>
           </div>
+          <Link 
+            to={`/contact?topic=booking&ref=${booking?.booking_reference}`} 
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition-colors whitespace-nowrap self-center"
+          >
+            Contact Support
+          </Link>
         </div>
       )}
       {isFinanciallyLocked && (
@@ -2835,9 +2841,17 @@ export const BookingDetail: React.FC = () => {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-bold text-amber-900">Having trouble with a provider?</p>
-                    <p className="text-xs text-amber-700 mt-1">
-                      If a specific provider does not arrive or there is an issue during the tour, <Link to="/contact" className="underline font-bold">contact support</Link> so Admin can review the case.
-                    </p>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-1">
+                      <p className="text-xs text-amber-700">
+                        If a specific provider does not arrive or there is an issue during the tour, contact support so Admin can review the case.
+                      </p>
+                      <Link 
+                        to={`/contact?topic=booking&ref=${booking?.booking_reference}`} 
+                        className="text-amber-900 hover:text-brand-charcoal text-xs font-bold underline whitespace-nowrap"
+                      >
+                        Contact Support
+                      </Link>
+                    </div>
                   </div>
                 </div>
               )}

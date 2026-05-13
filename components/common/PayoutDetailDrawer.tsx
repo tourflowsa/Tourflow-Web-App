@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Calendar, CheckCircle2, Clock, Wallet, Building, Percent, FileText, ExternalLink, ShieldAlert } from 'lucide-react';
+import { X, Calendar, CheckCircle2, Clock, Wallet, Building, Percent, FileText, ExternalLink, ShieldAlert, Info } from 'lucide-react';
 import { Payout } from '../../types';
 import { formatCurrency, formatDate } from '../../lib/formatUtils';
 import { getOriginalAmount, getSettlementAmount } from '../../lib/payoutUtils';
@@ -58,7 +59,7 @@ export const PayoutDetailDrawer: React.FC<PayoutDetailDrawerProps> = ({ isOpen, 
     if (payout.withdrawal_request_status) {
       switch (payout.withdrawal_request_status) {
         case 'requested': return 'WITHDRAWAL REQUESTED';
-        case 'approved': return 'APPROVED FOR PROCESSING';
+        case 'approved': return 'PROCESSING';
         case 'rejected': return 'WITHDRAWAL REJECTED';
         case 'paid': return 'PAID';
       }
@@ -144,17 +145,36 @@ export const PayoutDetailDrawer: React.FC<PayoutDetailDrawerProps> = ({ isOpen, 
                   <h3 className="text-sm font-bold text-red-700 uppercase flex items-center gap-2 mb-3">
                     <ShieldAlert size={16} /> On Hold
                   </h3>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div>
-                      <span className="text-xs font-bold text-red-400 uppercase tracking-wider">Reason</span>
+                      <span className="text-xs font-bold text-red-400 uppercase tracking-wider">Hold Reason</span>
                       <p className="text-sm font-medium text-red-700">{payout.hold_reason || 'No reason provided'}</p>
                     </div>
+                    {payout.hold_reason === 'dispute' && payout.dispute_reason && (
+                      <div>
+                        <span className="text-xs font-bold text-red-400 uppercase tracking-wider">Dispute Details</span>
+                        <p className="text-sm font-medium text-red-700">{payout.dispute_reason}</p>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <span className="text-xs font-bold text-red-400 uppercase tracking-wider">Held At</span>
                         <p className="text-xs font-medium text-red-700">{formatDate(payout.hold_at || null)}</p>
                       </div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Section 2.5: Resolution Notes (If applicable) */}
+              {payout.adjustment_reason && (
+                <div className="mb-8 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                  <h3 className="text-sm font-bold text-blue-700 uppercase flex items-center gap-2 mb-3">
+                    <Info size={16} /> Resolution Information
+                  </h3>
+                  <div>
+                    <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">Resolution Note</span>
+                    <p className="text-sm font-medium text-blue-700">{payout.adjustment_reason}</p>
                   </div>
                 </div>
               )}
@@ -247,6 +267,18 @@ export const PayoutDetailDrawer: React.FC<PayoutDetailDrawerProps> = ({ isOpen, 
                   )}
                 </div>
               </div>
+            </div>
+            <div className="p-6 border-t-2 border-gray-200 bg-gray-50 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-bold text-brand-charcoal">Questions about this payout?</p>
+                <p className="text-xs text-gray-500 mt-0.5">Contact our support team for assistance.</p>
+              </div>
+              <Link 
+                to={`/contact?topic=payout&ref=${payout.payout_reference || payout.id}`} 
+                className="px-4 py-2 bg-brand-charcoal hover:bg-black text-white text-sm font-bold rounded-lg transition-colors whitespace-nowrap shadow-md"
+              >
+                Contact Support
+              </Link>
             </div>
           </motion.div>
         </>

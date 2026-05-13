@@ -26,7 +26,8 @@ import {
   RefreshCw,
   Trash2,
   ShieldAlert,
-  Lock
+  Lock,
+  Info
 } from 'lucide-react';
 import { PayoutDetailDrawer } from '../../components/common/PayoutDetailDrawer';
 import { supabase } from '../../lib/supabase';
@@ -402,6 +403,14 @@ export const AdminPayoutsList: React.FC = () => {
         </div>
       </div>
 
+      {/* Helper Line */}
+      <div className="mb-4 p-4 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center gap-3">
+        <Info size={20} className="text-indigo-600 shrink-0" />
+        <p className="text-sm text-indigo-800">
+          Select <span className="font-bold">View Details</span> to see payout breakdown, audit history, and support options.
+        </p>
+      </div>
+
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
@@ -469,9 +478,11 @@ export const AdminPayoutsList: React.FC = () => {
                             e.stopPropagation();
                             handleRowClick(p);
                           }}
-                          className="text-gray-400 hover:text-brand-teal transition-colors flex items-center gap-1 text-sm font-bold"
+                          className="text-gray-400 hover:text-brand-teal transition-colors flex items-center gap-1.5 px-2 py-1 hover:bg-brand-teal/5 rounded-lg group"
+                          title="View payout details"
                         >
-                          <Eye size={16} /> View
+                          <Eye size={16} className="group-hover:scale-110 transition-transform" />
+                          <span className="hidden sm:inline text-sm font-bold">View Details</span>
                         </button>
 
                         <button 

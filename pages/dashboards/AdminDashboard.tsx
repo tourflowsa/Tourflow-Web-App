@@ -422,7 +422,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Link to="/admin/verifications" className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
+          <Link to="/admin/reviews" className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
             <div className="flex items-center gap-4">
               <div className={`p-3 rounded-2xl ${pipelineBacklog.pendingDocs > 0 ? 'bg-brand-gold/10 text-brand-gold' : 'bg-gray-50 text-gray-400'}`}>
                 <FileWarning size={24} />
@@ -470,7 +470,18 @@ export const AdminDashboard: React.FC = () => {
           <h2 className="text-xl font-bold text-brand-charcoal">Booking Health</h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-brand-charcoal/10 text-brand-charcoal rounded-2xl" title="Bookings starting today.">
+                <TrendingUp size={24} />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Bookings Today</p>
+                <p className="text-3xl font-bold text-brand-charcoal">{loading ? '...' : bookingsOverview.bookingsToday}</p>
+              </div>
+            </div>
+          </div>
           <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-brand-teal/10 text-brand-teal rounded-2xl">
@@ -551,19 +562,19 @@ export const AdminDashboard: React.FC = () => {
               <AlertTriangle size={24} className="text-yellow-600" />
             </div>
             <div>
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Pending Verification</p>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Accounts Pending</p>
               <p className="text-3xl font-bold text-brand-charcoal">{loading ? '...' : metrics?.pending_verification ?? 0}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Bookings Overview */}
+      {/* Action Required: Bookings */}
       <div className="mb-10">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <BookOpen className="text-brand-teal" size={20} />
-            <h2 className="text-xl font-bold text-brand-charcoal">Bookings Overview</h2>
+            <h2 className="text-xl font-bold text-brand-charcoal">Action Required: Bookings</h2>
           </div>
 
           <Link
@@ -575,35 +586,14 @@ export const AdminDashboard: React.FC = () => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-2 bg-brand-teal/10 text-brand-teal rounded-lg">
-                <TrendingUp size={20} />
-              </div>
-              {/* Wrap Info icon in span to handle title tooltip correctly */}
-              <span title="Bookings starting today.">
-                <Info
-                  size={14}
-                  className="text-gray-300 cursor-help"
-                />
-              </span>
-            </div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Bookings Today</p>
-            <p className="text-3xl font-bold text-brand-charcoal">{loading ? '...' : bookingsOverview.bookingsToday}</p>
-          </div>
-
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
             <div className="flex items-start justify-between mb-4">
               <div className="p-2 bg-brand-charcoal/10 text-brand-charcoal rounded-lg">
                 <Users size={20} />
               </div>
-              {/* Wrap Info icon in span to handle title tooltip correctly */}
               <span title="Confirmed bookings with no driver or guide assigned.">
-                <Info
-                  size={14}
-                  className="text-gray-300 cursor-help"
-                />
+                <Info size={14} className="text-gray-300 cursor-help" />
               </span>
             </div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Unassigned Bookings</p>
@@ -615,12 +605,8 @@ export const AdminDashboard: React.FC = () => {
               <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
                 <UserCheck size={20} />
               </div>
-              {/* Wrap Info icon in span to handle title tooltip correctly */}
               <span title="Assigned driver has not accepted.">
-                <Info
-                  size={14}
-                  className="text-gray-300 cursor-help"
-                />
+                <Info size={14} className="text-gray-300 cursor-help" />
               </span>
             </div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Pending Acceptance</p>
@@ -632,12 +618,8 @@ export const AdminDashboard: React.FC = () => {
               <div className="p-2 bg-red-100 text-red-600 rounded-lg">
                 <CalendarDays size={20} />
               </div>
-              {/* Wrap Info icon in span to handle title tooltip correctly */}
               <span title="Starts within 24 hours with no accepted driver.">
-                <Info
-                  size={14}
-                  className="text-gray-300 cursor-help"
-                />
+                <Info size={14} className="text-gray-300 cursor-help" />
               </span>
             </div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Urgent: 24h No Driver</p>
@@ -651,25 +633,21 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Operational Health Section */}
+      {/* Compliance Health Section */}
       <div className="mb-10">
         <div className="flex items-center gap-2 mb-6">
           <Shield className="text-brand-teal" size={20} />
-          <h2 className="text-xl font-bold text-brand-charcoal">Operational Health</h2>
+          <h2 className="text-xl font-bold text-brand-charcoal">Compliance Health</h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
             <div className="flex items-start justify-between mb-4">
               <div className="p-2 bg-brand-coral/10 text-brand-coral rounded-lg">
                 <FileWarning size={20} />
               </div>
-              {/* Wrap Info icon in span to handle title tooltip correctly */}
               <span title="Active drivers missing required documents.">
-                <Info
-                  size={14}
-                  className="text-gray-300 cursor-help"
-                />
+                <Info size={14} className="text-gray-300 cursor-help" />
               </span>
             </div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Drivers Missing Docs</p>
@@ -681,84 +659,12 @@ export const AdminDashboard: React.FC = () => {
               <div className="p-2 bg-brand-gold/10 text-brand-gold rounded-lg">
                 <Clock size={20} className="text-yellow-600" />
               </div>
-              {/* Wrap Info icon in span to handle title tooltip correctly */}
               <span title="Documents expiring within 30 days.">
-                <Info
-                  size={14}
-                  className="text-gray-300 cursor-help"
-                />
+                <Info size={14} className="text-gray-300 cursor-help" />
               </span>
             </div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Docs Expiring 30 Days</p>
             <p className="text-3xl font-bold text-brand-charcoal">{loading ? '...' : row?.docs_expiring_30d ?? 0}</p>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-2 bg-brand-charcoal/10 text-brand-charcoal rounded-lg">
-                <Users size={20} />
-              </div>
-              {/* Wrap Info icon in span to handle title tooltip correctly */}
-              <span title="Confirmed bookings missing assignments.">
-                <Info
-                  size={14}
-                  className="text-gray-300 cursor-help"
-                />
-              </span>
-            </div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Unassigned Bookings</p>
-            <p className="text-3xl font-bold text-brand-charcoal">{loading ? '...' : row?.unassigned_bookings ?? 0}</p>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                <UserCheck size={20} />
-              </div>
-              {/* Wrap Info icon in span to handle title tooltip correctly */}
-              <span title="Assigned driver has not accepted.">
-                <Info
-                  size={14}
-                  className="text-gray-300 cursor-help"
-                />
-              </span>
-            </div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Pending Acceptance</p>
-            <p className="text-3xl font-bold text-brand-charcoal">{loading ? '...' : row?.pending_driver_acceptance ?? 0}</p>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm border-l-4 border-l-brand-coral">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-2 bg-red-100 text-red-600 rounded-lg">
-                <CalendarDays size={20} />
-              </div>
-              {/* Wrap Info icon in span to handle title tooltip correctly */}
-              <span title="Starts within 24 hours with no accepted driver.">
-                <Info
-                  size={14}
-                  className="text-gray-300 cursor-help"
-                />
-              </span>
-            </div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Urgent: 24h No Driver</p>
-            <p className="text-3xl font-bold text-red-600">{loading ? '...' : row?.starting_24h_without_accepted_driver ?? 0}</p>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-2 bg-brand-teal/10 text-brand-teal rounded-lg">
-                <TrendingUp size={20} />
-              </div>
-              {/* Wrap Info icon in span to handle title tooltip correctly */}
-              <span title="Bookings starting today.">
-                <Info
-                  size={14}
-                  className="text-gray-300 cursor-help"
-                />
-              </span>
-            </div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Bookings Today</p>
-            <p className="text-3xl font-bold text-brand-charcoal">{loading ? '...' : row?.bookings_today ?? 0}</p>
           </div>
         </div>
       </div>

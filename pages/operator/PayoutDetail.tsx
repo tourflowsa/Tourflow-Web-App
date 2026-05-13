@@ -319,6 +319,25 @@ export const PayoutDetail: React.FC = () => {
               </div>
            </div>
         </div>
+
+        {/* Support Section */}
+        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-white rounded-xl border border-gray-100 text-gray-400">
+              <ShieldAlert size={24} />
+            </div>
+            <div>
+              <p className="font-bold text-brand-charcoal">Questions about this payout?</p>
+              <p className="text-sm text-gray-500">Our support team is here to help with adjustments, holds, or status inquiries.</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => navigate(`/contact?topic=payout&ref=${payout.payout_reference || payout.id}`)}
+            className="px-6 py-2.5 bg-brand-charcoal hover:bg-black text-white font-bold rounded-xl transition-all shadow-md active:scale-[0.98]"
+          >
+            Contact Support
+          </button>
+        </div>
       </div>
     </div>
   );

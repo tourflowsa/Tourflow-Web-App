@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { listOperatorPayouts, PAYOUT_STATUS_LABELS, archiveOperatorPayout, unarchiveOperatorPayout } from '../../lib/payoutService';
 import { formatCurrency, formatDate } from '../../lib/formatUtils';
 import { supabase } from '../../lib/supabase';
-import { Loader2, CheckCircle2, AlertCircle, Download, Archive, Search, Eye, ShieldAlert, Banknote, ChevronRight, ChevronDown } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Download, Archive, Search, Eye, ShieldAlert, Banknote, ChevronRight, ChevronDown, Info } from 'lucide-react';
 import { filterPayouts, getPayableAmount } from '../../lib/payoutUtils';
 import { PayoutDetailDrawer } from '../../components/common/PayoutDetailDrawer';
 
@@ -42,12 +42,22 @@ export const OperatorPayoutsPage: React.FC = () => {
     setSuccess(null);
     try {
       let status: string | string[] | undefined = ['pending', 'approved'];
-      if (statusFilter === 'Pending') status = 'pending';
-      if (statusFilter === 'Available') status = 'approved';
-      if (statusFilter === 'Paid') status = 'paid';
-      if (statusFilter === 'All') status = undefined;
+      let isOnHold: boolean | undefined = undefined;
+
+      if (statusFilter === 'pending') {
+        status = 'pending';
+      } else if (statusFilter === 'approved') {
+        status = 'approved';
+      } else if (statusFilter === 'paid') {
+        status = 'paid';
+      } else if (statusFilter === 'on_hold') {
+        status = undefined;
+        isOnHold = true;
+      } else if (statusFilter === 'All') {
+        status = undefined;
+      }
       
-      const data = await listOperatorPayouts(user!.id, { status, includeArchived });
+      const data = await listOperatorPayouts(user!.id, { status, includeArchived, isOnHold });
       
       const bookingIds = Array.from(new Set(data.map((p: any) => p.booking_id).filter(Boolean)));
       const providerIds = Array.from(new Set(data.map((p: any) => p.provider_id).filter(Boolean)));
@@ -289,11 +299,12 @@ export const OperatorPayoutsPage: React.FC = () => {
         <div className="flex justify-between items-center">
           <div className="flex gap-2">
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="border p-2 rounded">
-                    <option value="Open">Open</option>
+                    <option value="Open">Open (All Available)</option>
                     <option value="pending">Pending Authorization</option>
-                    <option value="approved">Available</option>
-                    <option value="paid">Paid</option>
-                    <option value="All">All</option>
+                    <option value="approved">Approved & Available</option>
+                    <option value="paid">Paid History</option>
+                    <option value="on_hold">On Hold / Disputed</option>
+                    <option value="All">All Transactions</option>
             </select>
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={includeArchived} onChange={e => setIncludeArchived(e.target.checked)} />
@@ -320,6 +331,13 @@ export const OperatorPayoutsPage: React.FC = () => {
       </div>
 
       <h2 className="text-xl font-semibold mb-4">{heading}</h2>
+
+      <div className="mb-4 p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-center gap-3">
+        <Info size={20} className="text-blue-600 shrink-0" />
+        <p className="text-sm text-blue-800">
+          Select <span className="font-bold">View Details</span> to see payout breakdown, audit history, and support options.
+        </p>
+      </div>
 
       <table className="w-full border-collapse">
         <thead>
@@ -441,17 +459,18 @@ export const OperatorPayoutsPage: React.FC = () => {
                         {p.status === 'paid' && p.paid_at && <div className="text-[10px] text-gray-400 font-mono mt-1">{formatDate(p.paid_at)}</div>}
                       </td>
                       <td className="p-2">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedPayout(p);
                               setIsDrawerOpen(true);
                             }}
-                            className="text-gray-400 hover:text-brand-teal transition-colors"
-                            title="View Details"
+                            className="text-gray-400 hover:text-brand-teal transition-colors flex items-center gap-1.5 px-2 py-1 hover:bg-brand-teal/5 rounded-lg group"
+                            title="View payout details"
                           >
-                            <Eye size={16} />
+                            <Eye size={16} className="group-hover:scale-110 transition-transform" />
+                            <span className="hidden sm:inline text-[13px] font-bold">View Details</span>
                           </button>
                           {p.status === 'paid' && !p.operator_archived_at && <button onClick={(e) => { e.stopPropagation(); handleArchive(p.id); }} className="text-gray-600 hover:underline text-sm flex items-center gap-1 font-medium"><Archive size={14} /> Archive</button>}
                         </div>

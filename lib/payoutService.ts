@@ -589,10 +589,13 @@ export const PAYOUT_STATUS_LABELS: Record<string, string> = {
   cancelled: 'CANCELLED',
 };
 
-export const listOperatorPayouts = async (operatorId: string, filters?: { status?: string | string[]; startDate?: string; endDate?: string; limit?: number; includeArchived?: boolean }) => {
+export const listOperatorPayouts = async (operatorId: string, filters?: { status?: string | string[]; startDate?: string; endDate?: string; limit?: number; includeArchived?: boolean; isOnHold?: boolean }) => {
   let query = supabase.from('payout_ledger').select('*, payout_batches(batch_ref)').eq('operator_id', operatorId).order('created_at', { ascending: false });
   if (!filters?.includeArchived) {
     query = query.is('operator_archived_at', null);
+  }
+  if (filters?.isOnHold !== undefined) {
+    query = query.eq('is_on_hold', filters.isOnHold);
   }
   if (filters?.status) {
     const validStatuses = ['pending', 'approved', 'paid', 'cancelled'];

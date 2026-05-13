@@ -243,7 +243,7 @@ export const VehicleOwnerDashboard: React.FC = () => {
         <h2 className="text-lg font-bold text-gray-900 mb-4">Fleet & Operations</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <div 
-            onClick={() => navigate('/owner/bookings')}
+            onClick={() => navigate('/owner/vehicles')}
             className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md hover:border-brand-teal/30 transition-all group"
           >
             <div className="flex items-center justify-between mb-4">
@@ -435,7 +435,7 @@ export const VehicleOwnerDashboard: React.FC = () => {
                           }`}>
                             {p.is_on_hold ? 'On Hold' : 
                              p.withdrawal_request_status === 'requested' ? 'Requested' :
-                             p.withdrawal_request_status === 'approved' ? 'Approved for Processing' :
+                             p.withdrawal_request_status === 'approved' ? 'Processing' :
                              p.withdrawal_request_status === 'rejected' ? 'Rejected' :
                              p.status === 'paid' ? 'Paid' :
                              p.status === 'approved' ? 'Available' : 
@@ -457,7 +457,7 @@ export const VehicleOwnerDashboard: React.FC = () => {
             </div>
             {vehicles.length > 4 && (
               <button 
-                onClick={() => navigate('/operator/vehicles')}
+                onClick={() => navigate('/owner/vehicles')}
                 className="text-brand-teal font-bold text-sm hover:underline flex items-center gap-1"
               >
                 View all vehicles <ChevronRight size={16} />
@@ -542,7 +542,7 @@ export const VehicleOwnerDashboard: React.FC = () => {
                 <h3 className="text-lg font-bold text-brand-charcoal mb-1">No vehicles registered</h3>
                 <p className="text-gray-500 mb-6">Add your first vehicle to start accepting bookings.</p>
                 <button
-                  onClick={() => navigate('/operator/vehicles/new')}
+                  onClick={() => navigate('/owner/vehicles/new')}
                   className="bg-brand-teal text-white px-6 py-2.5 rounded-lg font-bold hover:bg-brand-teal/90 transition-colors"
                 >
                   Add Vehicle

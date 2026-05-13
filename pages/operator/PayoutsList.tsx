@@ -21,7 +21,7 @@ export const PayoutsList: React.FC = () => {
 
   // Filters
   const initialStatus = searchParams.get('status');
-  const [statusFilter, setStatusFilter] = useState(initialStatus ? initialStatus.charAt(0).toUpperCase() + initialStatus.slice(1) : 'All');
+  const [statusFilter, setStatusFilter] = useState(initialStatus || 'All');
   const [searchText, setSearchText] = useState('');
   const [backfilling, setBackfilling] = useState(false);
 
@@ -49,7 +49,15 @@ export const PayoutsList: React.FC = () => {
   };
 
   const filteredPayouts = payouts.filter(p => {
-    const matchesStatus = statusFilter === 'All' || p.status.toLowerCase() === statusFilter.toLowerCase();
+    let matchesStatus = false;
+    if (statusFilter === 'All') {
+      matchesStatus = true;
+    } else if (statusFilter === 'on_hold') {
+      matchesStatus = !!p.is_on_hold;
+    } else {
+      matchesStatus = p.status.toLowerCase() === statusFilter.toLowerCase();
+    }
+    
     const matchesSearch = searchText === '' || p.payout_reference.toLowerCase().includes(searchText.toLowerCase());
     return matchesStatus && matchesSearch;
   });
@@ -221,9 +229,11 @@ export const PayoutsList: React.FC = () => {
                    value={statusFilter}
                    onChange={e => setStatusFilter(e.target.value)}
                  >
-                   <option>All</option>
-                   <option value="pending">Pending</option>
-                   <option value="paid">Paid</option>
+                   <option value="All">All Transactions</option>
+                   <option value="pending">Pending Authorization</option>
+                   <option value="approved">Available</option>
+                   <option value="paid">Paid History</option>
+                   <option value="on_hold">On Hold</option>
                  </select>
                </div>
             </div>
