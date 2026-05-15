@@ -15,10 +15,11 @@ export const SystemAudit: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState('');
   const [searchFilter, setSearchFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
+  const [limit, setLimit] = useState(100);
 
   useEffect(() => {
     loadLogs();
-  }, [actionFilter, entityTableFilter, roleFilter, dateFilter, searchFilter]);
+  }, [actionFilter, entityTableFilter, roleFilter, dateFilter, searchFilter, limit]);
 
   const loadLogs = async () => {
     setLoading(true);
@@ -37,7 +38,8 @@ export const SystemAudit: React.FC = () => {
         actorRole: roleFilter || undefined,
         entityId: searchFilter || undefined,
         startDate: dateFilter || undefined,
-        endDate: endDateString
+        endDate: endDateString,
+        limit
       });
       
       setLogs(data);
@@ -328,9 +330,19 @@ export const SystemAudit: React.FC = () => {
 
         {/* Footer info */}
         {!loading && logs.length > 0 && (
-          <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center text-xs text-gray-400">
-            <span>Showing latest {logs.length} events</span>
-            <span className="italic">Hover over metadata to see full JSON payload</span>
+          <div className="p-4 bg-gray-50 border-t border-gray-100 flex flex-col items-center gap-4 text-xs text-gray-400">
+            <div className="flex w-full justify-between items-center">
+              <span>Showing latest {logs.length} events</span>
+              <span className="italic">Hover over metadata to see full JSON payload</span>
+            </div>
+            {logs.length === limit && (
+              <button 
+                onClick={() => setLimit(prev => prev + 100)}
+                className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-brand-charcoal font-medium hover:bg-gray-50 transition-colors"
+              >
+                Load More
+              </button>
+            )}
           </div>
         )}
       </div>

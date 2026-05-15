@@ -149,7 +149,10 @@ export const ComplianceBadge: React.FC<ComplianceBadgeProps> = ({
   const config = getBadgeConfig();
 
   return (
-    <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-2xl border text-[10px] font-bold uppercase transition-colors ${config.color} ${className}`}>
+    <div 
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-2xl border text-[10px] font-bold uppercase transition-colors ${config.color} ${className}`}
+      title={config.label}
+    >
       {config.icon}
       {showLabels && <span>{config.label}</span>}
     </div>

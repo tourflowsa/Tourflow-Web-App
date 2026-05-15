@@ -7,8 +7,24 @@ import {
   fetchCountries,
   fetchProvinces
 } from '../../lib/fleetService';
-import { searchDrivers, searchGuides, searchDriversWithFilters, searchGuidesWithFilters } from '../../lib/assignmentService';
-import { createDriverAvailabilityRequest, createGuideAvailabilityRequest } from '../../lib/bookingService';
+import { 
+  searchDrivers, 
+  searchGuides, 
+  searchDriversWithFilters, 
+  searchGuidesWithFilters 
+} from '../../lib/assignmentService';
+import { 
+  createReview, 
+  getProviderReviews, 
+  getProviderRatingSummary,
+  getProviderRatingSummaries,
+  hasReview, 
+  RatingSummary 
+} from '../../lib/reviewService';
+import { 
+  createDriverAvailabilityRequest, 
+  createGuideAvailabilityRequest 
+} from '../../lib/bookingService';
 import { 
   Search, 
   Truck, 
@@ -52,7 +68,7 @@ export const ProviderDirectory: React.FC = () => {
   const [provinces, setProvinces] = useState<string[]>([]);
   const [provincesLoading, setProvincesLoading] = useState(false);
 
-  const [driverResults, setDriverResults] = useState<any[]>([]);
+  const [driverResults, setDriverResults] = useState<(any & { ratingSummary?: RatingSummary })[]>([]);
   const [driverSearchQuery, setDriverSearchQuery] = useState({
     query: '',
     city: '',
@@ -61,7 +77,7 @@ export const ProviderDirectory: React.FC = () => {
   });
   const [driverLoading, setDriverLoading] = useState(false);
 
-  const [guideResults, setGuideResults] = useState<any[]>([]);
+  const [guideResults, setGuideResults] = useState<(any & { ratingSummary?: RatingSummary })[]>([]);
   const [guideSearchQuery, setGuideSearchQuery] = useState({
     query: '',
     city: '',
@@ -332,7 +348,14 @@ export const ProviderDirectory: React.FC = () => {
     setDriverLoading(true);
     try {
       const data = await searchDriversWithFilters(overrideQuery || driverSearchQuery);
-      setDriverResults(data || []);
+      const providerIds = (data || []).map((d: any) => d.id);
+      const ratingSummaries = await getProviderRatingSummaries(providerIds);
+      
+      const withRatings = (data || []).map((d: any) => ({
+        ...d,
+        ratingSummary: ratingSummaries[d.id] || { average_rating: 0, total_reviews: 0 }
+      }));
+      setDriverResults(withRatings);
     } catch (e) {
       console.error('Driver search failed', e);
       showToast('Failed to search drivers', 'error');
@@ -347,7 +370,14 @@ export const ProviderDirectory: React.FC = () => {
     setGuideLoading(true);
     try {
       const data = await searchGuidesWithFilters(overrideQuery || guideSearchQuery);
-      setGuideResults(data || []);
+      const providerIds = (data || []).map((g: any) => g.id);
+      const ratingSummaries = await getProviderRatingSummaries(providerIds);
+      
+      const withRatings = (data || []).map((g: any) => ({
+        ...g,
+        ratingSummary: ratingSummaries[g.id] || { average_rating: 0, total_reviews: 0 }
+      }));
+      setGuideResults(withRatings);
     } catch (e) {
       console.error('Guide search failed', e);
       showToast('Failed to search guides', 'error');
@@ -921,6 +951,7 @@ export const ProviderDirectory: React.FC = () => {
                 key={driver.id} 
                 provider={driver} 
                 role="driver"
+                ratingSummary={driver.ratingSummary}
                 onClickRequest={(id, name) => setRequestModal({ 
                   open: true, 
                   providerId: id, 
@@ -1067,6 +1098,7 @@ export const ProviderDirectory: React.FC = () => {
                 key={guide.id} 
                 provider={guide} 
                 role="guide"
+                ratingSummary={guide.ratingSummary}
                 onClickRequest={(id, name) => setRequestModal({ 
                   open: true, 
                   providerId: id, 

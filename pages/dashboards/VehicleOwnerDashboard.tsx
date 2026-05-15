@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   getFleetOwnerVehicles,
   listVehicleAvailabilityBlocks,
+  listVehiclesAvailabilityBlocks,
   createVehicleAvailabilityBlock,
   deleteVehicleAvailabilityBlock,
   getOwnerLinkRequestCounts,
@@ -45,6 +46,7 @@ export const VehicleOwnerDashboard: React.FC = () => {
 
   const [selectedVehicle, setSelectedVehicle] = useState<any | null>(null);
   const [availability, setAvailability] = useState<any[]>([]);
+  const [allVehicleAvailability, setAllVehicleAvailability] = useState<Record<string, any[]>>({});
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
 
   const [startDate, setStartDate] = useState('');
@@ -77,6 +79,19 @@ export const VehicleOwnerDashboard: React.FC = () => {
       setVehicles(vehiclesData || []);
       setPayoutSummary(summary);
       setRatingSummary(rating);
+
+      if (vehiclesData && vehiclesData.length > 0) {
+        const vIds = vehiclesData.map((v: any) => v.id);
+        const availabilityData = await listVehiclesAvailabilityBlocks(vIds);
+        const availabilityMap: Record<string, any[]> = {};
+        availabilityData.forEach((a: any) => {
+          if (!availabilityMap[a.vehicle_id]) {
+            availabilityMap[a.vehicle_id] = [];
+          }
+          availabilityMap[a.vehicle_id].push(a);
+        });
+        setAllVehicleAvailability(availabilityMap);
+      }
     } catch (e) {
       console.error('Dashboard fleet fetch failed', e);
     }
@@ -128,6 +143,21 @@ export const VehicleOwnerDashboard: React.FC = () => {
     await loadAvailability(v.id);
   };
 
+  const refreshAllAvailability = async () => {
+    if (vehicles.length > 0) {
+      const vIds = vehicles.map((v: any) => v.id);
+      const availabilityData = await listVehiclesAvailabilityBlocks(vIds);
+      const availabilityMap: Record<string, any[]> = {};
+      availabilityData.forEach((a: any) => {
+        if (!availabilityMap[a.vehicle_id]) {
+          availabilityMap[a.vehicle_id] = [];
+        }
+        availabilityMap[a.vehicle_id].push(a);
+      });
+      setAllVehicleAvailability(availabilityMap);
+    }
+  };
+
   const closeManageAvailability = () => {
     setSelectedVehicle(null);
     setAvailability([]);
@@ -151,6 +181,7 @@ export const VehicleOwnerDashboard: React.FC = () => {
       await createVehicleAvailabilityBlock(selectedVehicle.id, user.id, startDate, endDate, reason || undefined);
       setToast({ type: 'success', message: 'Unavailable dates saved.' });
       await loadAvailability(selectedVehicle.id);
+      await refreshAllAvailability();
       setStartDate('');
       setEndDate('');
       setReason('');
@@ -192,6 +223,7 @@ export const VehicleOwnerDashboard: React.FC = () => {
       await deleteVehicleAvailabilityBlock(blockId);
       setToast({ type: 'success', message: 'Unavailable dates removed.' });
       await loadAvailability(selectedVehicle.id);
+      await refreshAllAvailability();
     } catch (e: any) {
       setToast({ type: 'error', message: e?.message || 'Failed to remove block' });
     }
@@ -478,15 +510,50 @@ export const VehicleOwnerDashboard: React.FC = () => {
 
               const label = currentStatus.toLowerCase() === 'inactive' ? 'Archived' : currentStatus;
 
-              return (
-                <div
-                  key={v.id}
-                  className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:border-brand-teal/50 hover:shadow-md transition-all group flex flex-col"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="p-3 bg-gray-50 rounded-2xl group-hover:bg-brand-teal/10 transition-colors">
-                      <Truck className="text-gray-400 group-hover:text-brand-teal transition-colors" size={24} />
-                    </div>
+              const vAvailability = allVehicleAvailability[v.id] || [];
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+
+              const currentUnavailable = vAvailability.find(a => {
+                const start = new Date(a.date_start);
+                const end = new Date(a.date_end);
+                return today >= start && today <= end;
+              });
+
+              const nextUnavailable = vAvailability
+                .filter(a => new Date(a.date_start) > today)
+                .sort((a, b) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime())[0];
+
+              let availabilityReminder = null;
+              if (currentUnavailable) {
+                availabilityReminder = 'Unavailable today';
+              } else if (nextUnavailable) {
+                availabilityReminder = `Next unavailable: ${formatDate(nextUnavailable.date_start)} to ${formatDate(nextUnavailable.date_end)}`;
+              }
+
+              const getThumbnail = (vehicle: any) => {
+    if (!vehicle.photos || vehicle.photos.length === 0) return null;
+    const primary = vehicle.photos.find((p: any) => p.is_primary);
+    return primary ? primary.url : vehicle.photos[0].url;
+  };
+
+  return (
+    <div
+      key={v.id}
+      className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:border-brand-teal/50 hover:shadow-md transition-all group flex flex-col"
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div className="w-12 h-12 rounded-2xl overflow-hidden bg-gray-50 group-hover:bg-brand-teal/10 transition-colors flex items-center justify-center shrink-0 relative">
+          <Truck className="text-gray-400 group-hover:text-brand-teal transition-colors" size={24} />
+          {getThumbnail(v) && (
+            <img 
+              src={getThumbnail(v)!} 
+              alt="" 
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={(e) => { e.currentTarget.parentElement?.removeChild(e.currentTarget); }}
+            />
+          )}
+        </div>
                     <span className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border ${cls}`}>{label}</span>
                   </div>
 
@@ -499,6 +566,13 @@ export const VehicleOwnerDashboard: React.FC = () => {
                     <div className="text-sm text-gray-600 flex items-center gap-2">
                       <span className="font-bold">{v.seat_count}</span> Seats • {v.body_type || 'Vehicle'}
                     </div>
+
+                    {availabilityReminder && (
+                      <div className="text-xs text-amber-700 bg-amber-50 px-3 py-2 rounded-lg border border-amber-100 flex items-center gap-2">
+                        <AlertTriangle size={14} />
+                        {availabilityReminder}
+                      </div>
+                    )}
 
                     <div className="flex items-center gap-2 mt-2">
                       <button

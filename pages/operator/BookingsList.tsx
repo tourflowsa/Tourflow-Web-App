@@ -42,14 +42,6 @@ export const BookingsList: React.FC = () => {
     guideId?: string;
     guideName?: string;
   }>>({});
-  const prevMapRef = useRef<Record<string, { 
-    driverStatus?: string; 
-    driverId?: string;
-    driverName?: string;
-    guideStatus?: string; 
-    guideId?: string;
-    guideName?: string;
-  }>>({});
 
   // Archive Modal State
   const [archiveTarget, setArchiveTarget] = useState<Booking | null>(null);
@@ -153,30 +145,7 @@ export const BookingsList: React.FC = () => {
             };
           });
 
-          // Detect transitions from pending to accepted/rejected
-          // Only compare if we have a previous state (prevents notification on first mount)
-          if (Object.keys(prevMapRef.current).length > 0) {
-            Object.entries(map).forEach(([bId, current]) => {
-              const prev = prevMapRef.current[bId];
-              if (prev) {
-                const booking = data.find(b => b.id === bId);
-                const bookingRef = booking?.booking_reference || 'Booking';
-                
-                // Driver transition
-                if (prev.driverStatus === 'pending' && (current.driverStatus === 'accepted' || current.driverStatus === 'rejected')) {
-                  // NotificationBell handles this via backend event now
-                }
-                
-                // Guide transition
-                if (prev.guideStatus === 'pending' && (current.guideStatus === 'accepted' || current.guideStatus === 'rejected')) {
-                  // NotificationBell handles this via backend event now
-                }
-              }
-            });
-          }
-
           setAssignmentMap(map);
-          prevMapRef.current = map;
         }
       }
     } catch (error) {
@@ -488,6 +457,7 @@ export const BookingsList: React.FC = () => {
             onChange={(e) => setFilterDriver(e.target.value)}
           >
             <option value="all">Any Driver</option>
+            <option value="Unassigned">Unassigned</option>
             {driverOptions.map(([id, name]) => (
               <option key={id} value={id}>{name}</option>
             ))}
@@ -499,6 +469,7 @@ export const BookingsList: React.FC = () => {
             onChange={(e) => setFilterGuide(e.target.value)}
           >
             <option value="all">Any Guide</option>
+            <option value="Unassigned">Unassigned</option>
             {guideOptions.map(([id, name]) => (
               <option key={id} value={id}>{name}</option>
             ))}

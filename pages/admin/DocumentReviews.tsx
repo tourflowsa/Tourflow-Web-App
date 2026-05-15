@@ -93,16 +93,24 @@ export const DocumentReviews: React.FC = () => {
   const [processing, setProcessing] = useState(false);
   const [previewingId, setPreviewingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{type: 'success'|'error', text: string} | null>(null);
+  const [limit, setLimit] = useState(100);
+
+  useEffect(() => {
+    setLimit(100);
+  }, [statusFilter, roleFilter]);
 
   useEffect(() => {
     loadDocs();
-  }, []);
+  }, [limit, statusFilter, roleFilter]);
 
   const loadDocs = async () => {
     setLoading(true);
     try {
-      // We fetch ALL docs and filter client side for better UX with the new computed statuses
-      const data = await getAllDocumentsAdmin();
+      const data = await getAllDocumentsAdmin({
+        limit,
+        status: statusFilter === 'expiring_soon' || statusFilter === 'expired' ? undefined : (statusFilter !== 'all' ? statusFilter : undefined),
+        role: roleFilter
+      });
       setDocs(data);
     } catch (err) {
       console.error(err);
@@ -445,6 +453,17 @@ export const DocumentReviews: React.FC = () => {
               })}
             </tbody>
           </table>
+        )}
+        
+        {!loading && docs.length === limit && (
+          <div className="p-4 border-t border-gray-100 flex justify-center">
+            <button 
+              onClick={() => setLimit(prev => prev + 100)}
+              className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-brand-charcoal font-medium hover:bg-gray-50 transition-colors"
+            >
+              Load More
+            </button>
+          </div>
         )}
       </div>
     </div>

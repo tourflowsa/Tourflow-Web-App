@@ -64,7 +64,9 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-          <h3 className="font-bold text-brand-charcoal">Review {providerName}</h3>
+          <h3 className="font-bold text-brand-charcoal">
+            Review {providerRole === 'driver' ? 'Driver' : providerRole === 'guide' ? 'Guide' : 'Vehicle Owner'}: {providerName}
+          </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X size={20} />
           </button>
@@ -72,7 +74,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
         
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="text-center">
-            <p className="text-sm text-gray-500 mb-4">How was your experience with this {providerRole.replace('_', ' ')}?</p>
+            <p className="text-sm text-gray-500 mb-4">How was your experience with this {providerRole === 'driver' ? 'driver' : providerRole === 'guide' ? 'guide' : 'vehicle owner'}?</p>
             <div className="flex justify-center gap-2">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button

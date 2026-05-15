@@ -111,12 +111,13 @@ export const fetchSystemAuditLogs = async (filters: {
   endDate?: string;
   actorRole?: string;
   entityId?: string;
+  limit?: number;
 }) => {
   let query = supabase
     .from('system_audit_log')
     .select('created_at, actor_id, actor_role, action, entity_type, entity_id, metadata, booking_id')
     .order('created_at', { ascending: false })
-    .limit(100);
+    .limit(filters.limit || 100);
 
   if (filters.action) {
     query = query.ilike('action', `%${filters.action}%`);

@@ -439,10 +439,61 @@ export async function uploadVehiclePhotos(vehicleId: string, files: File[]) {
   return { uploaded, failedCount, errors };
 }
 
-export async function deleteVehiclePhoto(photoPath: string) {
+/**
+ * Internal storage deletion.
+ */
+async function deleteStoragePhoto(photoPath: string) {
   const { error } = await supabase.storage.from(STORAGE_BUCKET).remove([photoPath]);
   if (error) console.error('Error deleting photo:', error.message);
 }
+
+/**
+ * Remove a vehicle photo from DB and Storage.
+ */
+export async function deleteVehiclePhoto(vehicleId: string, photoId: string) {
+  // 1. Fetch vehicle
+  const vehicle = await getVehicleById(vehicleId);
+  if (!vehicle) {
+    throw new Error('Vehicle not found');
+  }
+
+  const photos = vehicle.photos || [];
+
+  const photoToDelete = photos.find((p: any) => p.id === photoId);
+  if (!photoToDelete) {
+     throw new Error('Photo not found');
+  }
+
+  // 2. Delete storage object
+  await deleteStoragePhoto(photoToDelete.path);
+
+  // 3. Remove from JSONB array
+  const remainingPhotos = photos.filter((p: any) => p.id !== photoId);
+
+  // 4. Handle primary photo
+  let mainPhotoUrl = vehicle.main_photo_url;
+  if (photoToDelete.is_primary) {
+      // If deleted photo was primary, find a new one
+      const newPrimary = remainingPhotos[0] || null;
+      if (newPrimary) {
+          // We must update the record for the new primary too, but updateVehicle
+          // will take the whole array.
+          newPrimary.is_primary = true;
+          mainPhotoUrl = newPrimary.url;
+      } else {
+          mainPhotoUrl = null;
+      }
+  }
+
+  // Update vehicle in DB
+  const updatedVehicle = await updateVehicle(vehicleId, {
+      photos: remainingPhotos,
+      main_photo_url: mainPhotoUrl
+  });
+
+  return { photos: updatedVehicle.photos, main_photo_url: updatedVehicle.main_photo_url };
+}
+
 
 /**
  * Directory search.
@@ -786,6 +837,25 @@ export async function listVehicleAvailabilityBlocks(vehicleId: string) {
   const rows = data || [];
 
   // Map DB column names to the names the UI is likely rendering
+  return rows.map((r: any) => ({
+    ...r,
+    start_date: r.date_start,
+    end_date: r.date_end,
+  }));
+}
+
+export async function listVehiclesAvailabilityBlocks(vehicleIds: string[]) {
+  if (!vehicleIds || vehicleIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from('availability')
+    .select('*')
+    .in('vehicle_id', vehicleIds)
+    .order('date_start', { ascending: true });
+
+  if (error) throw error;
+
+  const rows = data || [];
+
   return rows.map((r: any) => ({
     ...r,
     start_date: r.date_start,

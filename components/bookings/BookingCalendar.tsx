@@ -70,7 +70,7 @@ export const BookingCalendar: React.FC<Props> = ({
   };
 
   const getAssignmentColor = (status?: string) => {
-    if (!status) return 'bg-red-50 text-red-600 border-red-100';
+    if (!status) return 'bg-gray-50 text-gray-400 border-gray-200';
     switch (status.toLowerCase()) {
       case 'accepted': return 'bg-green-50 text-green-700 border-green-100';
       case 'pending': return 'bg-amber-50 text-amber-700 border-amber-100';
@@ -172,7 +172,7 @@ export const BookingCalendar: React.FC<Props> = ({
                          <span className={`px-1 rounded-[2px] text-[8px] font-bold border ${getAssignmentColor(assignment.guideStatus)}`} title={`Guide: ${assignment.guideName || 'Unassigned'}`}>
                            G{assignment.guideName ? `:${assignment.guideName.split(' ')[0]}` : ''}
                          </span>
-                         <span className={`px-1 rounded-[2px] text-[8px] font-bold border ${b.vehicle_id ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-red-50 text-red-600 border-red-100'}`} title={`Vehicle: ${vehicle ? `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` : 'Unassigned'}`}>
+                         <span className={`px-1 rounded-[2px] text-[8px] font-bold border ${b.vehicle_id ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-gray-50 text-gray-400 border-gray-200'}`} title={`Vehicle: ${vehicle ? `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` : 'Unassigned'}`}>
                            V{vehicle ? `:${vehicle.license_plate}` : ''}
                          </span>
                       </div>

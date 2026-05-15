@@ -52,7 +52,7 @@ export const VehicleDetailPage: React.FC = () => {
 
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
-  const [vehicleCompliance, setVehicleCompliance] = useState<{ canAssign: boolean; blockers: string[]; warnings: string[] } | null>(null);
+  const [vehicleCompliance, setVehicleCompliance] = useState<{ canAssign: boolean; blockers: string[]; warnings: string[]; isAccessDenied?: boolean } | null>(null);
   const [loadingCompliance, setLoadingCompliance] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [ownerRatingSummary, setOwnerRatingSummary] = useState<RatingSummary | null>(null);
@@ -136,10 +136,13 @@ export const VehicleDetailPage: React.FC = () => {
         return;
       }
 
+      const isAccessDenied = Array.isArray(row?.blockers) && row.blockers.includes('Access denied. Operator or admin role required.');
+
       setVehicleCompliance({
         canAssign: Boolean(row?.can_assign),
-        blockers: Array.isArray(row?.blockers) ? row.blockers : [],
-        warnings: Array.isArray(row?.warnings) ? row.warnings : []
+        blockers: isAccessDenied ? row.blockers.filter((b: string) => b !== 'Access denied. Operator or admin role required.') : (Array.isArray(row?.blockers) ? row.blockers : []),
+        warnings: Array.isArray(row?.warnings) ? row.warnings : [],
+        isAccessDenied
       });
     } catch (error) {
       console.error('[VehicleDetail] vehicle compliance RPC failed', error);
@@ -883,17 +886,23 @@ export const VehicleDetailPage: React.FC = () => {
                       <Loader2 size={10} className="animate-spin" /> Checking compliance...
                     </div>
                   ) : vehicleCompliance ? (
-                    <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 border ${
-                      vehicleCompliance.canAssign 
-                       ? 'bg-green-50 text-green-700 border-green-100' 
-                       : 'bg-red-50 text-red-700 border-red-100'
-                    }`}>
-                      {vehicleCompliance.canAssign ? (
-                        <><CheckCircle2 size={10} /> Compliant</>
-                      ) : (
-                        <><XCircle size={10} /> Non Compliant</>
-                      )}
-                    </div>
+                    vehicleCompliance.isAccessDenied && isViewingOwnVehicle ? (
+                      <div className="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 border bg-gray-50 text-gray-600 border-gray-200">
+                        <Info size={10} /> Documents Managed
+                      </div>
+                    ) : (
+                      <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 border ${
+                        vehicleCompliance.canAssign 
+                        ? 'bg-green-50 text-green-700 border-green-100' 
+                        : 'bg-red-50 text-red-700 border-red-100'
+                      }`}>
+                        {vehicleCompliance.canAssign ? (
+                          <><CheckCircle2 size={10} /> Compliant</>
+                        ) : (
+                          <><XCircle size={10} /> Non Compliant</>
+                        )}
+                      </div>
+                    )
                   ) : (
                     <div className="px-2 py-1 rounded bg-gray-50 text-gray-400 border border-gray-100 text-[10px] font-bold uppercase tracking-wider">
                       Compliance unavailable
@@ -963,6 +972,11 @@ export const VehicleDetailPage: React.FC = () => {
                               <CheckCircle2 size={12} /> Compliant
                             </span>
                             {/* Warnings output could be added here if needed */}
+                          </div>
+                        ) : vehicleCompliance.isAccessDenied && isViewingOwnVehicle ? (
+                          <div className="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100 italic">
+                            Vehicle compliance is managed from your Compliance Documents page.
+                            <Link to="/owner/documents" className="block mt-2 text-brand-teal font-bold hover:underline">View Documents</Link>
                           </div>
                         ) : (
                           <div className="flex flex-col gap-3">

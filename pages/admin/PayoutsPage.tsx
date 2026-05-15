@@ -137,7 +137,9 @@ export const AdminPayoutsPage: React.FC = () => {
       const data = await listAllPayouts({ 
         status: status === 'ready' ? 'pending' : status, 
         withdrawalStatus,
-        includeArchived 
+        includeArchived,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined
       });
       
       let enriched = await Promise.all(data.map(async (p: any) => {

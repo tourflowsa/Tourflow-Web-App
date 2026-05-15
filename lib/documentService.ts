@@ -446,11 +446,23 @@ export const getPendingDocumentsAdmin = async (roleFilter?: string, typeFilter?:
   })) as (Document & { profiles: { full_name: string; email: string; company_name: string } })[];
 };
 
-export const getAllDocumentsAdmin = async () => {
-  const { data, error } = await supabase
+export const getAllDocumentsAdmin = async (filters?: { limit?: number; status?: string; role?: string }) => {
+  let query = supabase
     .from('documents')
     .select('*, profiles(full_name, email, company_name)')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(filters?.limit || 100);
+
+  if (filters?.role && filters.role !== 'all') {
+    query = query.eq('role', filters.role);
+  }
+
+  // Only apply DB filter for physical DB statuses
+  if (filters?.status && ['pending', 'valid', 'rejected'].includes(filters.status)) {
+    query = query.eq('status', filters.status);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
   

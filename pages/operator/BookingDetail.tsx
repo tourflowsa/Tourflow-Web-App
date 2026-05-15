@@ -91,7 +91,7 @@ import { getBookingFinancialBreakdown, BookingFinancialBreakdown } from '../../l
 import { getPayableAmount, getOriginalAmount } from '../../lib/payoutUtils';
 import { fetchAuditLogsByBookingId, AuditLogEntry, logAuditEvent } from '../../lib/auditService';
 import { ReviewModal } from '../../components/reviews/ReviewModal';
-import { hasReview } from '../../lib/reviewService';
+import { hasReview, getProviderRatingSummary, RatingSummary } from '../../lib/reviewService';
 
 
 function getAllowedActions(status: string, isArchived: boolean) {
@@ -178,6 +178,7 @@ export const BookingDetail: React.FC = () => {
 
   const prevDriverStatusRef = useRef<string | null>(null);
   const prevGuideStatusRef = useRef<string | null>(null);
+  const reviewSectionRef = useRef<HTMLDivElement>(null);
 
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -186,7 +187,7 @@ export const BookingDetail: React.FC = () => {
   // Assignment states for Driver
   const [showDriverSearch, setShowDriverSearch] = useState(false);
   const [driverSearchQuery, setDriverSearchQuery] = useState('');
-  const [foundDrivers, setFoundDrivers] = useState<(ProviderProfile & { compliance?: any; hasConflict?: boolean; assignmentCheck?: any })[]>([]);
+  const [foundDrivers, setFoundDrivers] = useState<(ProviderProfile & { compliance?: any; hasConflict?: boolean; assignmentCheck?: any; ratingSummary?: RatingSummary })[]>([]);
   const [hasSearchedDrivers, setHasSearchedDrivers] = useState(false);
   const [loadingDrivers, setLoadingDrivers] = useState(false);
   const [assigningDriverId, setAssigningDriverId] = useState<string | null>(null);
@@ -194,7 +195,7 @@ export const BookingDetail: React.FC = () => {
   // Assignment states for Guide
   const [showGuideSearch, setShowGuideSearch] = useState(false);
   const [guideSearchQuery, setGuideSearchQuery] = useState('');
-  const [foundGuides, setFoundGuides] = useState<(ProviderProfile & { compliance?: any; hasConflict?: boolean; assignmentCheck?: any })[]>([]);
+  const [foundGuides, setFoundGuides] = useState<(ProviderProfile & { compliance?: any; hasConflict?: boolean; assignmentCheck?: any; ratingSummary?: RatingSummary })[]>([]);
   const [hasSearchedGuides, setHasSearchedGuides] = useState(false);
   const [loadingGuides, setLoadingGuides] = useState(false);
   const [assigningGuideId, setAssigningGuideId] = useState<string | null>(null);
@@ -1512,12 +1513,13 @@ export const BookingDetail: React.FC = () => {
       
       const withInfo = await Promise.all(results.map(async (p) => {
         try {
-          const [compliance, hasConflict, assignmentCheck] = await Promise.all([
+          const [compliance, hasConflict, assignmentCheck, ratingSummary] = await Promise.all([
             getProviderComplianceForOperator(p.id, 'driver'),
             checkProviderConflicts(p.id, booking.start_date, booking.end_date, booking.id),
-            canAssignProvider(p.id, 'driver')
+            canAssignProvider(p.id, 'driver'),
+            getProviderRatingSummary(p.id)
           ]);
-          return { ...p, compliance, hasConflict, assignmentCheck };
+          return { ...p, compliance, hasConflict, assignmentCheck, ratingSummary };
         } catch (e: any) {
           console.error("Provider info fetch failed", e);
           return { 
@@ -1549,12 +1551,13 @@ export const BookingDetail: React.FC = () => {
 
       const withInfo = await Promise.all(results.map(async (p) => {
         try {
-          const [compliance, hasConflict, assignmentCheck] = await Promise.all([
+          const [compliance, hasConflict, assignmentCheck, ratingSummary] = await Promise.all([
             getProviderComplianceForOperator(p.id, 'guide'),
             checkProviderConflicts(p.id, booking.start_date, booking.end_date, booking.id),
-            canAssignProvider(p.id, 'guide')
+            canAssignProvider(p.id, 'guide'),
+            getProviderRatingSummary(p.id)
           ]);
-          return { ...p, compliance, hasConflict, assignmentCheck };
+          return { ...p, compliance, hasConflict, assignmentCheck, ratingSummary };
         } catch (e: any) {
           console.error("Provider info fetch failed", e);
           return { 
@@ -1648,14 +1651,6 @@ export const BookingDetail: React.FC = () => {
   const handleReportAssignmentNoShow = async () => {
     if (!showAssignmentNoShowModal || reportingAssignmentNoShow) return;
     setReportingAssignmentNoShow(true);
-    
-    // QA Logging
-    console.log('Assignment No-Show QA Log:', {
-        assignmentId: showAssignmentNoShowModal.id,
-        assignmentResourceId: assignments.find(a => a.id === showAssignmentNoShowModal.id)?.resource_id,
-        assignmentStatus: assignments.find(a => a.id === showAssignmentNoShowModal.id)?.status,
-        reasonPresent: !!assignmentNoShowReason,
-    });
     
     try {
       await markAssignmentNoShow(showAssignmentNoShowModal.id, assignmentNoShowReason);
@@ -1815,7 +1810,7 @@ export const BookingDetail: React.FC = () => {
       }
       if (selectedVehicleDetails?.owner_id && (vehiclePayout?.status === 'paid' || isFinanciallyLocked) && !reviewedProviders.has(selectedVehicleDetails.owner_id)) {
         list.push({
-          roleDisplay: 'Fleet provider',
+          roleDisplay: 'Vehicle Owner',
           role: 'vehicle_owner' as const,
           id: selectedVehicleDetails.owner_id,
           name: selectedVehicleDetails.profiles?.company_name || selectedVehicleDetails.profiles?.full_name || 'Vehicle Owner'
@@ -2508,17 +2503,23 @@ export const BookingDetail: React.FC = () => {
 
         {/* Review Providers Banner */}
         {pendingReviewsList.length > 0 && (
-          <div className="mt-6 bg-brand-teal/5 border border-brand-teal/20 rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+          <div ref={reviewSectionRef} className="mt-6 bg-amber-50 border border-amber-200 rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
             <div>
-              <h3 className="text-sm font-bold text-brand-charcoal flex items-center gap-2">
+              <h3 className="text-sm font-bold text-amber-900 flex items-center gap-2">
                 <Star size={16} className="text-amber-500 fill-amber-500" />
-                Review providers
+                Booking completed
               </h3>
-              <p className="text-[11px] text-gray-600 mt-1">
-                Help future operators by reviewing completed assignments.
+              <p className="text-[11px] text-amber-700 mt-1 font-medium">
+                Please review your assigned providers.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <button 
+                onClick={() => reviewSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                className="bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold px-3 py-1.5 rounded-lg text-xs transition"
+              >
+                Review Providers
+              </button>
               {pendingReviewsList.map(pr => (
                 <button
                   key={pr.id}
@@ -2527,9 +2528,9 @@ export const BookingDetail: React.FC = () => {
                     providerName: pr.name,
                     role: pr.role
                   })}
-                  className="text-xs bg-white border border-gray-200 text-brand-charcoal px-3 py-1.5 rounded-lg font-bold hover:border-brand-teal hover:text-brand-teal transition-colors flex items-center gap-1.5"
+                  className="text-xs bg-white border border-amber-200 text-amber-900 px-3 py-1.5 rounded-lg font-bold hover:border-amber-400 transition-colors flex items-center gap-1.5"
                 >
-                  <Star size={12} className="text-amber-500 fill-amber-500 opacity-50" />
+                  <Star size={12} className="text-amber-500 fill-amber-500" />
                   Review {pr.roleDisplay}
                 </button>
               ))}
@@ -2620,13 +2621,13 @@ export const BookingDetail: React.FC = () => {
             {/* Vehicle Status */}
             <div className="flex items-center p-3 rounded-xl bg-gray-50 border border-gray-100">
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${isVehicleAssigned ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                <div className={`p-2 rounded-lg ${isVehicleAssigned ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
                   <Car size={18} />
                 </div>
                 <div>
                   <p className="text-xs font-bold text-brand-charcoal">Vehicle</p>
-                  <p className={`text-[10px] font-medium ${isVehicleAssigned ? 'text-green-600' : 'text-red-600'}`}>
-                    {isVehicleAssigned ? 'Assigned' : 'Missing'}
+                  <p className={`text-[10px] font-medium ${isVehicleAssigned ? 'text-green-600' : 'text-gray-500'}`}>
+                    {isVehicleAssigned ? 'Assigned' : 'Unassigned'}
                   </p>
                 </div>
               </div>
@@ -2638,7 +2639,7 @@ export const BookingDetail: React.FC = () => {
                 <div className={`p-2 rounded-lg ${
                   isDriverAccepted ? 'bg-green-100 text-green-600' : 
                   assignedDriver ? 'bg-amber-100 text-amber-600' : 
-                  'bg-red-100 text-red-600'
+                  'bg-gray-100 text-gray-500'
                 }`}>
                   <User size={18} />
                 </div>
@@ -2647,9 +2648,9 @@ export const BookingDetail: React.FC = () => {
                   <p className={`text-[10px] font-medium ${
                     isDriverAccepted ? 'text-green-600' : 
                     assignedDriver ? 'text-amber-600' : 
-                    'text-red-600'
+                    'text-gray-500'
                   }`}>
-                    {!assignedDriver ? 'Missing' : assignedDriver.status === 'pending' ? 'Pending' : 'Accepted'}
+                    {!assignedDriver ? 'Unassigned' : assignedDriver.status === 'pending' ? 'Pending' : 'Accepted'}
                   </p>
                 </div>
               </div>
@@ -2661,7 +2662,7 @@ export const BookingDetail: React.FC = () => {
                 <div className={`p-2 rounded-lg ${
                   isGuideAccepted ? 'bg-green-100 text-green-600' : 
                   assignedGuide ? 'bg-amber-100 text-amber-600' : 
-                  'bg-red-100 text-red-600'
+                  'bg-gray-100 text-gray-500'
                 }`}>
                   <Compass size={18} />
                 </div>
@@ -2670,9 +2671,9 @@ export const BookingDetail: React.FC = () => {
                   <p className={`text-[10px] font-medium ${
                     isGuideAccepted ? 'text-green-600' : 
                     assignedGuide ? 'text-amber-600' : 
-                    'text-red-600'
+                    'text-gray-500'
                   }`}>
-                    {!assignedGuide ? 'Missing' : assignedGuide.status === 'pending' ? 'Pending' : 'Accepted'}
+                    {!assignedGuide ? 'Unassigned' : assignedGuide.status === 'pending' ? 'Pending' : 'Accepted'}
                   </p>
                 </div>
               </div>
@@ -3161,6 +3162,12 @@ export const BookingDetail: React.FC = () => {
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
                                   <div className="font-bold text-brand-charcoal">{d.full_name}</div>
+                                  {d.ratingSummary && d.ratingSummary.total_reviews > 0 && (
+                                    <div className="flex items-center gap-0.5 text-[10px] text-amber-500 font-bold bg-amber-50 px-1.5 py-0.5 rounded">
+                                      <Star size={10} className="fill-amber-500" />
+                                      {d.ratingSummary.average_rating.toFixed(1)}
+                                    </div>
+                                  )}
                                   <ComplianceBadge 
                                     userId={d.id} 
                                     role="driver" 
@@ -3254,6 +3261,12 @@ export const BookingDetail: React.FC = () => {
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
                                   <div className="font-bold text-brand-charcoal">{g.full_name}</div>
+                                  {g.ratingSummary && g.ratingSummary.total_reviews > 0 && (
+                                    <div className="flex items-center gap-0.5 text-[10px] text-amber-500 font-bold bg-amber-50 px-1.5 py-0.5 rounded">
+                                      <Star size={10} className="fill-amber-500" />
+                                      {g.ratingSummary.average_rating.toFixed(1)}
+                                    </div>
+                                  )}
                                   <ComplianceBadge 
                                     userId={g.id} 
                                     role="guide" 

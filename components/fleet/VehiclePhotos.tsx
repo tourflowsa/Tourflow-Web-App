@@ -1,31 +1,32 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { VehiclePhoto } from '../../types';
-import { Upload, X, Star, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, Star, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { ConfirmationModal } from '../common/ConfirmationModal';
 
 interface Props {
   photos: VehiclePhoto[]; // Existing saved photos
   pendingFiles: File[];   // Newly selected files waiting for save
   onPhotosChange: (updatedPhotos: VehiclePhoto[]) => void;
+  onMainPhotoUrlChange?: (url: string | null) => void;
   onPendingFilesChange: (files: File[]) => void;
+  onDeleteExistingPhoto?: (photoId: string) => Promise<{ photos: VehiclePhoto[]; main_photo_url: string | null } | undefined>; // Callback for async deletion
 }
 
 /**
  * VehiclePhotos Component
- * 
- * High-level logic:
- * 1. Displays a grid of existing photos and pending uploads.
- * 2. Allows marking an existing photo as "Primary" (star icon).
- * 3. Allows deleting existing photos (via callback) or removing pending files.
- * 4. Enforces a limit of 10 photos total.
  */
 export const VehiclePhotos: React.FC<Props> = ({ 
   photos, 
   pendingFiles, 
   onPhotosChange, 
-  onPendingFilesChange 
+  onMainPhotoUrlChange,
+  onPendingFilesChange,
+  onDeleteExistingPhoto
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null); // Track ID of deleting photo
+  const [photoToDelete, setPhotoToDelete] = useState<VehiclePhoto | null>(null);
   
   const totalCount = photos.length + pendingFiles.length;
   const maxPhotos = 10;
@@ -56,8 +57,32 @@ export const VehiclePhotos: React.FC<Props> = ({
   };
 
   const removeExistingPhoto = (photo: VehiclePhoto) => {
-    if (!confirm('Remove this photo? It will be deleted permanently when you save.')) return;
-    onPhotosChange(photos.filter(p => p.id !== photo.id));
+    setPhotoToDelete(photo);
+  };
+
+  const confirmDelete = async () => {
+    if (!photoToDelete) return;
+
+    if (onDeleteExistingPhoto) {
+      setIsDeleting(photoToDelete.id);
+      try {
+        const result = await onDeleteExistingPhoto(photoToDelete.id);
+        if (result) {
+          onPhotosChange(result.photos);
+          if (onMainPhotoUrlChange) onMainPhotoUrlChange(result.main_photo_url);
+        }
+      } catch (err) {
+        console.error('Failed to delete photo', err);
+        alert('Failed to delete photo. Please try again.');
+      } finally {
+        setIsDeleting(null);
+        setPhotoToDelete(null);
+      }
+    } else {
+      // Local removal only fallback
+      onPhotosChange(photos.filter(p => p.id !== photoToDelete.id));
+      setPhotoToDelete(null);
+    }
   };
 
   const setPrimaryPhoto = (photoId: string) => {
@@ -65,6 +90,13 @@ export const VehiclePhotos: React.FC<Props> = ({
       ...p,
       is_primary: p.id === photoId
     }));
+    
+    const newPrimary = updated.find(p => p.id === photoId);
+    
+    if (onMainPhotoUrlChange && newPrimary) {
+      onMainPhotoUrlChange(newPrimary.url);
+    }
+    
     onPhotosChange(updated);
   };
 
@@ -91,10 +123,11 @@ export const VehiclePhotos: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => removeExistingPhoto(photo)}
-                className="p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600"
+                className="p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 disabled:opacity-50"
                 title="Remove Photo"
+                disabled={isDeleting === photo.id}
               >
-                <X size={16} />
+                {isDeleting === photo.id ? <Loader2 size={16} className="animate-spin" /> : <X size={16} />}
               </button>
             </div>
             
@@ -153,6 +186,23 @@ export const VehiclePhotos: React.FC<Props> = ({
           <ImageIcon size={16} /> No photos added yet.
         </div>
       )}
+
+      <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded border border-gray-100 space-y-1">
+        <p>Upload clear exterior and interior photos of the vehicle. Landscape photos work best. Do not upload licences, registration papers, insurance documents, bank details, or personal documents here.</p>
+        <p>Supported formats: JPG, JPEG, PNG, WebP, AVIF.</p>
+        <p className="font-semibold">Maximum 10 photos.</p>
+      </div>
+
+      <ConfirmationModal
+        isOpen={!!photoToDelete}
+        title="Remove this vehicle photo?"
+        body="This will remove the photo from this vehicle."
+        confirmLabel="Remove Photo"
+        isDestructive={true}
+        isProcessing={!!isDeleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setPhotoToDelete(null)}
+      />
     </div>
   );
 };

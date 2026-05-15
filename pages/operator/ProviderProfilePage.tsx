@@ -559,41 +559,61 @@ export const ProviderProfilePage: React.FC = () => {
                     </div>
                   ) : fleet.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {fleet.map((v) => (
-                        <div 
-                          key={v.id} 
-                          onClick={() => navigate(`/operator/vehicles/${v.id}`)}
-                          className="group bg-white p-4 rounded-2xl border border-gray-200 shadow-sm hover:border-brand-teal transition-all cursor-pointer flex gap-4"
-                        >
-                          <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden border border-gray-100 shrink-0">
-                             {v.photos && v.photos.length > 0 ? (
-                               <img src={v.photos[0].url} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="" />
-                             ) : (
-                               <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                 <Truck size={24} />
-                               </div>
-                             )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-brand-charcoal truncate flex items-center justify-between gap-2">
-                              {v.make} {v.model}
-                              <span className="text-[10px] text-gray-400 uppercase shrink-0">{v.year_model}</span>
-                            </h4>
-                            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
-                               <span className="text-[10px] text-gray-500 flex items-center gap-1">
-                                 <UsersIcon size={10} /> {v.seat_count} Seats
-                               </span>
-                               <span className="text-[10px] text-gray-500 uppercase">{v.body_type}</span>
+                      {fleet.map((v) => {
+                        const s = v.status?.toLowerCase() || '';
+                        const labels: Record<string, string> = {
+                          active: 'Active',
+                          inactive: 'Inactive',
+                          maintenance: 'Maintenance',
+                          unavailable: 'Unavailable'
+                        };
+                        const styles: Record<string, string> = {
+                          active: 'bg-teal-50 text-teal-700 border-teal-200',
+                          inactive: 'bg-gray-100 text-gray-700 border-gray-200',
+                          maintenance: 'bg-amber-50 text-amber-700 border-amber-200',
+                          unavailable: 'bg-gray-100 text-gray-700 border-gray-200'
+                        };
+                        return (
+                          <div
+                            key={v.id}
+                            onClick={() => navigate(`/operator/vehicles/${v.id}`)}
+                            className="relative group bg-white p-4 rounded-2xl border border-gray-200 shadow-sm hover:border-brand-teal transition-all cursor-pointer flex gap-4"
+                          >
+                            <div className="absolute top-3 right-3">
+                              <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${styles[s] || 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                                {labels[s] || 'Status Unknown'}
+                              </span>
                             </div>
-                            <div className="mt-2 flex items-center justify-between">
-                               <div className="font-bold text-brand-teal text-xs">
-                                 R {v.default_day_rate?.toLocaleString()}/day
-                               </div>
-                               <button className="text-[10px] text-brand-teal font-bold uppercase group-hover:underline">View Details</button>
+                            <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden border border-gray-100 shrink-0">
+                               {v.photos && v.photos.length > 0 ? (
+                                 <img src={v.photos[0].url} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="" />
+                               ) : (
+                                 <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                   <Truck size={24} />
+                                 </div>
+                               )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-brand-charcoal truncate flex items-center justify-between gap-2">
+                                {v.make} {v.model}
+                                <span className="text-[10px] text-gray-400 uppercase shrink-0">{v.year_model}</span>
+                              </h4>
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                                 <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                                   <UsersIcon size={10} /> {v.seat_count} Seats
+                                 </span>
+                                 <span className="text-[10px] text-gray-500 uppercase">{v.body_type}</span>
+                              </div>
+                              <div className="mt-2 flex items-center justify-between">
+                                 <div className="font-bold text-brand-teal text-xs">
+                                   R {v.default_day_rate?.toLocaleString()}/day
+                                 </div>
+                                 <button className="text-[10px] text-brand-teal font-bold uppercase group-hover:underline">View Details</button>
+                             </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="p-8 border-2 border-dashed border-gray-100 rounded-3xl text-center">

@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Vehicle } from '../../types';
-import { getOperatorOwnedVehicles, getFleetOwnerVehicles, deleteVehicle, setVehicleStatus } from '../../lib/fleetService';
-import { Plus, Search, Truck, Eye, Edit2, Filter, Info, Fuel, Users, Archive, Trash2, CheckCircle2, AlertCircle, Wrench, PlayCircle, MapPin } from 'lucide-react';
+import { getOperatorOwnedVehicles, getFleetOwnerVehicles, deleteVehicle, setVehicleStatus, listVehiclesAvailabilityBlocks } from '../../lib/fleetService';
+import { Plus, Search, Truck, Eye, Edit2, Filter, Info, Fuel, Users, Archive, Trash2, CheckCircle2, AlertCircle, Wrench, PlayCircle, MapPin, AlertTriangle } from 'lucide-react';
 import { ConfirmationModal } from '../../components/common/ConfirmationModal';
 
 export const FleetList: React.FC = () => {
@@ -13,6 +13,7 @@ export const FleetList: React.FC = () => {
   const basePath = profile?.role === 'vehicle_owner' ? '/owner/vehicles' : '/operator/vehicles';
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [allVehicleAvailability, setAllVehicleAvailability] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
 
   const [searchText, setSearchText] = useState('');
@@ -57,6 +58,19 @@ export const FleetList: React.FC = () => {
             });
 
       setVehicles(filtered);
+
+      if (filtered.length > 0) {
+        const vIds = filtered.map((v: any) => v.id);
+        const availabilityData = await listVehiclesAvailabilityBlocks(vIds);
+        const availabilityMap: Record<string, any[]> = {};
+        availabilityData.forEach((a: any) => {
+          if (!availabilityMap[a.vehicle_id]) {
+            availabilityMap[a.vehicle_id] = [];
+          }
+          availabilityMap[a.vehicle_id].push(a);
+        });
+        setAllVehicleAvailability(availabilityMap);
+      }
     } catch (err: any) {
       console.error('Fleet List Load Error:', err?.message || err);
       setToast({ message: 'Failed to load fleet', type: 'error' });
@@ -236,6 +250,29 @@ export const FleetList: React.FC = () => {
               const thumb = getThumbnail(v);
               const s = normalizeStatus(v.status as any);
               const isInactive = s === 'inactive';
+              
+              const formatDate = (d: string) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+              
+              const vAvailability = allVehicleAvailability[v.id] || [];
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+
+              const currentUnavailable = vAvailability.find(a => {
+                const start = new Date(a.date_start);
+                const end = new Date(a.date_end);
+                return today >= start && today <= end;
+              });
+
+              const nextUnavailable = vAvailability
+                .filter(a => new Date(a.date_start) > today)
+                .sort((a, b) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime())[0];
+
+              let availabilityReminder = null;
+              if (currentUnavailable) {
+                availabilityReminder = 'Unavailable today';
+              } else if (nextUnavailable) {
+                availabilityReminder = `Next unavailable: ${formatDate(nextUnavailable.date_start)} to ${formatDate(nextUnavailable.date_end)}`;
+              }
 
               return (
                 <div
@@ -280,6 +317,12 @@ export const FleetList: React.FC = () => {
                           <Fuel size={14} /> {v.fuel_type}
                         </span>
                       </div>
+                      {availabilityReminder && (
+                        <div className="mt-2 text-xs text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 flex items-center gap-1.5 max-w-fit">
+                          <AlertTriangle size={12} />
+                          {availabilityReminder}
+                        </div>
+                      )}
                     </div>
                   </div>
 

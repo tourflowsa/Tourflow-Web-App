@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Vehicle, VehicleStatus, VehiclePhoto } from '../../types';
 import { Loader2, Save, Truck, Info, Fuel, Users, CheckCircle2, ShieldCheck, Image as ImageIcon, Banknote, MapPin, AlertCircle, X } from 'lucide-react';
 import { VehiclePhotos } from './VehiclePhotos';
-import { fetchCountries, fetchProvinces } from '../../lib/fleetService';
+import { fetchCountries, fetchProvinces, deleteVehiclePhoto } from '../../lib/fleetService';
 
 interface Props {
   initialData?: Vehicle | null;
@@ -438,7 +438,16 @@ export const VehicleForm: React.FC<Props> = ({ initialData, onSubmit, loading, m
       </Section>
 
       <Section title="Vehicle Photos" icon={ImageIcon}>
-         <VehiclePhotos photos={form.photos} pendingFiles={pendingFiles} onPhotosChange={(updated) => setForm(prev => ({ ...prev, photos: updated }))} onPendingFilesChange={setPendingFiles} />
+         <VehiclePhotos 
+           photos={form.photos} 
+           pendingFiles={pendingFiles} 
+           onPhotosChange={(updated) => setForm(prev => ({ ...prev, photos: updated }))}
+           onMainPhotoUrlChange={(url) => setForm(prev => ({ ...prev, main_photo_url: url }))}
+           onPendingFilesChange={setPendingFiles}
+           onDeleteExistingPhoto={mode === 'edit' && initialData?.id ? async (photoId) => {
+             return await deleteVehiclePhoto(initialData.id, photoId);
+           } : undefined}
+         />
       </Section>
 
       <Section title="Interior & Luggage" icon={Users}>

@@ -562,7 +562,7 @@ export const AdminDashboard: React.FC = () => {
               <AlertTriangle size={24} className="text-yellow-600" />
             </div>
             <div>
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Accounts Pending</p>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Verification Pending</p>
               <p className="text-3xl font-bold text-brand-charcoal">{loading ? '...' : metrics?.pending_verification ?? 0}</p>
             </div>
           </div>

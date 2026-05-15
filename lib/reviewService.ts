@@ -108,6 +108,41 @@ export const getProviderRatingSummary = async (providerId: string): Promise<Rati
   };
 };
 
+export const getProviderRatingSummaries = async (providerIds: string[]): Promise<Record<string, RatingSummary>> => {
+  if (!providerIds || providerIds.length === 0) return {};
+
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('provider_id, rating')
+    .in('provider_id', providerIds)
+    .eq('is_hidden', false);
+
+  if (error) {
+    console.error('Error fetching bulk rating summaries:', error);
+    return {};
+  }
+
+  const summaries: Record<string, { ratingSum: number; count: number }> = {};
+  
+  data.forEach(review => {
+    if (!summaries[review.provider_id]) {
+      summaries[review.provider_id] = { ratingSum: 0, count: 0 };
+    }
+    summaries[review.provider_id].ratingSum += review.rating;
+    summaries[review.provider_id].count += 1;
+  });
+
+  const result: Record<string, RatingSummary> = {};
+  Object.keys(summaries).forEach(providerId => {
+    result[providerId] = {
+      average_rating: parseFloat((summaries[providerId].ratingSum / summaries[providerId].count).toFixed(1)),
+      total_reviews: summaries[providerId].count
+    };
+  });
+  
+  return result;
+};
+
 export const hasReview = async (bookingId: string, providerId: string) => {
   const { data, error } = await supabase
     .from('reviews')
