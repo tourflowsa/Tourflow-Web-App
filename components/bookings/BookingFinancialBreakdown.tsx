@@ -8,6 +8,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
+  XCircle,
   ExternalLink
 } from 'lucide-react';
 import { BookingFinancialBreakdown, ProviderBreakdown } from '../../lib/financialService';
@@ -39,6 +40,8 @@ export const BookingFinancialBreakdownView: React.FC<Props> = ({ data, isAdmin =
         return 'text-red-600 bg-red-50 border-red-100';
       case 'resolved_reduced':
         return 'text-indigo-600 bg-indigo-50 border-indigo-100';
+      case 'cancelled':
+        return 'text-gray-500 bg-gray-50 border-gray-200';
       default: return 'text-gray-600 bg-gray-50 border-gray-100';
     }
   };
@@ -54,6 +57,8 @@ export const BookingFinancialBreakdownView: React.FC<Props> = ({ data, isAdmin =
       case 'disputed':
       case 'on_hold':
         return <AlertCircle size={12} />;
+      case 'cancelled':
+        return <XCircle size={12} />;
       default: return <AlertCircle size={12} />;
     }
   };
@@ -61,9 +66,10 @@ export const BookingFinancialBreakdownView: React.FC<Props> = ({ data, isAdmin =
   const getStatusLabel = (status: string, isDisputed: boolean) => {
     if (isDisputed) return 'Disputed';
     switch (status?.toLowerCase()) {
-      case 'resolved_reduced': return 'Resolved, Reduced';
+      case 'resolved_reduced': return 'Reduced';
       case 'resolved_approved': return 'Resolved, Approved';
       case 'on_hold': return 'On Hold';
+      case 'cancelled': return 'Cancelled';
       default: return status.replace(/_/g, ' ');
     }
   };
@@ -171,20 +177,20 @@ export const BookingFinancialBreakdownView: React.FC<Props> = ({ data, isAdmin =
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-50">
-                    <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Provider</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Role</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Agreed Rate</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">Adjustment</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">Net Payout</th>
-                    <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Status</th>
+                    <th className="px-2 lg:px-3 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 whitespace-nowrap">Provider</th>
+                    <th className="px-2 lg:px-3 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 whitespace-nowrap">Role</th>
+                    <th className="px-2 lg:px-3 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 whitespace-nowrap text-right">Agreed Rate</th>
+                    <th className="px-2 lg:px-3 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right whitespace-nowrap" title="Platform fee plus approved adjustments">Deductions</th>
+                    <th className="px-2 lg:px-3 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right whitespace-nowrap">Net Payout</th>
+                    <th className="px-2 lg:px-3 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 whitespace-nowrap">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {providers.map((p: ProviderBreakdown, idx: number) => (
                     <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-2 lg:px-3 py-3 whitespace-nowrap">
                         <div className="flex flex-col">
-                          <span className="font-bold text-sm text-brand-charcoal truncate max-w-[200px]">
+                          <span className="font-bold text-sm text-brand-charcoal truncate max-w-[150px] md:max-w-[180px]">
                             {p.provider_name}
                           </span>
                           {isAdmin && (
@@ -197,19 +203,19 @@ export const BookingFinancialBreakdownView: React.FC<Props> = ({ data, isAdmin =
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-2 lg:px-3 py-3 whitespace-nowrap">
                         <span className="text-xs text-gray-500 font-medium capitalize">{p.provider_type}</span>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap font-mono text-xs font-bold text-gray-600">
+                      <td className="px-2 lg:px-3 py-3 whitespace-nowrap font-mono text-xs font-bold text-gray-600 text-right">
                         {formatCurrency(p.agreed_rate, currency)}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap font-mono text-xs font-bold text-brand-coral text-right">
+                      <td className="px-2 lg:px-3 py-3 whitespace-nowrap font-mono text-xs font-bold text-brand-coral text-right">
                         {p.payout_amount < p.agreed_rate ? `- ${formatCurrency(p.agreed_rate - p.payout_amount, currency)}` : '—'}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap font-mono text-xs font-bold text-brand-charcoal text-right">
+                      <td className="px-2 lg:px-3 py-3 whitespace-nowrap font-mono text-xs font-bold text-brand-charcoal text-right">
                         {formatCurrency(p.payout_amount, currency)}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-2 lg:px-3 py-3 whitespace-nowrap">
                         <div className="flex flex-col gap-1 w-max">
                           <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase w-fit ${getStatusColor(p.payout_status)}`}>
                             {getStatusIcon(p.payout_status)}
@@ -232,11 +238,11 @@ export const BookingFinancialBreakdownView: React.FC<Props> = ({ data, isAdmin =
                 </tbody>
                 <tfoot className="bg-gray-50/50 font-bold border-t border-gray-100">
                   <tr>
-                    <td colSpan={2} className="px-4 py-3 text-right text-xs uppercase text-gray-400">Total Costs</td>
-                    <td className="px-4 py-3 font-mono text-sm text-brand-charcoal whitespace-nowrap">{formatCurrency(total_provider_cost, currency)}</td>
-                    <td className="px-4 py-3"></td>
-                    <td className="px-4 py-3 font-mono text-sm text-brand-charcoal text-right whitespace-nowrap">Settled: {formatCurrency(data?.total_paid_out || 0, currency)}</td>
-                    <td className="px-4 py-3"></td>
+                    <td colSpan={2} className="px-2 lg:px-3 py-3 text-right text-xs uppercase text-gray-400">Total Costs</td>
+                    <td className="px-2 lg:px-3 py-3 font-mono text-sm text-brand-charcoal whitespace-nowrap text-right">{formatCurrency(total_provider_cost, currency)}</td>
+                    <td className="px-2 lg:px-3 py-3"></td>
+                    <td className="px-2 lg:px-3 py-3 font-mono text-sm text-brand-charcoal text-right whitespace-nowrap">Settled: {formatCurrency(data?.total_paid_out || 0, currency)}</td>
+                    <td className="px-2 lg:px-3 py-3"></td>
                   </tr>
                 </tfoot>
               </table>

@@ -48,6 +48,7 @@ export const PayoutDetailDrawer: React.FC<PayoutDetailDrawerProps> = ({ isOpen, 
       case 'paid': return 'bg-green-100 text-green-700';
       case 'approved': return 'bg-amber-100 text-amber-700';
       case 'pending': return 'bg-blue-100 text-blue-700';
+      case 'cancelled': return 'bg-gray-100 text-gray-500';
       default: return 'bg-gray-100 text-gray-500';
     }
   };
@@ -66,7 +67,7 @@ export const PayoutDetailDrawer: React.FC<PayoutDetailDrawerProps> = ({ isOpen, 
     }
 
     if (status.toLowerCase() === 'approved' && (payout.adjusted_amount ?? 0) > 0 && (payout.adjusted_amount ?? 0) < (payout.original_amount || payout.amount_net)) {
-      return 'RESOLVED: REDUCED';
+      return 'REDUCED';
     }
 
     if (status.toLowerCase() === 'approved' && (payout.adjusted_amount ?? 0) > 0) {
@@ -120,7 +121,7 @@ export const PayoutDetailDrawer: React.FC<PayoutDetailDrawerProps> = ({ isOpen, 
                 <div className="mb-4">
                   <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Provider</span>
                   <p className="text-lg font-bold text-brand-charcoal truncate">
-                    {payout.provider_display_name || 'Unknown Provider'}
+                    {payout.provider_display_name || payout.provider_name || (payout as any).provider?.company_name || (payout as any).provider?.full_name || 'Unknown Provider'}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -208,7 +209,7 @@ export const PayoutDetailDrawer: React.FC<PayoutDetailDrawerProps> = ({ isOpen, 
                   {getOriginalAmount(payout) !== getSettlementAmount(payout) && (
                     <div className="flex flex-col gap-1 my-2">
                       <div className="flex justify-between items-center text-brand-coral font-bold">
-                        <span>Dispute Adjustment</span>
+                        <span>{payout.status === 'cancelled' ? 'Cancellation Adjustment' : 'Dispute/Cancellation Adjustment'}</span>
                         <span className="font-mono">-{formatCurrency(getOriginalAmount(payout) - getSettlementAmount(payout), payout.currency)}</span>
                       </div>
                       {payout.adjustment_reason && (

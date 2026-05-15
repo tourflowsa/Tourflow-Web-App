@@ -198,6 +198,7 @@ export const AdminPayoutsList: React.FC = () => {
     switch (status) {
       case 'paid': return 'bg-green-100 text-green-700';
       case 'pending': return 'bg-amber-100 text-amber-700';
+      case 'cancelled': return 'bg-gray-100 text-gray-500';
       default: return 'bg-gray-100 text-gray-500';
     }
   };
@@ -423,6 +424,7 @@ export const AdminPayoutsList: React.FC = () => {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Reference</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Type</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Created</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Operator ID</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Status</th>
@@ -440,6 +442,11 @@ export const AdminPayoutsList: React.FC = () => {
                     <td className="px-6 py-4 font-mono font-bold text-brand-charcoal text-sm">
                       {p.payout_reference}
                       {p.archived_at && <span className="ml-2 px-1.5 py-0.5 bg-gray-200 text-gray-600 text-[10px] rounded uppercase">Archived</span>}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="capitalize text-xs font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
+                        {p.provider_type === 'vehicle_owner' ? 'Vehicle' : p.provider_type || 'N/A'}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">{formatDate(p.created_at)}</td>
                     <td className="px-6 py-4 text-xs font-mono text-gray-500 truncate max-w-[150px]" title={p.operator_id}>
@@ -469,7 +476,15 @@ export const AdminPayoutsList: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right font-mono font-bold text-brand-charcoal text-sm">
-                      {formatCurrency(getPayableAmount(p), p.currency)}
+                      <div className="flex flex-col items-end">
+                        <span>{formatCurrency(getPayableAmount(p), p.currency)}</span>
+                        {p.status === 'cancelled' && (
+                          <span className="text-[9px] text-gray-500 uppercase mt-0.5 tracking-wider bg-gray-100 px-1.5 py-0.5 rounded">Cancelled</span>
+                        )}
+                        {p.status !== 'cancelled' && p.adjusted_amount !== null && p.adjusted_amount !== undefined && p.adjusted_amount < (p.original_amount ?? p.amount_net) && (
+                          <span className="text-[9px] text-brand-coral uppercase mt-0.5 tracking-wider bg-red-50 border border-red-100 px-1.5 py-0.5 rounded">Reduced</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">

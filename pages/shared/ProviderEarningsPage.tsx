@@ -20,6 +20,7 @@ import {
   ShieldAlert,
   Send,
   X,
+  XCircle,
   Info,
   Eye
 } from 'lucide-react';
@@ -320,7 +321,9 @@ export const ProviderEarningsPage: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-brand-charcoal">Earnings Dashboard</h1>
+          <h1 className="text-3xl font-bold text-brand-charcoal">
+            {profile?.role === 'vehicle_owner' ? 'Fleet Earnings Dashboard' : 'Earnings Dashboard'}
+          </h1>
           <p className="text-gray-500 mt-1">Track and manage your income from completed services.</p>
         </div>
         <div className="flex items-center gap-3 self-start">
@@ -655,12 +658,13 @@ export const ProviderEarningsPage: React.FC = () => {
                           </div>
                         ) : (
                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold uppercase w-fit ${
+                            e.status === 'cancelled' ? 'bg-gray-100 text-gray-500' : 
                             e.status === 'paid' ? 'bg-green-100 text-green-700' : 
                             e.status === 'approved' ? 'bg-brand-teal/10 text-brand-teal' : 
                             'bg-amber-100 text-amber-700'
                           }`}>
-                            {e.status === 'paid' ? <CheckCircle2 size={10} /> : <Clock size={10} />}
-                            {e.status === 'paid' ? 'PAID' : (e.status === 'approved' ? 'AVAILABLE' : e.status === 'pending' ? 'PENDING AUTHORIZATION' : e.status.toUpperCase())}
+                            {e.status === 'cancelled' ? <XCircle size={10} /> : e.status === 'paid' ? <CheckCircle2 size={10} /> : <Clock size={10} />}
+                            {e.status === 'cancelled' ? 'CANCELLED' : e.status === 'paid' ? 'PAID' : (e.status === 'approved' ? 'AVAILABLE' : e.status === 'pending' ? 'PENDING AUTHORIZATION' : e.status.toUpperCase())}
                           </span>
                         )}
 

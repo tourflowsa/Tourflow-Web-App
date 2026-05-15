@@ -362,7 +362,7 @@ export interface Vehicle {
   updated_at: string;
 }
 
-export type PayoutStatus = 'pending' | 'approved' | 'paid';
+export type PayoutStatus = 'pending' | 'approved' | 'paid' | 'cancelled';
 
 export interface Payout {
   id: string;

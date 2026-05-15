@@ -1767,27 +1767,45 @@ export const BookingDetail: React.FC = () => {
 
   const onHoldPayouts = useMemo(() => {
     const holds: string[] = [];
-    const driverPayout = payoutLedgers.find(p => p.payout_reference?.includes('-DRIVER'));
-    const guidePayout = payoutLedgers.find(p => p.payout_reference?.includes('-GUIDE'));
-    const vehiclePayout = payoutLedgers.find(p => p.payout_reference?.includes('-VEHICLE'));
+    const dp = payoutLedgers.find(p => p.payout_reference?.includes('-DRIVER'));
+    const gp = payoutLedgers.find(p => p.payout_reference?.includes('-GUIDE'));
+    const vp = payoutLedgers.find(p => p.payout_reference?.includes('-VEHICLE'));
 
-    if (driverPayout?.is_on_hold) holds.push('Driver payout on hold');
-    if (guidePayout?.is_on_hold) holds.push('Guide payout on hold');
-    if (vehiclePayout?.is_on_hold) holds.push('Vehicle payout on hold');
+    const drvName = assignedDriver?.profile?.full_name || 'Driver';
+    const guiName = assignedGuide?.profile?.full_name || 'Guide';
+    const vehName = selectedVehicleDetails?.make ? `${selectedVehicleDetails.make} ${selectedVehicleDetails.model}` : 'Vehicle';
+
+    const getReasonText = (payout: any) => {
+      const dispute = disputes.find(d => d.payout_id === payout.id && d.status === 'open');
+      if (dispute) return dispute.reason;
+      if (payout.hold_reason && payout.hold_reason !== 'dispute') return payout.hold_reason;
+      return 'Under review';
+    };
+
+    if (dp?.is_on_hold) {
+      holds.push(`${drvName} ${dp.hold_reason === 'dispute' ? 'payout dispute' : 'payout on hold'}: ${getReasonText(dp)}`);
+    }
+    if (gp?.is_on_hold) {
+      holds.push(`${guiName} ${gp.hold_reason === 'dispute' ? 'payout dispute' : 'payout on hold'}: ${getReasonText(gp)}`);
+    }
+    if (vp?.is_on_hold) {
+      holds.push(`${vehName} ${vp.hold_reason === 'dispute' ? 'payout dispute' : 'payout on hold'}: ${getReasonText(vp)}`);
+    }
     
-    // Also check disputes if not already covered by is_on_hold
+    // Check disputes for any we missed
     disputes.forEach(d => {
-      const type = d.payout_id === driverPayout?.id ? 'Driver' : 
-                   d.payout_id === guidePayout?.id ? 'Guide' : 
-                   d.payout_id === vehiclePayout?.id ? 'Vehicle' : 'Unknown';
-      const label = `${type} payout under dispute`;
-      if (!holds.includes(label) && !holds.some(h => h.startsWith(type) && h.includes('on hold'))) {
-        holds.push(label);
+      const isDrv = d.payout_id === dp?.id;
+      const isGui = d.payout_id === gp?.id;
+      const isVeh = d.payout_id === vp?.id;
+      
+      const typeName = isDrv ? drvName : isGui ? guiName : isVeh ? vehName : 'Other';
+      if (!holds.some(h => h.includes(typeName))) {
+        holds.push(`${typeName} payout dispute: ${d.reason || 'Under review'}`);
       }
     });
 
     return holds;
-  }, [payoutLedgers, disputes]);
+  }, [payoutLedgers, disputes, assignedDriver, assignedGuide, selectedVehicleDetails]);
 
   const pendingReviewsList = useMemo(() => {
     const list = [];
@@ -3795,6 +3813,7 @@ export const BookingDetail: React.FC = () => {
                     <span className="text-xs text-gray-500 mt-0.5">{assignedDriver?.profile?.full_name || 'No driver assigned'}</span>
                   </div>
                   <span className={`text-[10px] font-bold uppercase ${
+                    driverPayout?.status === 'cancelled' ? 'text-gray-500' :
                     driverPayout?.is_on_hold ? 'text-red-600' :
                     driverPayout?.status === 'paid' ? 'text-green-600' :
                     driverPayout?.status === 'approved' ? 'text-blue-600' :
@@ -3802,6 +3821,7 @@ export const BookingDetail: React.FC = () => {
                   }`}>
                     {driverPayout ? (
                       driverPayout.is_on_hold ? (driverPayout.hold_reason === 'dispute' ? 'DISPUTED' : 'ON HOLD') :
+                      driverPayout.status === 'cancelled' ? 'Cancelled' :
                       driverPayout.status === 'paid' ? (driverPayout.adjusted_amount !== null && driverPayout.adjusted_amount !== undefined && driverPayout.adjusted_amount < getOriginalAmount(driverPayout) ? 'Paid, Reduced' : 'Paid') :
                       driverPayout.status === 'approved' ? (
                         (driverPayout.adjusted_amount ?? 0) > 0 && (driverPayout.adjusted_amount ?? 0) < getOriginalAmount(driverPayout) ? 'Resolved, Reduced' :
@@ -3815,11 +3835,11 @@ export const BookingDetail: React.FC = () => {
 
                 <div className="grid grid-cols-3 gap-2 bg-gray-50 rounded-lg p-3">
                   <div className="flex flex-col">
-                    <span className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Gross</span>
+                    <span className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Agreed Rate</span>
                     <span className="font-mono text-xs text-gray-600 mt-0.5">{driverPayout ? `R ${driverPayout.amount_gross.toLocaleString()}` : '-'}</span>
                   </div>
                   <div className="flex flex-col border-l border-gray-200 pl-3">
-                    <span className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Fee</span>
+                    <span className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Platform Fee</span>
                     <span className="font-mono text-xs text-gray-600 mt-0.5">{driverPayout ? `R ${driverPayout.platform_fee.toLocaleString()}` : '-'}</span>
                   </div>
                   <div className="flex flex-col text-right border-l border-gray-200 pl-3">
@@ -3882,8 +3902,15 @@ export const BookingDetail: React.FC = () => {
                 )}
                 
                 {driverPayout?.is_on_hold && (
-                  <div className="bg-red-50/50 rounded-md p-2 text-[10px] text-red-600 font-bold flex items-center gap-1 mt-1">
-                    <ShieldAlert size={12} /> This payout is currently on hold and cannot be approved or paid. Resolve dispute to continue.
+                  <div className="bg-red-50/50 rounded-md p-2 text-[10px] text-red-600 font-bold flex flex-col gap-1 mt-1">
+                    <div className="flex items-center gap-1">
+                      <ShieldAlert size={12} /> This payout is currently on hold and cannot be approved or paid. Resolve dispute to continue.
+                    </div>
+                    {(() => {
+                      const d = disputes.find(dis => dis.payout_id === driverPayout.id && dis.status === 'open');
+                      const r = d?.reason || (driverPayout.hold_reason !== 'dispute' ? driverPayout.hold_reason : null);
+                      return r ? <p className="ml-4 font-medium opacity-90 italic">Reason: {r}</p> : null;
+                    })()}
                   </div>
                 )}
               </div>
@@ -3896,6 +3923,7 @@ export const BookingDetail: React.FC = () => {
                     <span className="text-xs text-gray-500 mt-0.5">{assignedGuide?.profile?.full_name || 'No guide assigned'}</span>
                   </div>
                   <span className={`text-[10px] font-bold uppercase ${
+                    guidePayout?.status === 'cancelled' ? 'text-gray-500' :
                     guidePayout?.is_on_hold ? 'text-red-600' :
                     guidePayout?.status === 'paid' ? 'text-green-600' :
                     guidePayout?.status === 'approved' ? 'text-blue-600' :
@@ -3903,6 +3931,7 @@ export const BookingDetail: React.FC = () => {
                   }`}>
                     {guidePayout ? (
                       guidePayout.is_on_hold ? (guidePayout.hold_reason === 'dispute' ? 'DISPUTED' : 'ON HOLD') :
+                      guidePayout.status === 'cancelled' ? 'Cancelled' :
                       guidePayout.status === 'paid' ? (guidePayout.adjusted_amount !== null && guidePayout.adjusted_amount !== undefined && guidePayout.adjusted_amount < getOriginalAmount(guidePayout) ? 'Paid, Reduced' : 'Paid') :
                       guidePayout.status === 'approved' ? (
                         (guidePayout.adjusted_amount ?? 0) > 0 && (guidePayout.adjusted_amount ?? 0) < getOriginalAmount(guidePayout) ? 'Resolved, Reduced' :
@@ -3916,11 +3945,11 @@ export const BookingDetail: React.FC = () => {
 
                 <div className="grid grid-cols-3 gap-2 bg-gray-50 rounded-lg p-3">
                   <div className="flex flex-col">
-                    <span className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Gross</span>
+                    <span className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Agreed Rate</span>
                     <span className="font-mono text-xs text-gray-600 mt-0.5">{guidePayout ? `R ${guidePayout.amount_gross.toLocaleString()}` : '-'}</span>
                   </div>
                   <div className="flex flex-col border-l border-gray-200 pl-3">
-                    <span className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Fee</span>
+                    <span className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Platform Fee</span>
                     <span className="font-mono text-xs text-gray-600 mt-0.5">{guidePayout ? `R ${guidePayout.platform_fee.toLocaleString()}` : '-'}</span>
                   </div>
                   <div className="flex flex-col text-right border-l border-gray-200 pl-3">
@@ -3983,8 +4012,15 @@ export const BookingDetail: React.FC = () => {
                 )}
 
                 {guidePayout?.is_on_hold && (
-                  <div className="bg-red-50/50 rounded-md p-2 text-[10px] text-red-600 font-bold flex items-center gap-1 mt-1">
-                    <ShieldAlert size={12} /> This payout is currently on hold and cannot be approved or paid. Resolve dispute to continue.
+                  <div className="bg-red-50/50 rounded-md p-2 text-[10px] text-red-600 font-bold flex flex-col gap-1 mt-1">
+                    <div className="flex items-center gap-1">
+                      <ShieldAlert size={12} /> This payout is currently on hold and cannot be approved or paid. Resolve dispute to continue.
+                    </div>
+                    {(() => {
+                      const d = disputes.find(dis => dis.payout_id === guidePayout.id && dis.status === 'open');
+                      const r = d?.reason || (guidePayout.hold_reason !== 'dispute' ? guidePayout.hold_reason : null);
+                      return r ? <p className="ml-4 font-medium opacity-90 italic">Reason: {r}</p> : null;
+                    })()}
                   </div>
                 )}
               </div>
@@ -3997,6 +4033,7 @@ export const BookingDetail: React.FC = () => {
                     <span className="text-xs text-gray-500 mt-0.5">{selectedVehicleDetails ? `${selectedVehicleDetails.make} ${selectedVehicleDetails.model}` : 'No vehicle assigned'}</span>
                   </div>
                   <span className={`text-[10px] font-bold uppercase ${
+                    vehiclePayout?.status === 'cancelled' ? 'text-gray-500' :
                     vehiclePayout?.is_on_hold ? 'text-red-600' :
                     vehiclePayout?.status === 'paid' ? 'text-green-600' :
                     vehiclePayout?.status === 'approved' ? 'text-blue-600' :
@@ -4004,6 +4041,7 @@ export const BookingDetail: React.FC = () => {
                   }`}>
                     {vehiclePayout ? (
                       vehiclePayout.is_on_hold ? (vehiclePayout.hold_reason === 'dispute' ? 'DISPUTED' : 'ON HOLD') :
+                      vehiclePayout.status === 'cancelled' ? 'Cancelled' :
                       vehiclePayout.status === 'paid' ? (vehiclePayout.adjusted_amount !== null && vehiclePayout.adjusted_amount !== undefined && vehiclePayout.adjusted_amount < getOriginalAmount(vehiclePayout) ? 'Paid, Reduced' : 'Paid') :
                       vehiclePayout.status === 'approved' ? (
                         (vehiclePayout.adjusted_amount ?? 0) > 0 && (vehiclePayout.adjusted_amount ?? 0) < getOriginalAmount(vehiclePayout) ? 'Resolved, Reduced' :
@@ -4017,11 +4055,11 @@ export const BookingDetail: React.FC = () => {
 
                 <div className="grid grid-cols-3 gap-2 bg-gray-50 rounded-lg p-3">
                   <div className="flex flex-col">
-                    <span className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Gross</span>
+                    <span className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Agreed Rate</span>
                     <span className="font-mono text-xs text-gray-600 mt-0.5">{vehiclePayout ? `R ${vehiclePayout.amount_gross.toLocaleString()}` : '-'}</span>
                   </div>
                   <div className="flex flex-col border-l border-gray-200 pl-3">
-                    <span className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Fee</span>
+                    <span className="text-[9px] text-gray-400 uppercase font-bold tracking-wider">Platform Fee</span>
                     <span className="font-mono text-xs text-gray-600 mt-0.5">{vehiclePayout ? `R ${vehiclePayout.platform_fee.toLocaleString()}` : '-'}</span>
                   </div>
                   <div className="flex flex-col text-right border-l border-gray-200 pl-3">
@@ -4084,8 +4122,15 @@ export const BookingDetail: React.FC = () => {
                 )}
 
                 {vehiclePayout?.is_on_hold && (
-                  <div className="bg-red-50/50 rounded-md p-2 text-[10px] text-red-600 font-bold flex items-center gap-1 mt-1">
-                    <ShieldAlert size={12} /> This payout is currently on hold and cannot be approved or paid. Resolve dispute to continue.
+                  <div className="bg-red-50/50 rounded-md p-2 text-[10px] text-red-600 font-bold flex flex-col gap-1 mt-1">
+                    <div className="flex items-center gap-1">
+                      <ShieldAlert size={12} /> This payout is currently on hold and cannot be approved or paid. Resolve dispute to continue.
+                    </div>
+                    {(() => {
+                      const d = disputes.find(dis => dis.payout_id === vehiclePayout.id && dis.status === 'open');
+                      const r = d?.reason || (vehiclePayout.hold_reason !== 'dispute' ? vehiclePayout.hold_reason : null);
+                      return r ? <p className="ml-4 font-medium opacity-90 italic">Reason: {r}</p> : null;
+                    })()}
                   </div>
                 )}
               </div>

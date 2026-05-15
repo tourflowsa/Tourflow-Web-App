@@ -264,8 +264,8 @@ export const VehicleOwnerDashboard: React.FC = () => {
           )}
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-brand-charcoal">Fleet Management</h1>
-          <p className="text-gray-500 mt-1">Manage your vehicles, availability, and operator links</p>
+          <h1 className="text-3xl font-bold text-brand-charcoal">Fleet Dashboard</h1>
+          <p className="text-gray-500 mt-1">Manage your vehicles, availability, earnings, and operator links</p>
         </div>
       </div>
 
@@ -312,7 +312,7 @@ export const VehicleOwnerDashboard: React.FC = () => {
             className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md hover:border-brand-teal/30 transition-all"
           >
             <p className="text-lg font-bold text-brand-teal mb-1">{formatCurrency(payoutSummary.available)}</p>
-            <p className="font-bold text-gray-600 text-sm">Available</p>
+            <p className="font-bold text-gray-600 text-sm">Available Fleet Earnings</p>
           </div>
 
           <div 
@@ -320,7 +320,7 @@ export const VehicleOwnerDashboard: React.FC = () => {
             className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md hover:border-brand-teal/30 transition-all"
           >
             <p className="text-lg font-bold text-blue-600 mb-1">{formatCurrency(payoutSummary.withdrawalRequested)}</p>
-            <p className="font-bold text-gray-600 text-sm">Requested</p>
+            <p className="font-bold text-gray-600 text-sm">Fleet Payouts Requested</p>
           </div>
 
           <div 
@@ -328,7 +328,7 @@ export const VehicleOwnerDashboard: React.FC = () => {
             className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md hover:border-brand-teal/30 transition-all"
           >
             <p className="text-lg font-bold text-red-600 mb-1">{formatCurrency(payoutSummary.onHold)}</p>
-            <p className="font-bold text-gray-600 text-sm">On Hold</p>
+            <p className="font-bold text-gray-600 text-sm">Fleet Earnings On Hold</p>
           </div>
 
           <div 
@@ -336,7 +336,7 @@ export const VehicleOwnerDashboard: React.FC = () => {
             className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md hover:border-brand-teal/30 transition-all"
           >
             <p className="text-lg font-bold text-gray-600 mb-1">{formatCurrency(payoutSummary.pending)}</p>
-            <p className="font-bold text-gray-600 text-sm">Pending Authorization</p>
+            <p className="font-bold text-gray-600 text-sm">Pending Fleet Authorization</p>
           </div>
 
           <div 
@@ -344,7 +344,7 @@ export const VehicleOwnerDashboard: React.FC = () => {
             className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md hover:border-brand-teal/30 transition-all"
           >
             <p className="text-lg font-bold text-green-600 mb-1">{formatCurrency(payoutSummary.totalPaidOut)}</p>
-            <p className="font-bold text-gray-600 text-sm">Paid Out</p>
+            <p className="font-bold text-gray-600 text-sm">Total Fleet Payouts</p>
           </div>
         </div>
       </div>

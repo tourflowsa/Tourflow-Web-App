@@ -411,6 +411,8 @@ export const exportBatchToCSV = async (batchId: string) => {
     "Provider Type",
     "Booking Ref",
     "Service Date",
+    "Gross Amount",
+    "Platform Fee",
     "Original Amount",
     "Adjustment Amount",
     "Final Settlement Amount",
@@ -422,6 +424,22 @@ export const exportBatchToCSV = async (batchId: string) => {
   const rows = payouts.map(p => {
     const profile = profileMap[p.provider_id] || {};
     const booking = bookingMap[p.booking_id] || {};
+    
+    let type = profile.role;
+    const ref = (p.payout_reference || '').toUpperCase();
+    if (type === 'vehicle_owner' || type === 'vehicle') type = 'Vehicle';
+    else if (type === 'driver') type = 'Driver';
+    else if (type === 'guide') type = 'Guide';
+    else if (ref.includes('VEHICLE')) type = 'Vehicle';
+    else if (ref.includes('DRIVER')) type = 'Driver';
+    else if (ref.includes('GUIDE')) type = 'Guide';
+    else type = 'Unknown';
+    
+    const capStatus = (s: string) => {
+      if (!s) return 'Unknown';
+      if (s.toLowerCase() === 'on_hold') return 'On Hold';
+      return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+    };
     
     const finalAmount = 
       p.adjusted_amount != null ? Number(p.adjusted_amount) :
@@ -442,13 +460,15 @@ export const exportBatchToCSV = async (batchId: string) => {
       clean(batchRef || ""),
       clean(p.payout_reference),
       clean(profile.company_name || profile.full_name || "Unknown"),
-      clean(profile.role || "Unknown"),
+      clean(type),
       clean(booking.booking_reference || ""),
       clean(booking.start_date || ""),
+      Number(p.amount_gross || 0).toFixed(2),
+      Number(p.platform_fee || 0).toFixed(2),
       originalAmount.toFixed(2),
       adjustmentAmount.toFixed(2),
       finalAmount.toFixed(2),
-      clean(p.status),
+      clean(capStatus(p.status)),
       clean(p.paid_at || ""),
       clean(p.paid_by || "")
     ].join(",");

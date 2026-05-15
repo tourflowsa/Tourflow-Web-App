@@ -78,6 +78,7 @@ export const AdminPayoutBatchDetail: React.FC = () => {
           <thead>
             <tr className="border-b">
               <th className="p-2 text-left">Provider</th>
+              <th className="p-2 text-left">Type</th>
               <th className="p-2 text-left">Booking Ref</th>
               <th className="p-2 text-left text-xs uppercase text-gray-500">Timeline</th>
               <th className="p-2 text-left">Gross</th>
@@ -91,6 +92,11 @@ export const AdminPayoutBatchDetail: React.FC = () => {
             {data.payouts.map((p: any) => (
               <tr key={p.id} className="border-b">
                 <td className="p-2">{p.provider_display_name}</td>
+                <td className="p-2">
+                  <span className="capitalize text-[10px] font-bold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+                    {p.provider_type === 'vehicle_owner' ? 'Vehicle' : p.provider_type || 'N/A'}
+                  </span>
+                </td>
                 <td className="p-2">{p.booking_reference}</td>
                 <td className="p-2">
                   <div className="text-[10px] space-y-0.5">

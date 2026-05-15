@@ -869,7 +869,7 @@ export const AdminPayoutsPage: React.FC = () => {
               </button>
               <button 
                 onClick={() => {
-                  const headers = ['Payout Reference', 'Booking Reference', 'Provider', 'Provider Type', 'Original Amount', 'Adjustment Amount', 'Final Settlement Amount', 'Status', 'Paid Date', 'Created Date'];
+                  const headers = ['Batch Ref', 'Payout Reference', 'Booking Reference', 'Provider', 'Provider Type', 'Gross Amount', 'Platform Fee', 'Original Amount', 'Adjustment Amount', 'Final Settlement Amount', 'Status', 'Paid Date', 'Created Date'];
                   const data = filteredPayouts.map(p => {
                     const final = 
                       p.adjusted_amount != null ? Number(p.adjusted_amount) :
@@ -884,15 +884,34 @@ export const AdminPayoutsPage: React.FC = () => {
                       
                     const adjustment = original - final;
                     
+                    let type = p.provider_type || p.provider_role || p.resource_type;
+                    const ref = (p.payout_reference || '').toUpperCase();
+                    if (type === 'vehicle_owner' || type === 'vehicle') type = 'Vehicle';
+                    else if (type === 'driver') type = 'Driver';
+                    else if (type === 'guide') type = 'Guide';
+                    else if (ref.includes('VEHICLE')) type = 'Vehicle';
+                    else if (ref.includes('DRIVER')) type = 'Driver';
+                    else if (ref.includes('GUIDE')) type = 'Guide';
+                    else type = 'Unknown';
+                    
+                    const capStatus = (s: string) => {
+                      if (!s) return 'Unknown';
+                      if (s.toLowerCase() === 'on_hold') return 'On Hold';
+                      return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+                    };
+                    
                     return [
+                      p.batch_reference || p.batch_ref || 'Unbatched',
                       p.payout_reference,
                       p.booking_reference ?? p.booking_ref,
                       p.provider_display_name || 'N/A',
-                      p.provider_type || 'N/A',
+                      type,
+                      Number(p.amount_gross || 0).toFixed(2),
+                      Number(p.platform_fee || 0).toFixed(2),
                       original.toFixed(2),
                       adjustment.toFixed(2),
                       final.toFixed(2),
-                      p.status,
+                      capStatus(p.status),
                       p.paid_at || 'N/A',
                       p.created_at
                     ];
@@ -1229,6 +1248,7 @@ export const AdminPayoutsPage: React.FC = () => {
                                 <tr className="text-[9px] text-gray-400 uppercase font-bold border-b border-gray-50">
                                   <th className="p-2 w-12"></th>
                                   <th className="p-2 text-left">Provider</th>
+                                  <th className="p-2 text-left">Type</th>
                                   <th className="p-2 text-left">Booking Ref</th>
                                   <th className="p-2 text-left">Bank</th>
                                   <th className="p-2 text-right">Settlement Amount</th>
@@ -1248,6 +1268,23 @@ export const AdminPayoutsPage: React.FC = () => {
                                       />
                                     </td>
                                     <td className="p-2 text-sm font-medium text-gray-700">{p.provider_display_name}</td>
+                                    <td className="p-2">
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-gray-100 text-gray-600 border border-gray-200">
+                                        {(() => {
+                                          const type = p.provider_type || p.provider_role || p.resource_type;
+                                          if (type === 'vehicle_owner' || type === 'vehicle') return 'Vehicle';
+                                          if (type === 'driver') return 'Driver';
+                                          if (type === 'guide') return 'Guide';
+                                          
+                                          const ref = (p.payout_reference || '').toUpperCase();
+                                          if (ref.includes('DRIVER')) return 'Driver';
+                                          if (ref.includes('GUIDE')) return 'Guide';
+                                          if (ref.includes('VEHICLE')) return 'Vehicle';
+                                          
+                                          return 'Unknown';
+                                        })()}
+                                      </span>
+                                    </td>
                                     <td className="p-2 text-xs text-gray-500">{p.booking_reference}</td>
                                     <td className="p-2">
                                       {p.bank_details ? (
@@ -1604,6 +1641,8 @@ export const AdminPayoutsPage: React.FC = () => {
                         <tr className="bg-gray-50 text-gray-500 uppercase text-[10px] font-bold tracking-wider">
                           <th className="p-3">Reference</th>
                           <th className="p-3">Provider</th>
+                          <th className="p-3">Type</th>
+                          <th className="p-3">Booking Ref</th>
                           <th className="p-3 text-right">Amount</th>
                           <th className="p-3">Status</th>
                         </tr>
@@ -1615,6 +1654,12 @@ export const AdminPayoutsPage: React.FC = () => {
                             <td className="p-3 text-sm text-gray-600">
                               {p.profiles?.company_name || p.profiles?.full_name || 'Unknown'}
                             </td>
+                            <td className="p-3">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-gray-100 text-gray-600">
+                                {p.provider_type === 'vehicle_owner' ? 'Vehicle' : p.provider_type || 'Unknown'}
+                              </span>
+                            </td>
+                            <td className="p-3 text-sm text-gray-600">{p.booking_reference || 'N/A'}</td>
                             <td className="p-3 text-sm text-right font-bold text-brand-teal">
                               {(() => {
                                 const settlement = getSettlementAmount(p);

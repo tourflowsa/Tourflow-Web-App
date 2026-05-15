@@ -623,10 +623,12 @@ export const PayoutDisputesPage: React.FC = () => {
                           step="0.01"
                         />
                       </div>
-                      <div className="flex justify-between text-[10px]">
-                        <span className="text-gray-400 uppercase font-bold">Difference</span>
-                        <span className="text-brand-coral font-bold">-{formatCurrency(originalAmount - adjustedAmount)}</span>
-                      </div>
+                      {originalAmount - adjustedAmount > 0 && (
+                        <div className="flex justify-between items-center bg-red-50 border border-red-100 rounded-lg p-2.5 mt-2">
+                          <span className="text-red-600 uppercase font-bold text-[10px] tracking-wider">Difference / Penalty</span>
+                          <span className="text-red-700 font-bold text-sm">-{formatCurrency(originalAmount - adjustedAmount)}</span>
+                        </div>
+                      )}
                     </div>
                   )}
 
