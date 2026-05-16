@@ -62,7 +62,7 @@ const NAV_CONFIG: Record<UserRole, NavItem[]> = {
     { label: 'Overview', path: '/dashboard', icon: <LayoutDashboard size={20} /> },
     { label: 'Tours', path: '/operator/tours', icon: <Map size={20} /> },
     { label: 'Bookings', path: '/operator/bookings', icon: <CalendarDays size={20} /> },
-    { label: 'Requests', path: '/operator/vehicle-requests', icon: <CalendarDays size={20} /> },
+    { label: 'Trip & Vehicle Requests', path: '/operator/vehicle-requests', icon: <CalendarDays size={20} /> },
     { label: 'Directory', path: '/operator/directory', icon: <Search size={20} /> },
     { label: 'Documents', path: '/operator/documents', icon: <FileCheck size={20} /> },
     { label: 'Financials', path: '/operator/financials', icon: <TrendingUp size={20} /> },
@@ -73,7 +73,7 @@ const NAV_CONFIG: Record<UserRole, NavItem[]> = {
   guide: [
     { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} /> },
     { label: 'Assignments', path: '/guide/assignments', icon: <CalendarDays size={20} /> },
-    { label: 'Availability Requests', path: '/guide/requests', icon: <CalendarDays size={20} /> },
+    { label: 'Trip Requests', path: '/guide/requests', icon: <CalendarDays size={20} /> },
     { label: 'Documents', path: '/guide/documents', icon: <FileCheck size={20} /> },
     { label: 'Earnings', path: '/guide/earnings', icon: <CreditCard size={20} /> },
     { label: 'Profile', path: '/profile', icon: <UserCircle size={20} /> },
@@ -81,7 +81,7 @@ const NAV_CONFIG: Record<UserRole, NavItem[]> = {
   driver: [
     { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} /> },
     { label: 'Assignments', path: '/driver/assignments', icon: <CalendarDays size={20} /> },
-    { label: 'Availability Requests', path: '/driver/requests', icon: <CalendarDays size={20} /> },
+    { label: 'Trip Requests', path: '/driver/requests', icon: <CalendarDays size={20} /> },
     { label: 'Documents', path: '/driver/documents', icon: <FileCheck size={20} /> },
     { label: 'Earnings', path: '/driver/earnings', icon: <CreditCard size={20} /> },
     { label: 'Profile', path: '/profile', icon: <UserCircle size={20} /> },
@@ -226,7 +226,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
             {item.icon}
             <span className="font-medium text-sm">
               {item.label}
-              {(item.label === 'Requests' || item.label === 'Availability Requests' || item.label === 'Vehicle Requests') && pendingCount > 0 && ` (${pendingCount})`}
+              {(item.label === 'Requests' || item.label === 'Trip Requests' || item.label === 'Vehicle Requests') && pendingCount > 0 && ` (${pendingCount})`}
               {item.label === 'Assignments' && pendingAssignmentsCount > 0 && ` (${pendingAssignmentsCount})`}
               {item.label === 'Disputes' && disputeCount > 0 && <span className="ml-2 bg-brand-coral text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{disputeCount}</span>}
               {item.label === 'Document Reviews' && pendingDocsCount > 0 && <span className="ml-2 bg-brand-teal text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{pendingDocsCount}</span>}

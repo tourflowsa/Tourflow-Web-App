@@ -64,9 +64,9 @@ export const GuideRequestsPage: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-brand-charcoal flex items-center gap-3">
             <CalendarDays size={32} className="text-brand-teal" />
-            Availability Requests
+            Trip Requests
           </h1>
-          <p className="text-gray-500 mt-2">Manage availability requests from operators.</p>
+          <p className="text-gray-500 mt-2">Manage trip requests from operators.</p>
         </div>
       </div>
 
@@ -81,7 +81,7 @@ export const GuideRequestsPage: React.FC = () => {
           <div className="p-12 text-center text-gray-500">
             <CalendarDays size={48} className="mx-auto text-gray-300 mb-4" />
             <p className="text-lg font-medium">No requests found</p>
-            <p className="text-sm">You don't have any availability requests yet.</p>
+            <p className="text-sm">You don't have any trip requests yet.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">

@@ -211,6 +211,13 @@ export const MyRequestsPage: React.FC = () => {
     if (msg.includes('completed') || msg.includes('stage')) {
       return "This assignment cannot be changed at this stage of the booking.";
     }
+    if (msg.includes('already has an accepted or completed')) {
+      const role = msg.includes('guide') ? 'guide' : msg.includes('driver') ? 'driver' : 'vehicle';
+      return `This booking already has a ${role} assigned. Remove the current ${role} before assigning another one.`;
+    }
+    if (msg.includes('PROVIDER_CONFLICT')) {
+      return "The provider is already booked for these dates on another trip.";
+    }
     return fallback;
   };
 
@@ -246,7 +253,7 @@ export const MyRequestsPage: React.FC = () => {
         
         setShowModal(false);
         navigate(`/operator/bookings/${selectedBookingId}`, { 
-          state: { message: 'Vehicle successfully attached to booking.' } 
+          state: { message: 'Vehicle successfully assigned to booking.' } 
         });
       } else if (selectedRequestType === 'guide') {
         const gReq = selectedRequest as GuideAvailabilityRequest;
@@ -259,7 +266,7 @@ export const MyRequestsPage: React.FC = () => {
         
         setShowModal(false);
         navigate(`/operator/bookings/${selectedBookingId}`, { 
-          state: { message: 'Guide successfully attached to booking.' } 
+          state: { message: 'Guide successfully assigned to booking.' } 
         });
       } else if (selectedRequestType === 'driver') {
         const dReq = selectedRequest as DriverAvailabilityRequest;
@@ -272,12 +279,12 @@ export const MyRequestsPage: React.FC = () => {
         
         setShowModal(false);
         navigate(`/operator/bookings/${selectedBookingId}`, { 
-          state: { message: 'Driver successfully attached to booking.' } 
+          state: { message: 'Driver successfully assigned to booking.' } 
         });
       }
     } catch (err: any) {
-      console.error('Failed to attach:', err);
-      setError(getFriendlyErrorMessage(err, 'Failed to attach.'));
+      console.error('Failed to assign:', err);
+      setError(getFriendlyErrorMessage(err, 'Could not assign this provider to the selected booking. This booking may already have a provider assigned for this role, or the provider may no longer be available.'));
     } finally {
       setConverting(false);
     }
@@ -344,10 +351,11 @@ export const MyRequestsPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-brand-charcoal">
-            My Availability Requests {activeTab === 'drivers' && <span className="text-sm font-normal text-gray-400 ml-2">(Driver Requests)</span>}
+            Trip & Vehicle Requests {activeTab === 'drivers' && <span className="text-sm font-normal text-gray-400 ml-2">(Drivers)</span>}
+            {activeTab === 'guides' && <span className="text-sm font-normal text-gray-400 ml-2">(Guides)</span>}
           </h1>
           <p className="text-gray-500 mt-1">
-            Track availability requests. Once accepted, attach them to a booking.
+            Track availability and trip requests. Once accepted, convert them to formal assignments.
           </p>
         </div>
         <Link 
@@ -370,13 +378,13 @@ export const MyRequestsPage: React.FC = () => {
           onClick={() => setActiveTab('drivers')}
           className={`px-6 py-3 font-bold text-sm border-b-2 transition-colors cursor-pointer ${activeTab === 'drivers' ? 'border-brand-teal text-brand-teal' : 'border-transparent text-gray-500 hover:text-brand-charcoal'}`}
         >
-          Driver Requests {pendingDriversCount > 0 && `(${pendingDriversCount})`}
+          Trip Requests (Drivers) {pendingDriversCount > 0 && `(${pendingDriversCount})`}
         </button>
         <button 
           onClick={() => setActiveTab('guides')}
           className={`px-6 py-3 font-bold text-sm border-b-2 transition-colors cursor-pointer ${activeTab === 'guides' ? 'border-brand-teal text-brand-teal' : 'border-transparent text-gray-500 hover:text-brand-charcoal'}`}
         >
-          Guide Requests {pendingGuidesCount > 0 && `(${pendingGuidesCount})`}
+          Trip Requests (Guides) {pendingGuidesCount > 0 && `(${pendingGuidesCount})`}
         </button>
       </div>
 
@@ -470,17 +478,20 @@ export const MyRequestsPage: React.FC = () => {
                           onClick={() => openConvertModal(req)} 
                           className="text-brand-teal font-bold flex items-center gap-1 justify-end hover:text-brand-teal/80 transition-colors"
                         >
-                          <FilePlus size={16} /> Use in Booking
+                          <FilePlus size={16} /> Convert Request to Assignment
                         </button>
-                        <span className="text-[10px] text-brand-teal font-medium">
-                          Attach this vehicle to a booking to continue.
-                        </span>
+                        <p className="text-[10px] text-gray-500 text-right max-w-[200px]">
+                          Accepted requests confirm provider interest or availability. Converting one sends a formal assignment for the provider to accept.
+                        </p>
                       </div>
                     )}
                     {req.converted_booking_id && (
-                      <span className="inline-flex items-center gap-1 text-gray-500 text-sm">
-                        <Check size={14} /> Linked to Booking
-                      </span>
+                      <div className="flex flex-col gap-0.5 items-end">
+                        <span className="inline-flex items-center gap-1 text-green-700 font-bold bg-green-50 px-2.5 py-0.5 rounded-full text-xs">
+                          <Check size={14} /> Converted
+                        </span>
+                        <span className="text-[10px] text-gray-500 mr-2">Converted to assignment</span>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -579,17 +590,20 @@ export const MyRequestsPage: React.FC = () => {
                             onClick={() => openConvertModal(req, 'driver')}
                             className="bg-brand-teal text-white px-4 py-2 rounded-lg font-bold hover:bg-brand-teal/90 transition-colors text-sm flex items-center gap-2"
                           >
-                            <FilePlus size={16} /> Use in Booking
+                            <FilePlus size={16} /> Convert Request to Assignment
                           </button>
-                          <span className="text-[10px] text-brand-teal font-medium">
-                            Attach this driver to a booking to continue.
-                          </span>
+                          <p className="text-[10px] text-gray-500 text-right max-w-[200px]">
+                            Accepted requests confirm provider interest or availability. Converting one sends a formal assignment for the provider to accept.
+                          </p>
                         </div>
                       )}
                       {req.converted_booking_id && (
-                        <span className="inline-flex items-center gap-1 text-gray-500 text-sm justify-end w-full">
-                          <Check size={14} /> Linked to Booking
-                        </span>
+                        <div className="flex flex-col gap-0.5 items-end">
+                          <span className="inline-flex items-center gap-1 text-green-700 font-bold bg-green-50 px-2.5 py-0.5 rounded-full text-xs">
+                            <Check size={14} /> Converted
+                          </span>
+                          <span className="text-[10px] text-gray-500 mr-2 uppercase">Converted to assignment</span>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -687,17 +701,20 @@ export const MyRequestsPage: React.FC = () => {
                             onClick={() => openConvertModal(req, 'guide')}
                             className="bg-brand-teal text-white px-4 py-2 rounded-lg font-bold hover:bg-brand-teal/90 transition-colors text-sm flex items-center gap-2"
                           >
-                            <FilePlus size={16} /> Use in Booking
+                            <FilePlus size={16} /> Convert Request to Assignment
                           </button>
-                          <span className="text-[10px] text-brand-teal font-medium">
-                            Attach this guide to a booking to continue.
-                          </span>
+                          <p className="text-[10px] text-gray-500 text-right max-w-[200px]">
+                            Accepted requests confirm provider interest or availability. Converting one sends a formal assignment for the provider to accept.
+                          </p>
                         </div>
                       )}
                       {req.converted_booking_id && (
-                        <span className="inline-flex items-center gap-1 text-gray-500 text-sm justify-end w-full">
-                          <Check size={14} /> Linked to Booking
-                        </span>
+                        <div className="flex flex-col gap-0.5 items-end">
+                          <span className="inline-flex items-center gap-1 text-green-700 font-bold bg-green-50 px-2.5 py-0.5 rounded-full text-xs">
+                            <Check size={14} /> Converted
+                          </span>
+                          <span className="text-[10px] text-gray-500 mr-2 uppercase">Converted to assignment</span>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -714,9 +731,9 @@ export const MyRequestsPage: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
               <h3 className="font-bold text-brand-charcoal">
-                {modalMode === 'options' ? 'Use in Booking' : 
+                {modalMode === 'options' ? 'Convert Request to Assignment' : 
                  modalMode === 'create' ? 'Create New Draft Booking' : 
-                 'Attach to Existing Booking'}
+                 'Assign to Existing Booking'}
               </h3>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
                 <X size={20} />
@@ -733,6 +750,9 @@ export const MyRequestsPage: React.FC = () => {
 
               {modalMode === 'options' && (
                 <div className="space-y-4">
+                  <p className="text-xs text-brand-teal bg-brand-teal/5 p-3 rounded-lg border border-brand-teal/10 mb-4">
+                    Accepted requests confirm provider interest or availability. Converting one sends a formal assignment for the provider to accept.
+                  </p>
                   <p className="text-sm text-gray-600 mb-6">
                     This request for <strong>
                       {selectedRequestType === 'vehicle' 
@@ -766,7 +786,7 @@ export const MyRequestsPage: React.FC = () => {
                       <LinkIcon size={24} />
                     </div>
                     <div>
-                      <p className="font-bold text-brand-charcoal">Attach to Existing Booking</p>
+                      <p className="font-bold text-brand-charcoal">Assign to Existing Booking</p>
                       <p className="text-xs text-gray-500">Assign this {selectedRequestType} to an existing booking</p>
                     </div>
                   </button>
@@ -904,10 +924,10 @@ export const MyRequestsPage: React.FC = () => {
                       {converting ? (
                         <>
                           <Loader2 size={18} className="animate-spin" />
-                          Attaching...
+                          Assigning...
                         </>
                       ) : (
-                        `Attach ${selectedRequestType === 'vehicle' ? 'Vehicle' : selectedRequestType === 'driver' ? 'Driver' : 'Guide'}`
+                        `Assign ${selectedRequestType === 'vehicle' ? 'Vehicle' : selectedRequestType === 'driver' ? 'Driver' : 'Guide'}`
                       )}
                     </button>
                   </div>

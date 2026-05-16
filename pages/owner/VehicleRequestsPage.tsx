@@ -122,16 +122,28 @@ export const VehicleRequestsPage: React.FC = () => {
                       <span className="capitalize text-sm font-medium">{req.rate_type}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase flex items-center gap-1.5 w-fit ${
-                        req.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                        req.status === 'accepted' ? 'bg-green-100 text-green-700' :
-                        'bg-red-100 text-red-700'
-                      }`}>
-                        {req.status === 'pending' && <Clock size={12} />}
-                        {req.status === 'accepted' && <Check size={12} />}
-                        {req.status === 'declined' && <X size={12} />}
-                        {req.status}
-                      </span>
+                      <div>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase flex items-center gap-1.5 w-fit ${
+                          req.converted_booking_id ? 'bg-blue-100 text-blue-700' :
+                          req.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                          req.status === 'accepted' ? 'bg-green-100 text-green-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {req.converted_booking_id ? <Check size={12} /> : (
+                            <>
+                              {req.status === 'pending' && <Clock size={12} />}
+                              {req.status === 'accepted' && <Check size={12} />}
+                              {req.status === 'declined' && <X size={12} />}
+                            </>
+                          )}
+                          {req.converted_booking_id ? 'Converted' : req.status}
+                        </span>
+                        {req.converted_booking_id && (
+                          <p className="text-[10px] text-gray-500 mt-1 whitespace-nowrap">
+                            Converted into a formal assignment.
+                          </p>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-right">
                       {req.status === 'pending' && (

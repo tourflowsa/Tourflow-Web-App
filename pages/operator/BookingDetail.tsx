@@ -615,6 +615,10 @@ export const BookingDetail: React.FC = () => {
     if (msg.includes('CANNOT_ASSIGN_VEHICLE') || msg.includes('VEHICLE_COMPLIANCE_ERROR')) {
       return "This vehicle cannot be assigned because the fleet owner’s required compliance checks are incomplete. Select another verified and compliant vehicle.";
     }
+    if (msg.includes('already has an accepted or completed')) {
+      const role = msg.includes('guide') ? 'guide' : msg.includes('driver') ? 'driver' : 'provider';
+      return `This booking already has a ${role} assigned. Remove the current ${role} before assigning another one.`;
+    }
     if (msg.includes('PROVIDER_CONFLICT')) {
       return "Provider cannot be assigned because they are already booked for this date range.";
     }
@@ -920,7 +924,7 @@ export const BookingDetail: React.FC = () => {
       setShowVehicleModal(false);
     } catch (err: any) {
       console.error(err);
-      showNotice('error', getFriendlyErrorMessage(err, 'Failed to assign vehicle'));
+      showNotice('error', getFriendlyErrorMessage(err, 'Could not assign this vehicle to the selected booking. This booking may already have a vehicle assigned, or the vehicle may no longer be available.'));
     } finally {
       setSavingVehicle(false);
     }
@@ -1208,7 +1212,7 @@ export const BookingDetail: React.FC = () => {
       setAcceptedRequestsModal(null);
     } catch (e: any) {
       console.error(e);
-      showNotice('error', getFriendlyErrorMessage(e, `Failed to assign ${type}`));
+      showNotice('error', getFriendlyErrorMessage(e, `Could not assign this ${type} to the selected booking. This booking may already have a ${type} assigned for this role, or the ${type} may no longer be available.`));
     }
   };
 
@@ -1603,7 +1607,7 @@ export const BookingDetail: React.FC = () => {
       showNotice('success', 'Assignment successful');
     } catch (e: any) {
       console.error(e);
-      showNotice('error', getFriendlyErrorMessage(e, `Failed to assign ${configuringProvider.type}`));
+      showNotice('error', getFriendlyErrorMessage(e, `Could not assign this ${configuringProvider.type} to the selected booking. This booking may already have a ${configuringProvider.type} assigned for this role, or the ${configuringProvider.type} may no longer be available.`));
     } finally {
       setAssigningDriverId(null);
       setAssigningGuideId(null);
@@ -1983,8 +1987,8 @@ export const BookingDetail: React.FC = () => {
                   <CheckCircle2 size={24} />
                 </div>
                 <div>
-                  <p className="font-bold text-brand-charcoal">Use Accepted Request</p>
-                  <p className="text-xs text-gray-500">Select from your accepted requests</p>
+                  <p className="font-bold text-brand-charcoal">Convert Request to Assignment</p>
+                  <p className="text-xs text-gray-500">Accepted requests confirm provider interest or availability. Converting one sends a formal assignment for the provider to accept.</p>
                 </div>
               </button>
 
@@ -2096,6 +2100,9 @@ export const BookingDetail: React.FC = () => {
               </button>
             </div>
             <div className="p-6 overflow-y-auto flex-1">
+              <p className="text-xs text-gray-600 mb-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                Accepted requests confirm provider interest or availability. Converting one sends a formal assignment for the provider to accept.
+              </p>
               {acceptedRequestsModal.loading ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="animate-spin text-brand-teal" size={24} />
@@ -3662,7 +3669,11 @@ export const BookingDetail: React.FC = () => {
                         </div>
                       )}
                       {allowed.includes('archive') && (
-                        <button onClick={handleArchiveToggle} className="w-full bg-gray-100 py-2.5 rounded-xl font-bold text-sm text-gray-700 hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
+                        <button 
+                          onClick={handleArchiveToggle} 
+                          title="Archive hides this completed or cancelled trip from active lists. Records are preserved."
+                          className="w-full bg-gray-100 py-2.5 rounded-xl font-bold text-sm text-gray-700 hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                        >
                           <Archive size={16} /> Archive
                         </button>
                       )}

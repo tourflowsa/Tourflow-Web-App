@@ -356,7 +356,7 @@ export const BookingsList: React.FC = () => {
         title={archiveTarget?.archived_at ? "Unarchive Booking?" : "Archive Booking?"}
         body={archiveTarget?.archived_at 
           ? "This will restore the booking to your main list." 
-          : "This hides the record from your default list. You can restore visibility by turning on Show Archived."}
+          : "This hides the trip from active lists. All payment history, assignments, disputes, and audit logs are safely preserved for reporting."}
         confirmLabel={archiveTarget?.archived_at ? "Unarchive" : "Archive"}
         isDestructive={!archiveTarget?.archived_at}
         isProcessing={isProcessingArchive}
@@ -367,7 +367,9 @@ export const BookingsList: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-brand-charcoal">Bookings</h1>
+          <h1 className="text-3xl font-bold text-brand-charcoal">
+            {showArchived ? "Archived Bookings" : "Bookings"}
+          </h1>
           <p className="text-gray-500 mt-1">
             Manage your trips, resources, and booking progress.
           </p>
@@ -503,14 +505,20 @@ export const BookingsList: React.FC = () => {
           <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-gray-400">
             <CalendarIcon size={32} />
           </div>
-          <h3 className="text-xl font-bold text-brand-charcoal mb-2">No bookings yet</h3>
-          <p className="text-gray-500 mb-8 max-w-sm mx-auto">Start by creating your first trip.</p>
-          <Link 
-            to="/operator/bookings/new"
-            className="inline-flex items-center gap-2 bg-brand-teal text-white px-6 py-3 rounded-xl font-bold hover:bg-brand-teal/90 transition-all shadow-sm"
-          >
-            <Plus size={20} /> Create Booking
-          </Link>
+          {showArchived ? (
+            <h3 className="text-xl font-bold text-brand-charcoal">No archived bookings found.</h3>
+          ) : (
+            <>
+              <h3 className="text-xl font-bold text-brand-charcoal mb-2">No bookings yet</h3>
+              <p className="text-gray-500 mb-8 max-w-sm mx-auto">Start by creating your first trip.</p>
+              <Link 
+                to="/operator/bookings/new"
+                className="inline-flex items-center gap-2 bg-brand-teal text-white px-6 py-3 rounded-xl font-bold hover:bg-brand-teal/90 transition-all shadow-sm"
+              >
+                <Plus size={20} /> Create Booking
+              </Link>
+            </>
+          )}
         </div>
       ) : view === 'calendar' ? (
         <BookingCalendar 
