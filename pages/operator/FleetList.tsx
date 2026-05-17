@@ -164,9 +164,9 @@ export const FleetList: React.FC = () => {
 
       <ConfirmationModal
         isOpen={!!vehicleToDelete}
-        title="Delete vehicle"
-        body="This permanently deletes this vehicle. This cannot be undone."
-        confirmLabel="Delete"
+        title="Archive vehicle?"
+        body="This will hide the vehicle from active fleet views. Existing records, bookings, documents, and history will be preserved."
+        confirmLabel="Archive Vehicle"
         isDestructive={true}
         isProcessing={isProcessing}
         onConfirm={handleDeleteConfirm}
@@ -175,9 +175,9 @@ export const FleetList: React.FC = () => {
 
       <ConfirmationModal
         isOpen={!!vehicleToArchive}
-        title="Archive vehicle"
-        body="This marks the vehicle as inactive. It will be hidden from active lists but kept in history."
-        confirmLabel="Archive"
+        title="Archive vehicle?"
+        body="This will hide the vehicle from active fleet views. Existing records, bookings, documents, and history will be preserved."
+        confirmLabel="Archive Vehicle"
         isDestructive={false}
         isProcessing={isProcessing}
         onConfirm={() => vehicleToArchive && handleStatusChange(vehicleToArchive.id, 'Inactive')}
@@ -383,11 +383,11 @@ export const FleetList: React.FC = () => {
 
                       <button
                         onClick={() => setVehicleToDelete(v)}
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
-                        title="Delete Vehicle"
+                        className="p-2 text-gray-400 hover:text-brand-charcoal hover:bg-gray-100 rounded transition-colors"
+                        title="Archive Vehicle"
                         disabled={isProcessing}
                       >
-                        <Trash2 size={18} />
+                        <Archive size={18} />
                       </button>
                     </div>
                   </div>

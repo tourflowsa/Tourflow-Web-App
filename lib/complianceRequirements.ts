@@ -91,7 +91,7 @@ export const DOCUMENT_DEFINITIONS: Record<DocumentTypeId, DocumentDefinition> = 
   vehicle_reg: {
     id: 'vehicle_reg',
     label: 'Vehicle Registration',
-    description: 'Certificate of Registration (RC1).',
+    description: 'Upload the vehicle registration certificate, RC1 document, or valid licence disc.',
     acceptedFormats: ['.pdf', '.jpg', '.png']
   },
   operating_license: {

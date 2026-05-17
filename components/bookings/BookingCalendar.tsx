@@ -82,11 +82,17 @@ export const BookingCalendar: React.FC<Props> = ({
   const getEventStyle = (status: string) => {
     switch(status) {
       case 'confirmed':
-        return 'bg-brand-teal/10 text-brand-teal border-brand-teal hover:bg-brand-teal/20';
+        return 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100';
+      case 'draft':
+        return 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100';
+      case 'pending':
+        return 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100';
       case 'completed':
-        return 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200';
+        return 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100';
       case 'cancelled':
         return 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 opacity-70';
+      case 'in_progress':
+        return 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100';
       default:
         return 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100';
     }

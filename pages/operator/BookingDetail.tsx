@@ -51,6 +51,7 @@ import { getProviderComplianceForOperator, canAssignProvider, canAssignVehicle }
 import {
   ArrowLeft,
   Calendar,
+  MapPin,
   Users,
   User,
   Mail,
@@ -85,6 +86,7 @@ import {
   BookingStatusBadge 
 } from '../../components/bookings/BookingStatusBadge';
 import { ComplianceBadge } from '../../components/common/ComplianceBadge';
+import { ConfirmationModal } from '../../components/common/ConfirmationModal';
 import { BookingFinancialBreakdownView } from '../../components/bookings/BookingFinancialBreakdown';
 import { formatCurrency, formatDate } from '../../lib/formatUtils';
 import { getBookingFinancialBreakdown, BookingFinancialBreakdown } from '../../lib/financialService';
@@ -286,6 +288,19 @@ export const BookingDetail: React.FC = () => {
     requests: any[];
     loading: boolean;
   } | null>(null);
+
+  const [assignmentConfirmModal, setAssignmentConfirmModal] = useState<{
+    isOpen: boolean;
+    type: 'remove' | 'replace';
+    role: 'driver' | 'guide' | 'vehicle';
+    assignmentId?: string;
+  } | null>(null);
+
+  const [showArchiveConfirmModal, setShowArchiveConfirmModal] = useState(false);
+  const [showUnarchiveConfirmModal, setShowUnarchiveConfirmModal] = useState(false);
+  const [isArchiveProcessing, setIsArchiveProcessing] = useState(false);
+
+  const [isProcessingAssignmentAction, setIsProcessingAssignmentAction] = useState(false);
 
   useEffect(() => {
     if (user && id) {
@@ -594,6 +609,9 @@ export const BookingDetail: React.FC = () => {
 
   const getFriendlyErrorMessage = (error: any, fallback: string) => {
     const msg = error?.message || '';
+    if (msg.includes('BOOKING_FINANCIALLY_LOCKED')) {
+      return "This trip is locked because a payout has already been initiated or completed.";
+    }
     if (msg.includes('PAYOUT_APPROVED')) {
       return "You cannot change this assignment because payout has already been approved.";
     }
@@ -1541,7 +1559,7 @@ export const BookingDetail: React.FC = () => {
       setFoundDrivers(withInfo);
       setHasSearchedDrivers(true);
     } catch (e) {
-      showNotice('error', 'Search failed.');
+      showNotice('error', 'Your search could not be completed. Please check your filters and try again.');
     } finally {
       setLoadingDrivers(false);
     }
@@ -1579,7 +1597,7 @@ export const BookingDetail: React.FC = () => {
       setFoundGuides(withInfo);
       setHasSearchedGuides(true);
     } catch (e) {
-      showNotice('error', 'Search failed.');
+      showNotice('error', 'Your search could not be completed. Please check your filters and try again.');
     } finally {
       setLoadingGuides(false);
     }
@@ -1749,19 +1767,44 @@ export const BookingDetail: React.FC = () => {
     }
   };
 
-  const handleArchiveToggle = async () => {
+  const handleArchiveToggle = () => {
+    if (!booking) return;
+    if (booking.archived_at) {
+      setShowUnarchiveConfirmModal(true);
+    } else {
+      setShowArchiveConfirmModal(true);
+    }
+  };
+
+  const confirmArchive = async () => {
     if (!booking || !user) return;
+    setIsArchiveProcessing(true);
     try {
-      if (booking.archived_at) {
-        await unarchiveBookingRpc(booking.id);
-      } else {
-        await archiveBookingRpc(booking.id);
-      }
+      await archiveBookingRpc(booking.id);
       await loadAll();
-      showNotice('success', 'Archive state updated.');
+      showNotice('success', 'Booking archived successfully.');
+      setShowArchiveConfirmModal(false);
     } catch (e: any) {
       console.error(e);
       showNotice('error', e?.message || 'Archive operation failed.');
+    } finally {
+      setIsArchiveProcessing(false);
+    }
+  };
+
+  const confirmUnarchive = async () => {
+    if (!booking || !user) return;
+    setIsArchiveProcessing(true);
+    try {
+      await unarchiveBookingRpc(booking.id);
+      await loadAll();
+      showNotice('success', 'Booking restored successfully.');
+      setShowUnarchiveConfirmModal(false);
+    } catch (e: any) {
+      console.error(e);
+      showNotice('error', e?.message || 'Restore operation failed.');
+    } finally {
+      setIsArchiveProcessing(false);
     }
   };
 
@@ -1830,7 +1873,7 @@ export const BookingDetail: React.FC = () => {
           name: assignedGuide.profile?.full_name || 'Guide'
         });
       }
-      if (selectedVehicleDetails?.owner_id && (vehiclePayout?.status === 'paid' || isFinanciallyLocked) && !reviewedProviders.has(selectedVehicleDetails.owner_id)) {
+      if (selectedVehicleDetails?.owner_id && selectedVehicleDetails.owner_id !== user?.id && booking?.status === 'completed' && !reviewedProviders.has(selectedVehicleDetails.owner_id)) {
         list.push({
           roleDisplay: 'Vehicle Owner',
           role: 'vehicle_owner' as const,
@@ -1840,7 +1883,7 @@ export const BookingDetail: React.FC = () => {
       }
     }
     return list;
-  }, [booking?.status, assignedDriver, driverPayout?.status, isFinanciallyLocked, reviewedProviders, assignedGuide, guidePayout?.status, selectedVehicleDetails, vehiclePayout?.status]);
+  }, [booking?.status, assignedDriver, driverPayout?.status, isFinanciallyLocked, reviewedProviders, assignedGuide, guidePayout?.status, selectedVehicleDetails, vehiclePayout?.status, user?.id]);
 
   if (loading) return <div className="p-12 text-center flex flex-col items-center gap-4"><Loader2 className="animate-spin text-brand-teal" size={32} /> Loading booking...</div>;
   if (!booking) return <div className="p-12 text-center text-gray-500">Booking not found.</div>;
@@ -2526,6 +2569,41 @@ export const BookingDetail: React.FC = () => {
           </div>
         </div>
 
+        {/* Draft Booking Awareness Banner */}
+        {booking.status === 'draft' && (
+          <div className="mt-6 bg-brand-charcoal text-white rounded-2xl p-6 shadow-lg border border-brand-charcoal">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="flex items-start gap-4">
+                <div className="bg-brand-teal/20 p-3 rounded-xl text-brand-teal">
+                  <ShieldAlert size={28} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-lg font-bold text-white tracking-tight">Draft Booking</h3>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-brand-teal text-white">Action Required</span>
+                  </div>
+                  <p className="text-sm text-gray-300 max-w-2xl leading-relaxed">
+                    This booking is still a draft. You can plan details and request/assign resources, but escrow, payouts, and final dispatch only activate once the booking is confirmed.
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={handleConfirmBooking}
+                disabled={!isReady}
+                title={!isReady ? "Please complete all core booking details before confirming" : ""}
+                className={`w-full md:w-auto font-bold px-8 py-3 rounded-xl transition shadow-md flex items-center justify-center gap-2 ${
+                  isReady 
+                    ? 'bg-brand-teal hover:bg-brand-teal/90 text-white' 
+                    : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                <CheckCircle2 size={18} />
+                Confirm Booking
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Review Providers Banner */}
         {pendingReviewsList.length > 0 && (
           <div ref={reviewSectionRef} className="mt-6 bg-amber-50 border border-amber-200 rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
@@ -2782,7 +2860,7 @@ export const BookingDetail: React.FC = () => {
                   <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block mb-1">Number of Guests</span>
                   <div className="font-medium text-brand-charcoal flex items-center gap-2">
                     <Users size={16} className="text-gray-400" />
-                    {booking.num_guests || 1} Guests
+                    {booking.num_guests || 'Not provided'}
                   </div>
                 </div>
               </div>
@@ -2802,57 +2880,60 @@ export const BookingDetail: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block mb-1">Client Telephone</span>
+                  <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block mb-1">Pickup Location</span>
                   <div className="font-medium text-brand-charcoal flex items-center gap-2">
-                    <Phone size={16} className="text-gray-400" />
-                    {booking.guest_phone ? (
-                      <a href={`tel:${booking.guest_phone}`} className="hover:underline text-brand-teal">{booking.guest_phone}</a>
-                    ) : (
-                      <span className="text-gray-400 italic">No contact number provided</span>
-                    )}
+                    <MapPin size={16} className="text-gray-400" />
+                    {booking.pickup_location || <span className="text-gray-400 italic">Not provided</span>}
                   </div>
                 </div>
               </div>
             </div>
 
-            {(booking.pickup_location || booking.dropoff_location || (booking as any).special_requests || (booking as any).internal_notes || booking.notes) && (
-              <div className="p-6 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50/30">
-                <div className="space-y-4">
-                  {(booking.pickup_location || booking.dropoff_location) && (
-                    <div className="flex gap-8">
-                      {booking.pickup_location && (
-                        <div className="flex-1">
-                          <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block mb-1">Pickup</span>
-                          <p className="text-sm font-medium text-brand-charcoal">{booking.pickup_location}</p>
-                        </div>
-                      )}
-                      {booking.dropoff_location && (
-                        <div className="flex-1">
-                          <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block mb-1">Dropoff</span>
-                          <p className="text-sm font-medium text-brand-charcoal">{booking.dropoff_location}</p>
-                        </div>
+            <div className="p-6 border-t border-gray-100 bg-gray-50/30">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <div>
+                    <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block mb-1">Dropoff Location</span>
+                    <div className="font-medium text-brand-charcoal flex items-center gap-2">
+                      <MapPin size={16} className="text-gray-400" />
+                      {booking.dropoff_location || <span className="text-gray-400 italic">Not provided</span>}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block mb-1">Client Telephone</span>
+                    <div className="font-medium text-brand-charcoal flex items-center gap-2">
+                      <Phone size={16} className="text-gray-400" />
+                      {booking.guest_phone ? (
+                        <a href={`tel:${booking.guest_phone}`} className="hover:underline text-brand-teal">{booking.guest_phone}</a>
+                      ) : (
+                        <span className="text-gray-400 italic">Not provided</span>
                       )}
                     </div>
-                  )}
-                  {(booking as any).special_requests && (
-                    <div>
-                      <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block mb-1">Special Requests</span>
-                      <p className="text-sm text-brand-charcoal bg-white border border-gray-100 rounded-lg p-3">{(booking as any).special_requests}</p>
-                    </div>
-                  )}
+                  </div>
                 </div>
-                <div className="space-y-4">
-                  {((booking as any).internal_notes || booking.notes) && (
-                    <div>
-                      <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block mb-1">Internal Notes</span>
-                      <div className="text-sm text-gray-600 bg-amber-50/50 border border-amber-100 rounded-lg p-3 italic">
-                        {(booking as any).internal_notes || booking.notes}
-                      </div>
+                <div className="space-y-6">
+                  <div>
+                    <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block mb-1">Special Requests</span>
+                    <div className="bg-white border border-gray-100 rounded-lg p-3">
+                      {(booking as any).special_requests ? (
+                        <p className="text-sm text-brand-charcoal">{(booking as any).special_requests}</p>
+                      ) : (
+                        <p className="text-sm text-gray-400 italic">Not provided</p>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
-            )}
+
+              {((booking as any).internal_notes || booking.notes) && (
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block mb-1">Internal Notes</span>
+                  <div className="text-sm text-gray-600 bg-amber-50/50 border border-amber-100 rounded-lg p-3 italic">
+                    {(booking as any).internal_notes || booking.notes}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mt-6">
@@ -2925,15 +3006,15 @@ export const BookingDetail: React.FC = () => {
                       );
                     })()}
                     <div className="flex flex-wrap gap-2">
-                      <button 
-                        onClick={() => handleReplaceAssignment(assignedDriver.id, 'driver')} 
+                       <button 
+                        onClick={() => setAssignmentConfirmModal({ isOpen: true, type: 'replace', role: 'driver', assignmentId: assignedDriver.id })} 
                         disabled={booking.status === 'completed' || booking.status === 'cancelled' || isAssignmentApproved(payoutLedgers, assignedDriver.resource_id) || isAssignmentPaid(payoutLedgers, assignedDriver.resource_id) || isFinanciallyLocked}
                         className="text-xs bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg font-bold hover:bg-gray-200 disabled:opacity-50"
                       >
                         Replace
                       </button>
                       <button 
-                        onClick={() => handleRemoveAssignment(assignedDriver.id, 'driver')} 
+                        onClick={() => setAssignmentConfirmModal({ isOpen: true, type: 'remove', role: 'driver', assignmentId: assignedDriver.id })} 
                         disabled={booking.status === 'completed' || booking.status === 'cancelled' || isAssignmentApproved(payoutLedgers, assignedDriver.resource_id) || isAssignmentPaid(payoutLedgers, assignedDriver.resource_id) || isFinanciallyLocked}
                         className="text-xs bg-red-50 text-red-600 px-3 py-1.5 rounded-lg font-bold hover:bg-red-100 disabled:opacity-50"
                       >
@@ -3013,14 +3094,14 @@ export const BookingDetail: React.FC = () => {
                     })()}
                     <div className="flex flex-wrap gap-2">
                        <button 
-                        onClick={() => handleReplaceAssignment(assignedGuide.id, 'guide')} 
+                        onClick={() => setAssignmentConfirmModal({ isOpen: true, type: 'replace', role: 'guide', assignmentId: assignedGuide.id })} 
                         disabled={booking.status === 'completed' || booking.status === 'cancelled' || isAssignmentApproved(payoutLedgers, assignedGuide.resource_id) || isAssignmentPaid(payoutLedgers, assignedGuide.resource_id) || isFinanciallyLocked}
                         className="text-xs bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg font-bold hover:bg-gray-200 disabled:opacity-50"
                       >
                         Replace
                       </button>
                       <button 
-                        onClick={() => handleRemoveAssignment(assignedGuide.id, 'guide')} 
+                        onClick={() => setAssignmentConfirmModal({ isOpen: true, type: 'remove', role: 'guide', assignmentId: assignedGuide.id })} 
                         disabled={booking.status === 'completed' || booking.status === 'cancelled' || isAssignmentApproved(payoutLedgers, assignedGuide.resource_id) || isAssignmentPaid(payoutLedgers, assignedGuide.resource_id) || isFinanciallyLocked}
                         className="text-xs bg-red-50 text-red-600 px-3 py-1.5 rounded-lg font-bold hover:bg-red-100 disabled:opacity-50"
                       >
@@ -3086,20 +3167,20 @@ export const BookingDetail: React.FC = () => {
                     })()}
                     <div className="mt-4 flex flex-wrap gap-2">
                       <button 
-                        onClick={() => openResourceModal('vehicle', 'replace')} 
+                        onClick={() => setAssignmentConfirmModal({ isOpen: true, type: 'replace', role: 'vehicle' })} 
                         disabled={booking.status === 'completed' || booking.status === 'cancelled' || isVehicleApproved(payoutLedgers, selectedVehicleDetails) || isVehiclePaid(payoutLedgers, selectedVehicleDetails) || isFinanciallyLocked}
                         className="text-xs bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg font-bold hover:bg-gray-200 disabled:opacity-50"
                       >
                         Replace
                       </button>
                       <button 
-                        onClick={handleRemoveVehicle} 
+                        onClick={() => setAssignmentConfirmModal({ isOpen: true, type: 'remove', role: 'vehicle' })} 
                         disabled={booking.status === 'completed' || booking.status === 'cancelled' || isVehicleApproved(payoutLedgers, selectedVehicleDetails) || isVehiclePaid(payoutLedgers, selectedVehicleDetails) || isFinanciallyLocked}
                         className="text-xs bg-red-50 text-red-600 px-3 py-1.5 rounded-lg font-bold hover:bg-red-100 disabled:opacity-50"
                       >
                         Remove
                       </button>
-                      {booking.status === 'completed' && selectedVehicleDetails.owner_id && (vehiclePayout?.status === 'paid' || isFinanciallyLocked) && (
+                      {booking.status === 'completed' && selectedVehicleDetails.owner_id && selectedVehicleDetails.owner_id !== user?.id && (
                         reviewedProviders.has(selectedVehicleDetails.owner_id) ? (
                             <span className="text-xs bg-gray-50 text-gray-400 px-3 py-1.5 rounded-lg font-bold flex items-center gap-1">
                               <Check size={12} /> Reviewed
@@ -3113,7 +3194,7 @@ export const BookingDetail: React.FC = () => {
                             })}
                             className="text-xs bg-amber-50 text-amber-600 px-3 py-1.5 rounded-lg font-bold hover:bg-amber-100 flex items-center gap-1"
                           >
-                            <Star size={12} /> Review
+                            <Star size={12} /> Review Vehicle Owner
                           </button>
                         )
                       )}
@@ -4280,6 +4361,73 @@ export const BookingDetail: React.FC = () => {
           }}
         />
       )}
+
+      {/* Assignment Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!assignmentConfirmModal?.isOpen}
+        title={assignmentConfirmModal?.type === 'remove' ? `Remove assigned ${assignmentConfirmModal?.role}?` : `Replace assigned ${assignmentConfirmModal?.role}?`}
+        body={
+          assignmentConfirmModal?.type === 'remove' 
+            ? `This will remove the assigned ${assignmentConfirmModal?.role} from this booking. The provider may be notified and the booking will need a replacement if this role is still required.`
+            : `This will remove the current ${assignmentConfirmModal?.role} and open the assignment search so you can choose a replacement.`
+        }
+        confirmLabel={
+          assignmentConfirmModal?.type === 'remove' 
+            ? `Remove ${assignmentConfirmModal?.role === 'vehicle' ? 'Vehicle' : 'Provider'}`
+            : `Continue to Replace`
+        }
+        isDestructive={assignmentConfirmModal?.type === 'remove'}
+        isProcessing={isProcessingAssignmentAction}
+        onCancel={() => setAssignmentConfirmModal(null)}
+        onConfirm={async () => {
+          if (!assignmentConfirmModal) return;
+          setIsProcessingAssignmentAction(true);
+          try {
+            if (assignmentConfirmModal.role === 'vehicle') {
+              if (assignmentConfirmModal.type === 'remove') {
+                await handleRemoveVehicle();
+              } else {
+                openResourceModal('vehicle', 'replace');
+              }
+            } else {
+              if (assignmentConfirmModal.type === 'remove') {
+                await handleRemoveAssignment(assignmentConfirmModal.assignmentId!, assignmentConfirmModal.role as 'driver' | 'guide');
+              } else {
+                await handleReplaceAssignment(assignmentConfirmModal.assignmentId!, assignmentConfirmModal.role as 'driver' | 'guide');
+              }
+            }
+            setAssignmentConfirmModal(null);
+          } catch (e) {
+            // Handled in sub-handlers
+          } finally {
+            setIsProcessingAssignmentAction(false);
+          }
+        }}
+      />
+
+      {/* Archive Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showArchiveConfirmModal}
+        title="Archive booking?"
+        body="This hides the trip from active lists. All payment history, assignments, disputes, and audit logs are safely preserved for reporting."
+        confirmLabel="Archive Booking"
+        isDestructive={false}
+        isProcessing={isArchiveProcessing}
+        onCancel={() => setShowArchiveConfirmModal(false)}
+        onConfirm={confirmArchive}
+      />
+
+      {/* Unarchive Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showUnarchiveConfirmModal}
+        title="Restore booking?"
+        body="This will return the booking to your active booking lists."
+        confirmLabel="Restore Booking"
+        isDestructive={false}
+        isProcessing={isArchiveProcessing}
+        onCancel={() => setShowUnarchiveConfirmModal(false)}
+        onConfirm={confirmUnarchive}
+      />
     </div>
   );
 };

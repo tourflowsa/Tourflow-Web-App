@@ -162,8 +162,8 @@ export function getCurrentAssignment(assignments: BookingAssignmentRow[], resour
 
   const latest = sorted[0];
   
-  // Active/Final/History: pending, accepted, completed, rejected
-  if (latest.status === 'pending' || latest.status === 'accepted' || latest.status === 'completed' || latest.status === 'rejected') {
+  // Active/Final/History: pending, accepted, completed, no_show
+  if (latest.status === 'pending' || latest.status === 'accepted' || latest.status === 'completed' || latest.status === 'no_show') {
     return latest;
   }
   
@@ -491,14 +491,18 @@ export async function cancelAssignmentByOperator(assignmentId: string, isReplace
       .eq('id', data.booking_id)
       .single();
 
+    let link = '#';
+    if (data.resource_type === 'driver') link = '/driver/assignments';
+    else if (data.resource_type === 'guide') link = '/guide/assignments';
+
     createNotification({
       user_id: data.resource_id,
       type: isReplacement ? 'ASSIGNMENT_REPLACED' : 'REMOVED_FROM_BOOKING',
       title: isReplacement ? 'Assignment Replaced' : 'Removed from Booking',
       message: isReplacement 
-        ? `You have been replaced for booking ${booking?.booking_reference || ''}.`
-        : `You have been removed from booking ${booking?.booking_reference || ''}.`,
-      link: '#'
+        ? `You have been replaced for booking ${booking?.booking_reference || 'a booking'}.`
+        : `You have been removed from booking ${booking?.booking_reference || 'a booking'}.`,
+      link
     }).catch(err => console.error('Failed to create notification:', err));
 
     // Audit Event

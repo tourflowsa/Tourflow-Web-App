@@ -20,6 +20,8 @@ import {
   Lock,
   ShieldCheck,
   DollarSign,
+  Archive,
+  RotateCcw,
   RefreshCw,
   X
 } from 'lucide-react';
@@ -28,6 +30,7 @@ import { BookingFinancialBreakdownView } from '../../components/bookings/Booking
 import { formatCurrency, formatDate } from '../../lib/formatUtils';
 import { markBookingFundsReceived, refreshBookingEscrowState } from '../../lib/escrowService';
 import { getBookingFinancialBreakdown, BookingFinancialBreakdown } from '../../lib/financialService';
+import { archiveBookingRpc, unarchiveBookingRpc } from '../../lib/bookingService';
 import { useAuth } from '../../contexts/AuthContext';
 
 type AnyRow = Record<string, any>;
@@ -35,7 +38,7 @@ type AnyRow = Record<string, any>;
 export const AdminBookingDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const [booking, setBooking] = useState<AnyRow | null>(null);
   const [vehicle, setVehicle] = useState<AnyRow | null>(null);
@@ -46,8 +49,12 @@ export const AdminBookingDetail: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [showEscrowModal, setShowEscrowModal] = useState(false);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [actioningArchive, setActioningArchive] = useState(false);
   const [escrowAmount, setEscrowAmount] = useState('');
   const [processingEscrow, setProcessingEscrow] = useState(false);
+  const [notice, setNotice] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   useEffect(() => {
     if (id) fetchDetail();
@@ -254,6 +261,36 @@ export const AdminBookingDetail: React.FC = () => {
     }
   };
 
+  const handleToggleArchive = async () => {
+    if (!id || !user || !booking) return;
+    
+    const isArchived = Boolean(booking.archived_at);
+    setActioningArchive(true);
+    setNotice(null);
+
+    try {
+      if (isArchived) {
+        await unarchiveBookingRpc(id);
+      } else {
+        await archiveBookingRpc(id);
+      }
+
+      setNotice({ 
+        type: 'success', 
+        text: isArchived ? 'Booking restored successfully.' : 'Booking archived successfully.' 
+      });
+      
+      await fetchDetail();
+      setShowArchiveModal(false);
+      setShowRestoreModal(false);
+    } catch (err: any) {
+      setNotice({ type: 'error', text: err.message || 'Failed to update archive state.' });
+    } finally {
+      setActioningArchive(false);
+      setTimeout(() => setNotice(null), 4000);
+    }
+  };
+
   const operatorProfile = booking.operator_profile || null;
   const operatorId = operatorProfile?.id ?? booking.operator_id ?? null;
 
@@ -280,8 +317,42 @@ export const AdminBookingDetail: React.FC = () => {
         >
           <ArrowLeft size={16} /> Back to Global List
         </button>
-        <div className="text-xs text-gray-400 font-mono">Booking ID: {booking.id}</div>
+        <div className="flex items-center gap-4">
+          {profile?.role === 'admin' && (
+            <button
+              onClick={() => {
+                if (booking.archived_at) setShowRestoreModal(true);
+                else setShowArchiveModal(true);
+              }}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg font-bold text-xs transition-all ${
+                booking.archived_at 
+                  ? 'bg-brand-teal/10 text-brand-teal hover:bg-brand-teal/20' 
+                  : 'bg-red-50 text-red-600 hover:bg-red-100'
+              }`}
+            >
+              {booking.archived_at ? (
+                <>
+                  <RotateCcw size={14} /> Restore Booking
+                </>
+              ) : (
+                <>
+                  <Archive size={14} /> Archive Booking
+                </>
+              )}
+            </button>
+          )}
+          <div className="text-xs text-gray-400 font-mono">Booking ID: {booking.id}</div>
+        </div>
       </div>
+
+      {notice && (
+        <div className={`mb-6 p-4 rounded-xl border flex items-center gap-3 font-bold text-sm ${
+          notice.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'
+        }`}>
+          {notice.type === 'success' ? <ShieldCheck size={18} /> : <AlertCircle size={18} />}
+          {notice.text}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
@@ -730,6 +801,86 @@ export const AdminBookingDetail: React.FC = () => {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showArchiveModal && (
+        <div className="fixed inset-0 bg-brand-charcoal/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-red-50/50">
+              <h3 className="font-bold text-red-800 flex items-center gap-2">
+                <Archive size={18} /> Archive booking?
+              </h3>
+              <button onClick={() => setShowArchiveModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                This hides the booking from active lists. Payment history, assignments, disputes, and audit records remain preserved.
+              </p>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowArchiveModal(false)}
+                  className="flex-1 py-3 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleToggleArchive}
+                  disabled={actioningArchive}
+                  className="flex-1 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {actioningArchive ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <>Archive Booking</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRestoreModal && (
+        <div className="fixed inset-0 bg-brand-charcoal/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-brand-teal/5">
+              <h3 className="font-bold text-brand-teal flex items-center gap-2">
+                <RotateCcw size={18} /> Restore booking?
+              </h3>
+              <button onClick={() => setShowRestoreModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                This returns the booking to active booking lists.
+              </p>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowRestoreModal(false)}
+                  className="flex-1 py-3 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleToggleArchive}
+                  disabled={actioningArchive}
+                  className="flex-1 py-3 bg-brand-teal text-white font-bold rounded-xl hover:bg-brand-teal/90 transition-colors shadow-lg shadow-brand-teal/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {actioningArchive ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <>Restore Booking</>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -46,6 +46,7 @@ interface VehicleFormValues {
   city: string;
 
   photos: VehiclePhoto[];
+  main_photo_url: string | null;
 }
 
 const DEFAULT_FORM: VehicleFormValues = {
@@ -75,7 +76,8 @@ const DEFAULT_FORM: VehicleFormValues = {
   country: 'South Africa',
   province: '',
   city: '',
-  photos: []
+  photos: [],
+  main_photo_url: null
 };
 
 const COMMON_MAKES = [
@@ -167,7 +169,8 @@ export const VehicleForm: React.FC<Props> = ({ initialData, onSubmit, loading, m
         country: 'South Africa', // Locked to South Africa
         province: (initialData as any).province || '',
         city: (initialData as any).city || '',
-        photos: initialData.photos || []
+        photos: initialData.photos || [],
+        main_photo_url: initialData.main_photo_url || null
       });
     }
   }, [initialData]);
@@ -266,6 +269,7 @@ export const VehicleForm: React.FC<Props> = ({ initialData, onSubmit, loading, m
       license_expiry: form.license_expiry || null,
       notes: form.notes,
       photos: form.photos,
+      main_photo_url: form.main_photo_url,
       // Location payload
       country: 'South Africa',
       province: form.province,

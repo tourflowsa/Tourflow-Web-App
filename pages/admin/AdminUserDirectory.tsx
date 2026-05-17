@@ -47,10 +47,14 @@ export const AdminUserDirectory: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
 
   const filteredUsers = users.filter(user => {
+    const roleLabel = user.role.replace('_', ' ').toLowerCase();
+    const searchLower = searchTerm.toLowerCase();
     const matchesSearch = 
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      user.email.toLowerCase().includes(searchLower) ||
+      user.full_name?.toLowerCase().includes(searchLower) ||
+      user.company_name?.toLowerCase().includes(searchLower) ||
+      user.role.toLowerCase().includes(searchLower) ||
+      roleLabel.includes(searchLower);
       
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     const matchesStatus = statusFilter === 'all' || user.verification_status === statusFilter;
@@ -78,7 +82,7 @@ export const AdminUserDirectory: React.FC = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input 
                 type="text"
-                placeholder="Search by name, company, email..."
+                placeholder="Search by name, company, email, role..."
                 value={searchTerm}
                 className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-teal focus:border-transparent outline-none"
                 onChange={(e) => setSearchTerm(e.target.value)}

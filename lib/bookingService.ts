@@ -600,7 +600,13 @@ export const getBookingById = async (bookingId: string, operatorId: string) => {
       escrow_total,
       escrow_held,
       escrow_released,
+      escrow_remaining,
+      pickup_location,
+      dropoff_location,
+      special_requests,
+      internal_notes,
       notes,
+      guest_phone,
       archived_at,
       archived_by,
       created_at,
@@ -890,8 +896,8 @@ export const updateBookingVehicleSnapshots = async (
         user_id: oldVehicle.owner_id,
         type: 'VEHICLE_REMOVED_FROM_BOOKING',
         title: 'Vehicle Removed from Booking',
-        message: `Your vehicle has been removed from booking ${currentBooking.booking_reference}.`,
-        link: '#'
+        message: `Your vehicle has been removed from booking ${currentBooking.booking_reference || 'a booking'}.`,
+        link: '/owner/vehicles'
       });
     }
   }
@@ -909,8 +915,8 @@ export const updateBookingVehicleSnapshots = async (
         user_id: vehicle.owner_id,
         type: 'VEHICLE_ASSIGNED_TO_BOOKING',
         title: 'Vehicle Assigned to Booking',
-        message: `Your vehicle has been assigned to booking ${data.booking_reference}.`,
-        link: '#'
+        message: `Your vehicle has been assigned to booking ${data.booking_reference || 'a booking'}.`,
+        link: '/owner/vehicles'
       });
     }
   }

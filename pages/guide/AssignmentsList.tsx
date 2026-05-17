@@ -273,7 +273,16 @@ export const AssignmentsList: React.FC = () => {
 
         <div className="flex items-center gap-4 w-full md:w-auto">
           {section === 'upcoming' && isPending && (
-            <div className="flex gap-2 flex-1 md:flex-none">
+            <div className="flex gap-2 flex-1 md:flex-none items-center">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/guide/assignments/${a.id}`);
+                }}
+                className="text-gray-500 font-bold text-sm hover:text-brand-charcoal transition-colors px-3 py-2"
+              >
+                View Details
+              </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -335,7 +344,11 @@ export const AssignmentsList: React.FC = () => {
             </button>
           )}
           {section === 'upcoming' && !isPending && (
-            <ChevronRight size={20} className="text-gray-300 hidden md:block" />
+            <button 
+              className="flex items-center text-brand-teal font-bold text-sm group px-3 py-2"
+            >
+              View Details <ChevronRight size={16} className="ml-1 group-hover:translate-x-1 transition-transform" />
+            </button>
           )}
         </div>
       </div>

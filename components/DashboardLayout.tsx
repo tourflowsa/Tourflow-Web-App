@@ -210,31 +210,50 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
         )}
       </div>
 
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            end={item.path === "/dashboard" || item.path === "/owner" || item.path === "/admin" || item.path === "/admin/payouts"}
-            onClick={() => isMobile && setIsMobileMenuOpen(false)}
-            className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 ${
-              isActive 
-                ? 'bg-brand-teal text-white shadow-lg shadow-brand-teal/20 translate-x-1' 
-                : 'text-gray-300 hover:bg-gray-700 hover:text-white hover:translate-x-1'
-            }`}
-          >
-            {item.icon}
-            <span className="font-medium text-sm">
-              {item.label}
-              {(item.label === 'Requests' || item.label === 'Trip Requests' || item.label === 'Vehicle Requests') && pendingCount > 0 && ` (${pendingCount})`}
-              {item.label === 'Assignments' && pendingAssignmentsCount > 0 && ` (${pendingAssignmentsCount})`}
-              {item.label === 'Disputes' && disputeCount > 0 && <span className="ml-2 bg-brand-coral text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{disputeCount}</span>}
-              {item.label === 'Document Reviews' && pendingDocsCount > 0 && <span className="ml-2 bg-brand-teal text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{pendingDocsCount}</span>}
-              {item.label === 'User Verification' && pendingVerificationCount > 0 && <span className="ml-2 bg-yellow-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{pendingVerificationCount}</span>}
-              {item.label === 'Payouts' && requestedWithdrawalsCount > 0 && <span className="ml-2 bg-brand-teal text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{requestedWithdrawalsCount}</span>}
-            </span>
-          </NavLink>
-        ))}
+      <nav className={`flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar ${isMobile ? 'pb-20' : ''}`}>
+        {navItems.map((item) => {
+          const state = location.state as any;
+          const fromDirectory = state?.fromDirectory;
+          
+          // Deep route matching for specific parent paths to ensure they stay highlighted on detail pages
+          const isDeepActive = !["/dashboard", "/owner", "/admin", "/admin/payouts"].includes(item.path) && 
+                              location.pathname.startsWith(item.path + '/');
+
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.path === "/dashboard" || item.path === "/owner" || item.path === "/admin" || item.path === "/admin/payouts"}
+              onClick={() => isMobile && setIsMobileMenuOpen(false)}
+              className={({ isActive }) => {
+                let effectivelyActive = isActive || isDeepActive;
+                
+                // Force highlight directory if we came from there
+                if (fromDirectory) {
+                  if (item.path === '/operator/directory') effectivelyActive = true;
+                  if (item.path === '/operator/vehicles') effectivelyActive = false;
+                }
+
+                return `flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 ${
+                  effectivelyActive 
+                    ? 'bg-brand-teal text-white shadow-lg shadow-brand-teal/20 translate-x-1' 
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white hover:translate-x-1'
+                }`;
+              }}
+            >
+              {item.icon}
+              <span className="font-medium text-sm">
+                {item.label}
+                {(item.label === 'Requests' || item.label === 'Trip Requests' || item.label === 'Vehicle Requests') && pendingCount > 0 && ` (${pendingCount})`}
+                {item.label === 'Assignments' && pendingAssignmentsCount > 0 && ` (${pendingAssignmentsCount})`}
+                {item.label === 'Disputes' && disputeCount > 0 && <span className="ml-2 bg-brand-coral text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{disputeCount}</span>}
+                {item.label === 'Document Reviews' && pendingDocsCount > 0 && <span className="ml-2 bg-brand-teal text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{pendingDocsCount}</span>}
+                {item.label === 'User Verification' && pendingVerificationCount > 0 && <span className="ml-2 bg-yellow-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{pendingVerificationCount}</span>}
+                {item.label === 'Payouts' && requestedWithdrawalsCount > 0 && <span className="ml-2 bg-brand-teal text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{requestedWithdrawalsCount}</span>}
+              </span>
+            </NavLink>
+          );
+        })}
       </nav>
 
       <div className="p-4 border-t border-gray-700">

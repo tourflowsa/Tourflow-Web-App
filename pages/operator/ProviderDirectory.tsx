@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -40,7 +40,8 @@ import {
   Info,
   Edit2,
   Building2,
-  Shield
+  Shield,
+  Star
 } from 'lucide-react';
 import { ProviderCard } from '../../components/providers/ProviderCard';
 
@@ -210,6 +211,23 @@ export const ProviderDirectory: React.FC = () => {
     });
   };
 
+  const vehicleRatingSummaries = useMemo(() => {
+    const ids = Array.from(new Set(results.map(v => v.owner_id).filter(Boolean)));
+    return ids;
+  }, [results]);
+
+  const [vehicleRatings, setVehicleRatings] = useState<Record<string, RatingSummary>>({});
+
+  useEffect(() => {
+    const fetchVehicleRatings = async () => {
+      if (vehicleRatingSummaries.length > 0) {
+        const summaries = await getProviderRatingSummaries(vehicleRatingSummaries);
+        setVehicleRatings(summaries);
+      }
+    };
+    fetchVehicleRatings();
+  }, [vehicleRatingSummaries]);
+
   const filteredVehicleResults = results.filter(v => {
     if (!isVehiclesVerifiedOnly) return true;
     return getProfileFromVehicle(v).some((p: any) => isVerifiedStatus(p.verification_status));
@@ -336,7 +354,7 @@ export const ProviderDirectory: React.FC = () => {
       setResults(data);
     } catch (e) {
       console.error('[ProviderDirectory] Search execution error:', e);
-      showToast("Search failed.", 'error');
+      showToast("Your search could not be completed. Please check your filters and try again.", 'error');
     } finally {
       setLoading(false);
     }
@@ -744,7 +762,8 @@ export const ProviderDirectory: React.FC = () => {
                               searchQuery, 
                               driverSearchQuery, 
                               guideSearchQuery, 
-                              autoSearch: true 
+                              autoSearch: true,
+                              fromDirectory: true
                             } 
                           })}
                           className="p-1.5 text-gray-400 hover:text-brand-teal transition-colors"
@@ -762,7 +781,23 @@ export const ProviderDirectory: React.FC = () => {
                     )}
 
                       <div className="mt-auto pt-4">
-                        <div className="flex flex-wrap gap-2 mb-4">
+                      <div className="flex items-center gap-1">
+                        {vehicleRatings[v.owner_id] && vehicleRatings[v.owner_id].total_reviews > 0 ? (
+                          <>
+                            <Star size={12} className="text-amber-400 fill-amber-400" />
+                            <span className="text-xs font-bold text-brand-charcoal ml-0.5">{vehicleRatings[v.owner_id].average_rating.toFixed(1)}</span>
+                            <span className="text-[10px] text-gray-400 ml-1">({vehicleRatings[v.owner_id].total_reviews})</span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-0.5">
+                              {[1,2,3,4,5].map(i => <Star key={i} size={10} className="text-gray-200 fill-gray-100" />)}
+                            </div>
+                            <span className="text-[10px] text-gray-400 font-bold ml-1">No reviews yet</span>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2 mb-4">
                           <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-2xl font-bold uppercase">{v.fuel_type}</span>
                           <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-2xl font-bold uppercase">{v.body_type}</span>
                           <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-2xl font-bold uppercase">{v.transmission}</span>
@@ -777,7 +812,8 @@ export const ProviderDirectory: React.FC = () => {
                                 searchQuery, 
                                 driverSearchQuery, 
                                 guideSearchQuery, 
-                                autoSearch: true 
+                                autoSearch: true,
+                                fromDirectory: true 
                               } 
                             })}
                             className="w-full flex items-center justify-center gap-2 py-2.5 bg-brand-teal text-white font-bold rounded-2xl hover:bg-brand-teal/90 transition-all text-sm cursor-pointer"
@@ -785,30 +821,66 @@ export const ProviderDirectory: React.FC = () => {
                             View details
                           </button>
                         ) : isPending ? (
-                          <button 
-                            type="button"
-                            disabled
-                            className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-100 text-gray-400 font-bold rounded-2xl text-sm cursor-not-allowed"
-                          >
-                            <Clock size={16} /> Link request pending
-                          </button>
+                          <div className="flex flex-col gap-2">
+                             <button 
+                                type="button"
+                                onClick={() => navigate(`/operator/vehicles/${v.id}`, { 
+                                   state: { 
+                                     activeTab, 
+                                     searchQuery, 
+                                     driverSearchQuery, 
+                                     guideSearchQuery, 
+                                     autoSearch: true,
+                                     fromDirectory: true 
+                                   } 
+                                 })}
+                                className="w-full py-2.5 bg-brand-teal text-white font-bold rounded-2xl hover:bg-brand-teal/90 transition-all text-sm cursor-pointer"
+                             >
+                               View details
+                             </button>
+                             <button 
+                                type="button"
+                                disabled
+                                className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-50 text-gray-400 font-bold rounded-2xl text-sm cursor-not-allowed"
+                             >
+                               <Clock size={16} /> Link request pending
+                             </button>
+                          </div>
                         ) : (
-                          <button 
-                            type="button"
-                            onClick={() => navigate(`/operator/vehicles/${v.id}`, { 
-                              state: { 
-                                ...location.state,
-                                activeTab, 
-                                searchQuery, 
-                                driverSearchQuery, 
-                                guideSearchQuery, 
-                                autoSearch: true 
-                              } 
-                            })}
-                            className="w-full flex items-center justify-center gap-2 py-2.5 bg-brand-charcoal text-white font-bold rounded-2xl hover:bg-black transition-all text-sm cursor-pointer"
-                          >
-                            Request link
-                          </button>
+                          <div className="flex flex-col gap-2">
+                             <button 
+                                type="button"
+                                onClick={() => navigate(`/operator/vehicles/${v.id}`, { 
+                                   state: { 
+                                     activeTab, 
+                                     searchQuery, 
+                                     driverSearchQuery, 
+                                     guideSearchQuery, 
+                                     autoSearch: true,
+                                     fromDirectory: true 
+                                   } 
+                                 })}
+                                className="w-full py-2.5 bg-brand-teal text-white font-bold rounded-2xl hover:bg-brand-teal/90 transition-all text-sm cursor-pointer"
+                             >
+                               View details
+                             </button>
+                             <button 
+                                type="button"
+                                onClick={() => navigate(`/operator/vehicles/${v.id}`, { 
+                                  state: { 
+                                    ...location.state,
+                                    activeTab, 
+                                    searchQuery, 
+                                    driverSearchQuery, 
+                                    guideSearchQuery, 
+                                    autoSearch: true 
+                                  } 
+                                })}
+                                className="w-full flex items-center justify-center gap-2 py-2.5 bg-brand-charcoal text-white font-bold rounded-2xl hover:bg-black transition-all text-sm cursor-pointer"
+                             >
+                               Request link
+                             </button>
+                          </div>
                         )}
                       </div>
                   </div>

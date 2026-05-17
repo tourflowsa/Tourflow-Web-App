@@ -354,6 +354,7 @@ export interface Vehicle {
   
   // Media
   photos?: VehiclePhoto[];
+  main_photo_url?: string | null;
   
   // Joins
   profiles?: UserProfile;

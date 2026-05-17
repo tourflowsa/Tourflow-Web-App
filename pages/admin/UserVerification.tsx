@@ -8,6 +8,7 @@ export const UserVerification: React.FC = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<VerificationStatus | 'all'>('pending');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     fetchUsers();
@@ -25,6 +26,17 @@ export const UserVerification: React.FC = () => {
     if (data) setUsers(data as UserProfile[]);
     setLoading(false);
   };
+
+  const filteredUsers = users.filter(u => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return (
+      (u.full_name?.toLowerCase() || '').includes(s) ||
+      (u.company_name?.toLowerCase() || '').includes(s) ||
+      (u.email?.toLowerCase() || '').includes(s) ||
+      (u.role.replace('_', ' ').toLowerCase()).includes(s)
+    );
+  });
 
   const getStatusBadge = (status: VerificationStatus) => {
     switch(status) {
@@ -59,7 +71,30 @@ export const UserVerification: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden mb-6">
+        <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+          <div className="relative max-w-md">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-teal focus:border-transparent sm:text-sm transition-all"
+              placeholder="Search by name, company, email, or role"
+            />
+            {search && (
+              <button 
+                onClick={() => setSearch('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+              >
+                <XCircle size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
@@ -73,21 +108,26 @@ export const UserVerification: React.FC = () => {
           <tbody className="divide-y divide-gray-100">
             {loading ? (
               <tr><td colSpan={5} className="p-8 text-center text-gray-400">Loading users...</td></tr>
-            ) : users.length === 0 ? (
+            ) : filteredUsers.length === 0 ? (
                <tr>
                  <td colSpan={5} className="p-16 text-center text-gray-500">
-                   {filter === 'pending' ? (
+                   {search ? (
                      <div className="flex flex-col items-center justify-center gap-2">
-                        <p className="text-lg font-medium text-gray-600">No pending users to review.</p>
-                        <p className="text-sm">Verified and rejected users are still available in the other tabs.</p>
+                        <p className="text-lg font-medium text-gray-600">No users match your search.</p>
+                        <p className="text-sm">Try clearing your search or checking another tab.</p>
                      </div>
-                   ) : (
-                     "No users found for this filter."
-                   )}
+                   ) : filter === 'pending' ? (
+                      <div className="flex flex-col items-center justify-center gap-2">
+                         <p className="text-lg font-medium text-gray-600">No pending users to review.</p>
+                         <p className="text-sm">Verified and rejected users are still available in the other tabs.</p>
+                      </div>
+                    ) : (
+                      "No users found for this filter."
+                    )}
                  </td>
                </tr>
             ) : (
-              users.map(u => (
+              filteredUsers.map(u => (
                 <tr key={u.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div>

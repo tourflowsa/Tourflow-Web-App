@@ -556,7 +556,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+        <Link to="/admin/verification" className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm transition-all hover:shadow-md group">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-brand-gold/10 text-brand-gold rounded-2xl">
               <AlertTriangle size={24} className="text-yellow-600" />
@@ -565,8 +565,9 @@ export const AdminDashboard: React.FC = () => {
               <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Verification Pending</p>
               <p className="text-3xl font-bold text-brand-charcoal">{loading ? '...' : metrics?.pending_verification ?? 0}</p>
             </div>
+            <ArrowUpRight className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-brand-gold" size={16} />
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Action Required: Bookings */}
@@ -587,44 +588,53 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+          <Link to="/admin/bookings" className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm transition-all hover:shadow-md group">
             <div className="flex items-start justify-between mb-4">
               <div className="p-2 bg-brand-charcoal/10 text-brand-charcoal rounded-lg">
                 <Users size={20} />
               </div>
-              <span title="Confirmed bookings with no driver or guide assigned.">
-                <Info size={14} className="text-gray-300 cursor-help" />
-              </span>
+              <div className="flex items-center gap-2">
+                <span title="Confirmed bookings with no driver or guide assigned.">
+                  <Info size={14} className="text-gray-300 cursor-help" />
+                </span>
+                <ArrowUpRight className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-charcoal" size={16} />
+              </div>
             </div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Unassigned Bookings</p>
             <p className="text-3xl font-bold text-brand-charcoal">{loading ? '...' : bookingsOverview.unassigned}</p>
-          </div>
+          </Link>
 
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+          <Link to="/admin/bookings" className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm transition-all hover:shadow-md group">
             <div className="flex items-start justify-between mb-4">
               <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
                 <UserCheck size={20} />
               </div>
-              <span title="Assigned driver has not accepted.">
-                <Info size={14} className="text-gray-300 cursor-help" />
-              </span>
+              <div className="flex items-center gap-2">
+                <span title="Assigned driver has not accepted.">
+                  <Info size={14} className="text-gray-300 cursor-help" />
+                </span>
+                <ArrowUpRight className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-600" size={16} />
+              </div>
             </div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Pending Acceptance</p>
             <p className="text-3xl font-bold text-brand-charcoal">{loading ? '...' : bookingsOverview.pendingAcceptance}</p>
-          </div>
+          </Link>
 
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm border-l-4 border-l-brand-coral">
+          <Link to="/admin/bookings" className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm border-l-4 border-l-brand-coral transition-all hover:shadow-md group">
             <div className="flex items-start justify-between mb-4">
               <div className="p-2 bg-red-100 text-red-600 rounded-lg">
                 <CalendarDays size={20} />
               </div>
-              <span title="Starts within 24 hours with no accepted driver.">
-                <Info size={14} className="text-gray-300 cursor-help" />
-              </span>
+              <div className="flex items-center gap-2">
+                <span title="Starts within 24 hours with no accepted driver.">
+                  <Info size={14} className="text-gray-300 cursor-help" />
+                </span>
+                <ArrowUpRight className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-coral" size={16} />
+              </div>
             </div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Urgent: 24h No Driver</p>
             <p className="text-3xl font-bold text-red-600">{loading ? '...' : bookingsOverview.urgent}</p>
-          </div>
+          </Link>
         </div>
 
         <div className="mt-4 flex items-center gap-2 text-xs text-gray-500">
@@ -641,31 +651,37 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+          <Link to="/admin/users" className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm transition-all hover:shadow-md group">
             <div className="flex items-start justify-between mb-4">
               <div className="p-2 bg-brand-coral/10 text-brand-coral rounded-lg">
                 <FileWarning size={20} />
               </div>
-              <span title="Active drivers missing required documents.">
-                <Info size={14} className="text-gray-300 cursor-help" />
-              </span>
+              <div className="flex items-center gap-2">
+                <span title="Active drivers missing required documents.">
+                  <Info size={14} className="text-gray-300 cursor-help" />
+                </span>
+                <ArrowUpRight className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-coral" size={16} />
+              </div>
             </div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Drivers Missing Docs</p>
             <p className="text-3xl font-bold text-brand-charcoal">{loading ? '...' : row?.drivers_missing_required_docs ?? 0}</p>
-          </div>
+          </Link>
 
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+          <Link to="/admin/users" className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm transition-all hover:shadow-md group">
             <div className="flex items-start justify-between mb-4">
               <div className="p-2 bg-brand-gold/10 text-brand-gold rounded-lg">
                 <Clock size={20} className="text-yellow-600" />
               </div>
-              <span title="Documents expiring within 30 days.">
-                <Info size={14} className="text-gray-300 cursor-help" />
-              </span>
+              <div className="flex items-center gap-2">
+                <span title="Documents expiring within 30 days.">
+                  <Info size={14} className="text-gray-300 cursor-help" />
+                </span>
+                <ArrowUpRight className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-gold" size={16} />
+              </div>
             </div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Docs Expiring 30 Days</p>
             <p className="text-3xl font-bold text-brand-charcoal">{loading ? '...' : row?.docs_expiring_30d ?? 0}</p>
-          </div>
+          </Link>
         </div>
       </div>
 

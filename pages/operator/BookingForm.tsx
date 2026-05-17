@@ -29,6 +29,9 @@ export const BookingForm: React.FC = () => {
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [pickupLocation, setPickupLocation] = useState('');
+  const [dropoffLocation, setDropoffLocation] = useState('');
+  const [specialRequests, setSpecialRequests] = useState('');
   
   // Computed State
   const [selectedTour, setSelectedTour] = useState<Tour | null>(null);
@@ -162,6 +165,9 @@ export const BookingForm: React.FC = () => {
         applied_platform_fee: 0,
         applied_fee_amount: 0,
         applied_net_amount: 0,
+        pickup_location: pickupLocation || null,
+        dropoff_location: dropoffLocation || null,
+        special_requests: specialRequests || null,
         notes: null
       };
 
@@ -246,7 +252,9 @@ export const BookingForm: React.FC = () => {
         applied_net_amount: appliedNetAmount,
         applied_fee_tier_id: feeResolution.feeTierId,
         applied_fee_tier_code: feeResolution.feeTierCode,
-
+        pickup_location: pickupLocation || null,
+        dropoff_location: dropoffLocation || null,
+        special_requests: specialRequests || null,
         notes: null
       };
 
@@ -418,6 +426,47 @@ export const BookingForm: React.FC = () => {
                    onChange={(e) => setGuestCount(Number(e.target.value))}
                  />
                </div>
+
+               {/* Trip Logistics */}
+                <div className="pt-4 border-t border-gray-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <MapPin size={18} className="text-brand-teal" />
+                    <h3 className="font-bold text-gray-900">Trip Logistics</h3>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-4 font-medium italic">These details help assigned drivers, guides, and vehicle owners prepare for the trip.</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-600 mb-1">Pickup Location</label>
+                      <input 
+                        type="text" 
+                        className="w-full border border-gray-300 rounded-lg p-2 focus:ring-1 focus:ring-brand-teal outline-none"
+                        value={pickupLocation}
+                        onChange={(e) => setPickupLocation(e.target.value)}
+                        placeholder="e.g. Cape Town International Airport"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-600 mb-1">Dropoff Location</label>
+                      <input 
+                        type="text" 
+                        className="w-full border border-gray-300 rounded-lg p-2 focus:ring-1 focus:ring-brand-teal outline-none"
+                        value={dropoffLocation}
+                        onChange={(e) => setDropoffLocation(e.target.value)}
+                        placeholder="e.g. Hotel in Camps Bay"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                       <label className="block text-sm font-bold text-gray-600 mb-1">Special Requests</label>
+                       <textarea 
+                         className="w-full border border-gray-300 rounded-lg p-3 min-h-[100px] focus:ring-1 focus:ring-brand-teal outline-none resize-none"
+                         value={specialRequests}
+                         onChange={(e) => setSpecialRequests(e.target.value)}
+                         placeholder="e.g. VIP guest, accessibility needs, luggage notes, dietary requirements, timing instructions"
+                       />
+                    </div>
+                  </div>
+                </div>
 
                {/* Customer Info */}
                <div className="pt-4 border-t border-gray-100">

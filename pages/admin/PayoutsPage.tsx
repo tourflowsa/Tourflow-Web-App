@@ -357,7 +357,7 @@ export const AdminPayoutsPage: React.FC = () => {
   const handleAuthorizeAvailability = async () => {
     const actorId = user?.id || profile?.id;
     if (!actorId) {
-      setError('Unable to authorize payouts. Missing user identity.');
+      setError('Authorization error: your admin session may have expired. Please log in again.');
       return;
     }
 
@@ -461,7 +461,7 @@ export const AdminPayoutsPage: React.FC = () => {
     const actorId = user?.id || profile?.id;
 
     if (!actorId) {
-      setError('Unable to process payouts. Missing user identity.');
+      setError('Authorization error: your admin session may have expired. Please log in again.');
       return;
     }
 

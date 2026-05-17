@@ -168,7 +168,7 @@ export const DocumentReviews: React.FC = () => {
       setMessage({ type: 'success', text: "Document approved successfully" });
       setApproveDoc(null);
     } catch (err: any) {
-      setMessage({ type: 'error', text: "Approval Failed: " + err.message });
+      setMessage({ type: 'error', text: "We couldn't approve this document. " + (err.message || "") });
     } finally {
       setProcessing(false);
     }
@@ -192,7 +192,7 @@ export const DocumentReviews: React.FC = () => {
       setRejectReason('');
       setMessage({ type: 'success', text: "Document rejected successfully" });
     } catch (err: any) {
-      setMessage({ type: 'error', text: "Reject Failed: " + err.message });
+      setMessage({ type: 'error', text: "We couldn't reject this document. " + (err.message || "") });
     } finally {
       setProcessing(false);
     }

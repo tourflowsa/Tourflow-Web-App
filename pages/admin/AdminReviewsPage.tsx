@@ -105,7 +105,7 @@ export const AdminReviewsPage: React.FC = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input 
                 type="text"
-                placeholder="Reference or text..."
+                placeholder="Search review text..."
                 className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-teal focus:border-brand-teal outline-none transition-all"
                 value={filters.search}
                 onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
@@ -229,7 +229,10 @@ export const AdminReviewsPage: React.FC = () => {
                               {review.provider?.company_name || review.provider?.full_name || 'Unknown'}
                             </span>
                             <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                              {review.provider_type.replace('_', ' ')}
+                              {review.provider_type === 'driver' ? 'Driver' : 
+                               review.provider_type === 'guide' ? 'Guide' : 
+                               review.provider_type === 'vehicle_owner' ? 'Vehicle Owner' : 
+                               (review.provider_type || 'Unknown')}
                             </span>
                           </div>
                         </div>

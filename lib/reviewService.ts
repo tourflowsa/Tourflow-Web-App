@@ -220,7 +220,7 @@ export const getAllReviews = async (filters?: ReviewFilters): Promise<(Review & 
   }
 
   if (filters?.rating) {
-    query = query.eq('rating', filters.rating);
+    query = query.gte('rating', filters.rating);
   }
 
   if (filters?.startDate) {

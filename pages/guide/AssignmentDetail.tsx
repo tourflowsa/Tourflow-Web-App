@@ -328,7 +328,7 @@ export const AssignmentDetail: React.FC = () => {
             <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
               <div className="flex justify-between items-start mb-3">
                 <h3 className="font-bold text-gray-700 flex items-center gap-2">
-                  <Banknote size={18} className="text-brand-teal" /> Agreed Rate
+                  <Banknote size={18} className="text-brand-teal" /> Agreed Rate Snapshot
                 </h3>
                 {isAccepted && (
                   <span className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase">
@@ -338,10 +338,11 @@ export const AssignmentDetail: React.FC = () => {
               </div>
               <div className="space-y-2 text-sm">
                 <div>
-                  <span className="block text-xs text-gray-400 uppercase font-bold mb-0.5">Payment</span>
+                  <span className="block text-xs text-gray-400 uppercase font-bold mb-0.5 text-gray-400">Payment</span>
                   <span className="font-bold text-brand-charcoal">
                     ZAR {assignment.rate_amount?.toLocaleString()} / {assignment.rate_type}
                   </span>
+                  <p className="text-[10px] text-gray-400 mt-1 italic">This is the rate captured when the assignment was sent.</p>
                 </div>
                 {assignment.rate_overridden && (
                   <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-brand-teal/10 text-brand-teal text-[10px] font-bold uppercase rounded">
@@ -350,6 +351,41 @@ export const AssignmentDetail: React.FC = () => {
                 )}
               </div>
             </div>
+          </div>
+
+          <div className="p-6 bg-gray-50/50 rounded-2xl border border-gray-100">
+            <h3 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
+              <Info size={18} className="text-brand-teal" /> Trip Logistics
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <span className="block text-xs text-gray-400 uppercase font-bold mb-1">Pickup Location</span>
+                <span className="text-sm font-medium text-brand-charcoal">
+                  {assignment.bookings?.pickup_location || 'Not provided'}
+                </span>
+              </div>
+              <div>
+                <span className="block text-xs text-gray-400 uppercase font-bold mb-1">Dropoff Location</span>
+                <span className="text-sm font-medium text-brand-charcoal">
+                  {assignment.bookings?.dropoff_location || 'Not provided'}
+                </span>
+              </div>
+              <div>
+                <span className="block text-xs text-gray-400 uppercase font-bold mb-1">Number of Guests</span>
+                <span className="text-sm font-medium text-brand-charcoal">
+                  {assignment.bookings?.num_guests || 'Not provided'}
+                </span>
+              </div>
+            </div>
+
+            {assignment.bookings?.special_requests && (
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                <span className="block text-xs text-blue-600 uppercase font-bold mb-2">Special Requests</span>
+                <p className="text-sm text-blue-800 leading-relaxed italic">
+                  "{assignment.bookings.special_requests}"
+                </p>
+              </div>
+            )}
           </div>
 
           {assignment.bookings?.status === 'completed' && (

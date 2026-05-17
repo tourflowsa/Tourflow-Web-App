@@ -194,7 +194,7 @@ export const MyRequestsPage: React.FC = () => {
       setDraftBookings(validBookings);
     } catch (err) {
       console.error('Failed to fetch bookings:', err);
-      setError('Failed to load bookings.');
+      setError("We couldn't retrieve your bookings list. Please refresh the page.");
     } finally {
       setLoadingDrafts(false);
     }

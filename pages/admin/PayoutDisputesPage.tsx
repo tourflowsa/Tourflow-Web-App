@@ -106,7 +106,7 @@ export const PayoutDisputesPage: React.FC = () => {
       await fetchDisputes();
     } catch (err: any) {
       console.error(err);
-      setResolveError(err.message || 'Failed to resolve dispute');
+      setResolveError(err.message || "We couldn't resolve this dispute. Please try again.");
     } finally {
       setResolveSubmitting(false);
     }

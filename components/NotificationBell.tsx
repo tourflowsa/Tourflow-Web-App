@@ -58,6 +58,9 @@ export const NotificationBell: React.FC = () => {
       case 'WITHDRAWAL_REJECTED': return <XCircle size={14} />;
       case 'BOOKING_CANCELLED': return <CalendarX size={14} />;
       case 'BOOKING_NO_SHOW': return <AlertTriangle size={14} />;
+      case 'ASSIGNMENT_REPLACED': return <AlertTriangle size={14} />;
+      case 'VEHICLE_ASSIGNED_TO_BOOKING': return <CalendarCheck size={14} />;
+      case 'VEHICLE_REMOVED_FROM_BOOKING': return <CalendarX size={14} />;
       default: return <Bell size={14} />;
     }
   };
@@ -74,6 +77,7 @@ export const NotificationBell: React.FC = () => {
       case 'ASSIGNMENT_REJECTED':
       case 'DOCUMENT_REJECTED':
       case 'REMOVED_FROM_BOOKING':
+      case 'VEHICLE_REMOVED_FROM_BOOKING':
       case 'WITHDRAWAL_REJECTED':
       case 'BOOKING_CANCELLED':
       case 'BOOKING_NO_SHOW':
@@ -81,9 +85,11 @@ export const NotificationBell: React.FC = () => {
       
       case 'PAYOUT_HOLD':
       case 'NEW_DISPUTE':
+      case 'ASSIGNMENT_REPLACED':
         return 'text-amber-600 bg-amber-50';
       
       case 'ASSIGNED_TO_BOOKING':
+      case 'VEHICLE_ASSIGNED_TO_BOOKING':
       case 'NEW_DOCUMENT_UPLOADED':
       case 'NEW_REVIEW':
       case 'PAYOUT_APPROVED':

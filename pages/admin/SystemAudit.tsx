@@ -149,7 +149,7 @@ export const SystemAudit: React.FC = () => {
         </div>
         <div className="flex items-center gap-2 text-xs font-bold text-gray-400 bg-white px-4 py-2 rounded-lg border border-gray-200">
           <Activity size={14} className="text-brand-teal" />
-          REFRESHING AUTOMATICALLY
+          Newest First
         </div>
       </div>
 

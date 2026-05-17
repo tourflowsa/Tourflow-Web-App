@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Document, DocumentType, UserRole } from '../../types';
 import { getRequirementsForRole, DOCUMENT_DEFINITIONS, checkComplianceSummary, computeDerivedStatus } from '../../lib/complianceRequirements';
@@ -207,6 +208,15 @@ export const DocumentManager: React.FC<Props> = ({ role, userId, onUpdate }) => 
             })
           )}
         </div>
+      </div>
+
+      <div className="text-center pb-4">
+        <p className="text-sm text-gray-500">
+          Questions about compliance?{' '}
+          <Link to="/contact?topic=document" className="text-brand-teal font-medium hover:underline">
+            Contact Support
+          </Link>
+        </p>
       </div>
     </div>
   );

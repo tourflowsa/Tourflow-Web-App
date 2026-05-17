@@ -348,23 +348,31 @@ export const GuideDashboard: React.FC = () => {
                       </div>
                     </div>
                     <div className="shrink-0 flex items-center gap-3">
-                       {a.status === 'accepted' ? (
-                         <button 
-                           onClick={() => navigate(`/guide/assignments/${a.id}`)}
-                           className="flex items-center text-brand-teal font-bold text-sm group"
-                         >
-                           View Details <ChevronRight size={16} className="ml-1 group-hover:translate-x-1 transition-transform" />
-                         </button>
-                       ) : a.status === 'pending' ? (
-                         <button 
-                           onClick={(e) => { e.stopPropagation(); handleAccept(a.id, a.bookings?.id); }}
-                           disabled={processingId === a.id}
-                           className="flex items-center gap-2 bg-brand-teal text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-brand-teal/90 transition-colors disabled:opacity-50 shadow-sm"
-                         >
-                           {processingId === a.id ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                           Accept Tour
-                         </button>
-                       ) : null}
+                      {a.status === 'pending' ? (
+                        <>
+                          <button 
+                            onClick={() => navigate(`/guide/assignments/${a.id}`)}
+                            className="text-gray-500 font-bold text-sm hover:text-brand-charcoal transition-colors px-3 py-2"
+                          >
+                            View Details
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleAccept(a.id, a.bookings?.id); }}
+                            disabled={processingId === a.id}
+                            className="flex items-center gap-2 bg-brand-teal text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-brand-teal/90 transition-colors disabled:opacity-50 shadow-sm"
+                          >
+                            {processingId === a.id ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                            Accept Tour
+                          </button>
+                        </>
+                      ) : (
+                        <button 
+                          onClick={() => navigate(`/guide/assignments/${a.id}`)}
+                          className="flex items-center text-brand-teal font-bold text-sm group px-3 py-2"
+                        >
+                          View Details <ChevronRight size={16} className="ml-1 group-hover:translate-x-1 transition-transform" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
