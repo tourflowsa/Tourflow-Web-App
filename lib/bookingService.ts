@@ -6,6 +6,7 @@ import { createPayoutLedgerForBooking, getPayoutLedgersForBooking, isBookingFina
 import { getCurrentAssignment } from './assignmentService';
 import { syncBookingFinancialSnapshot, syncBookingPlatformFeeSnapshot } from './financialService';
 import { toLocalDateString } from './formatUtils';
+import { canAssignProvider, canAssignVehicle } from './compliance';
 
 export const createVehicleAvailabilityRequest = async (
   operatorId: string,
@@ -1833,6 +1834,9 @@ export const createRecurringBookings = async (
       notes,
       start_date,
       end_date,
+      pickup_location,
+      dropoff_location,
+      special_requests,
       vehicle_id,
       vehicle_rate_type,
       vehicle_rate_amount,
@@ -1912,6 +1916,9 @@ export const createRecurringBookings = async (
         vat_amount: source.vat_amount,
         total_amount: source.total_amount,
         notes: source.notes || `Recurring booking from ${source.booking_reference}`,
+        pickup_location: source.pickup_location,
+        dropoff_location: source.dropoff_location,
+        special_requests: source.special_requests,
         // Pricing snapshots
         vehicle_id: config.includeResources ? source.vehicle_id : null,
         vehicle_rate_type: config.includeResources ? source.vehicle_rate_type : null,
@@ -1936,33 +1943,88 @@ export const createRecurringBookings = async (
 
       // Carry forward resources
       if (config.includeResources) {
-        // Driver
+        // 1. Driver
         const driverAssignment = getCurrentAssignment(sourceAssignments, 'driver');
         if (driverAssignment) {
-          const { error: driverErr } = await supabase.rpc('rpc_operator_assign_resource', {
-            p_booking_id: newBooking.id,
-            p_resource_id: driverAssignment.resource_id,
-            p_resource_type: 'driver',
-            p_rate_overridden: false
-          });
-          if (driverErr) {
-            console.error('Error carrying forward driver:', driverErr);
-            warnings.push(`Failed to carry forward driver for booking ${ref}`);
+          const compliance = await canAssignProvider(driverAssignment.resource_id, 'driver');
+          const hasConflict = await checkProviderConflicts(
+            driverAssignment.resource_id,
+            datePair.start.toISOString(),
+            datePair.end.toISOString(),
+            newBooking.id
+          );
+
+          if (!compliance.canAssign) {
+            warnings.push(`Booking ${ref}: Driver could not be reused due to compliance: ${compliance.blockers.join(', ')}`);
+          } else if (hasConflict) {
+            warnings.push(`Booking ${ref}: Driver could not be reused due to a schedule conflict.`);
+          } else {
+            const { error: driverErr } = await supabase.rpc('rpc_operator_assign_resource', {
+              p_booking_id: newBooking.id,
+              p_resource_id: driverAssignment.resource_id,
+              p_resource_type: 'driver',
+              p_rate_overridden: false
+            });
+            if (driverErr) {
+              console.error('Error carrying forward driver:', driverErr);
+              warnings.push(`Booking ${ref}: Driver could not be reused: ${driverErr.message || 'Error occurred'}`);
+            }
           }
         }
 
-        // Guide
+        // 2. Guide
         const guideAssignment = getCurrentAssignment(sourceAssignments, 'guide');
         if (guideAssignment) {
-          const { error: guideErr } = await supabase.rpc('rpc_operator_assign_resource', {
-            p_booking_id: newBooking.id,
-            p_resource_id: guideAssignment.resource_id,
-            p_resource_type: 'guide',
-            p_rate_overridden: false
-          });
-          if (guideErr) {
-            console.error('Error carrying forward guide:', guideErr);
-            warnings.push(`Failed to carry forward guide for booking ${ref}`);
+          const compliance = await canAssignProvider(guideAssignment.resource_id, 'guide');
+          const hasConflict = await checkProviderConflicts(
+            guideAssignment.resource_id,
+            datePair.start.toISOString(),
+            datePair.end.toISOString(),
+            newBooking.id
+          );
+
+          if (!compliance.canAssign) {
+            warnings.push(`Booking ${ref}: Guide could not be reused due to compliance: ${compliance.blockers.join(', ')}`);
+          } else if (hasConflict) {
+            warnings.push(`Booking ${ref}: Guide could not be reused due to a schedule conflict.`);
+          } else {
+            const { error: guideErr } = await supabase.rpc('rpc_operator_assign_resource', {
+              p_booking_id: newBooking.id,
+              p_resource_id: guideAssignment.resource_id,
+              p_resource_type: 'guide',
+              p_rate_overridden: false
+            });
+            if (guideErr) {
+              console.error('Error carrying forward guide:', guideErr);
+              warnings.push(`Booking ${ref}: Guide could not be reused: ${guideErr.message || 'Error occurred'}`);
+            }
+          }
+        }
+
+        // 3. Vehicle
+        if (source.vehicle_id) {
+          const compliance = await canAssignVehicle(source.vehicle_id);
+          const isVehicleConflict = await checkVehicleConflicts(
+            source.vehicle_id,
+            datePair.start.toISOString(),
+            datePair.end.toISOString(),
+            newBooking.id
+          );
+
+          if (!compliance.canAssign || isVehicleConflict) {
+            // Remove vehicle if checks fail
+            await supabase.from('bookings').update({
+              vehicle_id: null,
+              vehicle_rate_type: null,
+              vehicle_rate_amount: null,
+              vehicle_rate_overridden: false
+            }).eq('id', newBooking.id);
+
+            if (!compliance.canAssign) {
+              warnings.push(`Booking ${ref}: Vehicle could not be reused due to compliance: ${compliance.blockers.join(', ')}`);
+            } else if (isVehicleConflict) {
+              warnings.push(`Booking ${ref}: Vehicle could not be reused due to a schedule conflict.`);
+            }
           }
         }
       }
@@ -1982,4 +2044,212 @@ export const createRecurringBookings = async (
   }
 
   return { count: createdBookings.length, warnings };
+};
+
+/**
+ * Creates a single draft copy of an existing booking with new dates.
+ */
+export const createDuplicateBooking = async (
+  sourceBookingId: string,
+  config: {
+    startDate: string;
+    endDate: string;
+    includeResources: boolean;
+  }
+) => {
+  // 1. Fetch source booking
+  const { data: source, error: sourceError } = await supabase
+    .from('bookings')
+    .select(`
+      operator_id,
+      tour_id,
+      booking_reference,
+      num_guests,
+      guest_name,
+      guest_email,
+      guest_phone,
+      currency,
+      subtotal_amount,
+      vat_rate,
+      vat_amount,
+      total_amount,
+      notes,
+      pickup_location,
+      dropoff_location,
+      special_requests,
+      vehicle_id,
+      vehicle_rate_type,
+      vehicle_rate_amount,
+      vehicle_rate_overridden
+    `)
+    .eq('id', sourceBookingId)
+    .single();
+
+  if (sourceError) throw sourceError;
+  if (!source) throw new Error('Source booking not found');
+
+  // 2. Get current assignments if needed
+  let sourceAssignments: any[] = [];
+  if (config.includeResources) {
+    const { data: assignments } = await supabase
+      .from('booking_assignments')
+      .select('*')
+      .eq('booking_id', sourceBookingId);
+    sourceAssignments = assignments || [];
+  }
+
+  const ref = `BK-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+  
+  // 3. Create new booking
+  const { data: newBooking, error: createError } = await supabase
+    .from('bookings')
+    .insert({
+      operator_id: source.operator_id,
+      tour_id: source.tour_id,
+      booking_reference: ref,
+      status: 'draft',
+      start_date: config.startDate,
+      end_date: config.endDate,
+      num_guests: source.num_guests,
+      guest_name: source.guest_name,
+      guest_email: source.guest_email,
+      guest_phone: source.guest_phone,
+      currency: source.currency,
+      subtotal_amount: source.subtotal_amount,
+      vat_rate: source.vat_rate,
+      vat_amount: source.vat_amount,
+      total_amount: source.total_amount,
+      notes: source.notes || `Duplicate of ${source.booking_reference}`,
+      pickup_location: source.pickup_location,
+      dropoff_location: source.dropoff_location,
+      special_requests: source.special_requests,
+      // Carry forward vehicle ID if requested
+      vehicle_id: config.includeResources ? source.vehicle_id : null,
+      vehicle_rate_type: config.includeResources ? source.vehicle_rate_type : null,
+      vehicle_rate_amount: config.includeResources ? source.vehicle_rate_amount : null,
+      vehicle_rate_overridden: config.includeResources ? source.vehicle_rate_overridden : false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .select('id')
+    .single();
+
+  if (createError) throw createError;
+
+  const warnings: string[] = [];
+
+  if (newBooking) {
+    // Sync platform fee snapshot
+    await syncBookingPlatformFeeSnapshot(newBooking.id);
+
+    // Carry forward resources
+    if (config.includeResources) {
+      // 1. Driver
+      const driverAssignment = getCurrentAssignment(sourceAssignments, 'driver');
+      if (driverAssignment) {
+        // Check compliance
+        const compliance = await canAssignProvider(driverAssignment.resource_id, 'driver');
+        // Check conflicts
+        const hasConflict = await checkProviderConflicts(
+          driverAssignment.resource_id,
+          config.startDate,
+          config.endDate,
+          newBooking.id
+        );
+
+        if (!compliance.canAssign) {
+          warnings.push(`Draft created, but Driver could not be reused due to compliance: ${compliance.blockers.join(', ')}`);
+        } else if (hasConflict) {
+          warnings.push(`Draft created, but Driver could not be reused due to a schedule conflict.`);
+        } else {
+          const { error: driverErr } = await supabase.rpc('rpc_operator_assign_resource', {
+            p_booking_id: newBooking.id,
+            p_resource_id: driverAssignment.resource_id,
+            p_resource_type: 'driver',
+            p_rate_overridden: false
+          });
+          if (driverErr) {
+            console.error('Error carrying forward driver:', driverErr);
+            warnings.push(`Draft created, but Driver could not be reused: ${driverErr.message || 'Error occurred'}`);
+          }
+        }
+      }
+
+      // 2. Guide
+      const guideAssignment = getCurrentAssignment(sourceAssignments, 'guide');
+      if (guideAssignment) {
+        // Check compliance
+        const compliance = await canAssignProvider(guideAssignment.resource_id, 'guide');
+        // Check conflicts
+        const hasConflict = await checkProviderConflicts(
+          guideAssignment.resource_id,
+          config.startDate,
+          config.endDate,
+          newBooking.id
+        );
+
+        if (!compliance.canAssign) {
+          warnings.push(`Draft created, but Guide could not be reused due to compliance: ${compliance.blockers.join(', ')}`);
+        } else if (hasConflict) {
+          warnings.push(`Draft created, but Guide could not be reused due to a schedule conflict.`);
+        } else {
+          const { error: guideErr } = await supabase.rpc('rpc_operator_assign_resource', {
+            p_booking_id: newBooking.id,
+            p_resource_id: guideAssignment.resource_id,
+            p_resource_type: 'guide',
+            p_rate_overridden: false
+          });
+          if (guideErr) {
+            console.error('Error carrying forward guide:', guideErr);
+            warnings.push(`Draft created, but Guide could not be reused: ${guideErr.message || 'Error occurred'}`);
+          }
+        }
+      }
+
+      // 3. Vehicle
+      if (source.vehicle_id) {
+        // Check compliance
+        const compliance = await canAssignVehicle(source.vehicle_id);
+        // Check conflicts
+        const isVehicleConflict = await checkVehicleConflicts(
+          source.vehicle_id,
+          config.startDate,
+          config.endDate,
+          newBooking.id
+        );
+
+        if (!compliance.canAssign) {
+          warnings.push(`Draft created, but Vehicle could not be reused due to compliance: ${compliance.blockers.join(', ')}`);
+        } else if (isVehicleConflict) {
+          warnings.push(`Draft created, but Vehicle could not be reused due to a schedule conflict.`);
+        } else {
+          // Success: Vehicle is already in the insert record, but we need to ensure snapshot
+          // Actually vehicle was already inserted in step 3. 
+          // If we want to NOT assign it if checks fail, we should have made it null in the insert.
+          // Let's update the insert step to not include vehicle yet, or update it here.
+          // Since it's already in the draft, if it fails checks, we should remove it.
+        }
+
+        // If checks failed for vehicle, remove it from the booking we just created
+        if (!compliance.canAssign || isVehicleConflict) {
+          await supabase.from('bookings').update({
+            vehicle_id: null,
+            vehicle_rate_type: null,
+            vehicle_rate_amount: null,
+            vehicle_rate_overridden: false
+          }).eq('id', newBooking.id);
+        }
+      }
+    }
+
+    // Audit Log
+    await logAuditEvent({
+      entityId: newBooking.id,
+      entityType: 'booking',
+      action: 'BOOKING_DUPLICATED',
+      metadata: { source_booking_id: sourceBookingId, source_reference: source.booking_reference }
+    });
+  }
+
+  return { bookingId: newBooking.id, warnings };
 };

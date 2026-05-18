@@ -33,6 +33,7 @@ import {
   markGuideRequestConverted,
   markVehicleRequestConverted,
   createRecurringBookings,
+  createDuplicateBooking,
   checkProviderConflicts
 } from '../../lib/bookingService';
 import {
@@ -80,6 +81,7 @@ import {
   CreditCard,
   AlertTriangle,
   Repeat,
+  Copy,
   Star
 } from 'lucide-react';
 import { 
@@ -250,6 +252,15 @@ export const BookingDetail: React.FC = () => {
     repeatCount: 1,
     endDate: '',
     includeResources: true
+  });
+
+  // Duplicate Booking states
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
+  const [duplicateConfig, setDuplicateConfig] = useState({
+    startDate: '',
+    endDate: '',
+    includeResources: false
   });
 
   // Internal Cost states
@@ -543,6 +554,36 @@ export const BookingDetail: React.FC = () => {
       showNotice('error', e.message || 'Failed to create recurring bookings.');
     } finally {
       setCreatingRecurring(false);
+    }
+  };
+
+  const handleDuplicateBooking = async () => {
+    if (!id || !duplicateConfig.startDate || !duplicateConfig.endDate) {
+      showNotice('error', 'Please select both start and end dates.');
+      return;
+    }
+
+    setDuplicating(true);
+    try {
+      const { bookingId, warnings } = await createDuplicateBooking(id, {
+        startDate: new Date(duplicateConfig.startDate).toISOString(),
+        endDate: new Date(duplicateConfig.endDate).toISOString(),
+        includeResources: duplicateConfig.includeResources
+      });
+
+      if (warnings && warnings.length > 0) {
+        showNotice('error', warnings.join(' '));
+      } else {
+        showNotice('success', 'Draft booking created successfully.');
+      }
+      setShowDuplicateModal(false);
+      // Navigate to the new booking
+      navigate(`/operator/bookings/${bookingId}`);
+    } catch (error: any) {
+      console.error('Error duplicating booking:', error, error.message);
+      showNotice('error', error.message || 'Failed to duplicate booking.');
+    } finally {
+      setDuplicating(false);
     }
   };
 
@@ -3765,19 +3806,34 @@ export const BookingDetail: React.FC = () => {
                         </button>
                       )}
                       {!booking.archived_at && (
-                        <button 
-                          onClick={() => {
-                            setRepeatConfig({
-                              ...repeatConfig,
-                              startDate: toLocalDateString(booking.start_date),
-                              endDate: toLocalDateString(booking.end_date)
-                            });
-                            setShowRepeatModal(true);
-                          }}
-                          className="w-full bg-brand-charcoal text-white py-2.5 rounded-xl font-bold text-sm hover:bg-black transition-colors shadow-sm flex items-center justify-center gap-2"
-                        >
-                          <Repeat size={16} /> Repeat Booking
-                        </button>
+                        <>
+                          <button 
+                            onClick={() => {
+                              setDuplicateConfig({
+                                startDate: toLocalDatetimeString(booking.start_date),
+                                endDate: toLocalDatetimeString(booking.end_date),
+                                includeResources: false
+                              });
+                              setShowDuplicateModal(true);
+                            }}
+                            className="w-full bg-white border-2 border-brand-charcoal text-brand-charcoal py-2.5 rounded-xl font-bold text-sm hover:bg-brand-charcoal/5 transition-colors flex items-center justify-center gap-2"
+                          >
+                            <Copy size={16} /> Duplicate Booking
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setRepeatConfig({
+                                ...repeatConfig,
+                                startDate: toLocalDateString(booking.start_date),
+                                endDate: toLocalDateString(booking.end_date)
+                              });
+                              setShowRepeatModal(true);
+                            }}
+                            className="w-full bg-brand-charcoal text-white py-2.5 rounded-xl font-bold text-sm hover:bg-black transition-colors shadow-sm flex items-center justify-center gap-2"
+                          >
+                            <Repeat size={16} /> Repeat Booking
+                          </button>
+                        </>
                       )}
                     </>
                   );
@@ -4236,6 +4292,94 @@ export const BookingDetail: React.FC = () => {
           />
         </div>
       </div>
+      {/* Duplicate Booking Modal */}
+      {showDuplicateModal && (
+        <div className="fixed inset-0 bg-brand-charcoal/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border border-gray-100">
+            <div className="bg-brand-charcoal p-6 text-white flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <Copy size={20} />
+                <h3 className="text-xl font-bold">Duplicate booking</h3>
+              </div>
+              <button 
+                onClick={() => setShowDuplicateModal(false)}
+                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                disabled={duplicating}
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <p className="text-sm text-gray-500">
+                This creates a new draft booking. Payments, payouts, disputes, reviews, chat messages, and audit history will not be copied.
+              </p>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">New Start Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    value={duplicateConfig.startDate}
+                    onChange={e => setDuplicateConfig(prev => ({ ...prev, startDate: e.target.value }))}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-brand-charcoal focus:ring-2 focus:ring-brand-charcoal/20 outline-none transition-all"
+                    disabled={duplicating}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">New End Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    value={duplicateConfig.endDate}
+                    onChange={e => setDuplicateConfig(prev => ({ ...prev, endDate: e.target.value }))}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-brand-charcoal focus:ring-2 focus:ring-brand-charcoal/20 outline-none transition-all"
+                    disabled={duplicating}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-4 bg-brand-charcoal/5 rounded-2xl border border-brand-charcoal/10">
+                <input
+                  type="checkbox"
+                  id="reuseResources"
+                  checked={duplicateConfig.includeResources}
+                  onChange={e => setDuplicateConfig(prev => ({ ...prev, includeResources: e.target.checked }))}
+                  className="w-5 h-5 rounded border-gray-300 text-brand-charcoal focus:ring-brand-charcoal"
+                  disabled={duplicating}
+                />
+                <label htmlFor="reuseResources" className="text-sm font-medium text-brand-charcoal cursor-pointer select-none">
+                  Try to reuse the same Driver, Guide, and Vehicle
+                </label>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowDuplicateModal(false)}
+                  className="flex-1 px-6 py-3.5 rounded-xl border-2 border-gray-100 font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                  disabled={duplicating}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDuplicateBooking}
+                  className="flex-1 px-6 py-3.5 rounded-xl bg-brand-charcoal text-white font-bold hover:bg-black transition-all shadow-md disabled:bg-gray-300 flex items-center justify-center gap-2"
+                  disabled={duplicating || !duplicateConfig.startDate || !duplicateConfig.endDate}
+                >
+                  {duplicating ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      Duplicating...
+                    </>
+                  ) : (
+                    'Confirm Duplication'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Repeat Booking Modal */}
       {showRepeatModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
