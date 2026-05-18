@@ -5,7 +5,8 @@ import {
   listOwnerLinkRequestsPaginated, 
   setVehicleLinkStatus, 
   revokeVehicleLink,
-  counterRates
+  counterRates,
+  acceptRates
 } from '../../lib/fleetService';
 import { 
   Truck, 
@@ -56,6 +57,9 @@ export const LinkRequestsPage: React.FC = () => {
   const [counteringRate, setCounteringRate] = useState<any | null>(null);
   const [counterDayRate, setCounterDayRate] = useState('');
   const [counterHourRate, setCounterHourRate] = useState('');
+
+  // Modal state for accepting rates
+  const [acceptingRate, setAcceptingRate] = useState<any | null>(null);
 
   // Inline confirmation state
   const [confirmAction, setConfirmAction] = useState<{ id: string; type: 'approved' | 'rejected' | 'revoked' } | null>(null);
@@ -141,6 +145,25 @@ export const LinkRequestsPage: React.FC = () => {
     }
   };
 
+  const handleAcceptRates = async () => {
+    if (!acceptingRate || !user) return;
+    
+    setProcessingId(acceptingRate.rate_link.id);
+    try {
+      await acceptRates({
+        rateLinkId: acceptingRate.rate_link.id,
+        actorId: user.id
+      });
+      setToast({ type: 'success', message: 'Rates accepted' });
+      setAcceptingRate(null);
+      await loadData();
+    } catch (e: any) {
+      setToast({ type: 'error', message: e.message || 'Failed to accept rates' });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const handleActionClick = (id: string, type: 'approved' | 'rejected' | 'revoked') => {
     // For approval, we skip the secondary confirm UI as it's a positive action
     if (type === 'approved') {
@@ -171,62 +194,123 @@ export const LinkRequestsPage: React.FC = () => {
       {/* Counter Rates Modal */}
       {counteringRate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden border border-gray-100">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-              <h3 className="font-bold text-brand-charcoal flex items-center gap-2">
-                <Banknote size={18} className="text-brand-teal" />
-                Counter Rates
+              <h3 className="font-bold text-brand-charcoal flex items-center gap-2 text-sm uppercase tracking-wider">
+                <Banknote size={16} className="text-brand-teal" />
+                Counter Proposed Rates
               </h3>
-              <button onClick={() => setCounteringRate(null)} className="text-gray-400 hover:text-red-500">
+              <button onClick={() => setCounteringRate(null)} className="text-gray-400 hover:text-red-500 transition-colors">
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleCounterSubmit} className="p-6 space-y-4">
-              <p className="text-xs text-gray-500 mb-2">
-                Counter the rates proposed by <strong>{counteringRate.operator?.company_name || counteringRate.operator?.full_name}</strong>.
+            <form onSubmit={handleCounterSubmit} className="p-6 space-y-4 text-left">
+              <p className="text-[11px] text-gray-500 mb-2 leading-relaxed">
+                Counter the rates proposed by <strong>{counteringRate.operator?.company_name || counteringRate.operator?.full_name}</strong> for this vehicle.
               </p>
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Day Rate ({counteringRate.rate_link?.rate_currency})</label>
-                <input 
-                  type="number"
-                  step="0.01"
-                  required
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-teal outline-none"
-                  value={counterDayRate}
-                  onChange={e => setCounterDayRate(e.target.value)}
-                  placeholder="0.00"
-                />
+                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Day Rate ({counteringRate.rate_link?.rate_currency})</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 text-gray-400 text-sm">{counteringRate.rate_link?.rate_currency}</span>
+                  <input 
+                    type="number"
+                    step="0.01"
+                    required
+                    className="w-full border border-gray-200 rounded-xl pl-12 pr-3 py-2 text-sm focus:ring-2 focus:ring-brand-teal outline-none transition-all"
+                    value={counterDayRate}
+                    onChange={e => setCounterDayRate(e.target.value)}
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Hour Rate ({counteringRate.rate_link?.rate_currency})</label>
-                <input 
-                  type="number"
-                  step="0.01"
-                  required
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-teal outline-none"
-                  value={counterHourRate}
-                  onChange={e => setCounterHourRate(e.target.value)}
-                  placeholder="0.00"
-                />
+                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Hour Rate ({counteringRate.rate_link?.rate_currency})</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 text-gray-400 text-sm">{counteringRate.rate_link?.rate_currency}</span>
+                  <input 
+                    type="number"
+                    step="0.01"
+                    required
+                    className="w-full border border-gray-200 rounded-xl pl-12 pr-3 py-2 text-sm focus:ring-2 focus:ring-brand-teal outline-none transition-all"
+                    value={counterHourRate}
+                    onChange={e => setCounterHourRate(e.target.value)}
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
-              <div className="pt-2 flex gap-3">
+              <div className="pt-4 flex gap-3">
                 <button 
                   type="button"
                   onClick={() => setCounteringRate(null)}
-                  className="flex-1 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-2xl transition-colors"
+                  className="flex-1 py-2 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition-colors border border-gray-200"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit"
                   disabled={!!processingId}
-                  className="flex-1 py-2 bg-brand-teal text-white rounded-2xl font-bold hover:bg-brand-teal/90 transition-colors flex items-center justify-center gap-2 text-sm shadow-sm"
+                  className="flex-1 py-2 bg-brand-charcoal text-white rounded-xl font-bold hover:bg-black transition-colors flex items-center justify-center gap-2 text-xs shadow-sm"
                 >
-                  {processingId === counteringRate.rate_link.id ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                  {processingId === counteringRate.rate_link.id ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                   Send Counter
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Accept Rates Confirmation Modal */}
+      {acceptingRate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden border border-gray-100">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+              <h3 className="font-bold text-brand-charcoal flex items-center gap-2 text-sm uppercase tracking-wider">
+                <CheckCircle2 size={16} className="text-green-600" />
+                Accept Proposed Rates?
+              </h3>
+              <button onClick={() => setAcceptingRate(null)} className="text-gray-400 hover:text-red-500 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 text-center">
+              <p className="text-[11px] text-gray-500 leading-relaxed text-left">
+                This will approve the Operator’s proposed rates for this vehicle link. These rates will be used for future bookings with this Operator.
+              </p>
+              
+              <div className="bg-green-50 p-4 border border-green-100 rounded-xl grid grid-cols-2 gap-4">
+                <div className="text-left">
+                  <span className="text-[9px] uppercase font-bold text-green-700">Daily Rate</span>
+                  <div className="text-sm font-mono font-bold text-brand-charcoal">
+                    {acceptingRate.rate_link?.rate_currency} {acceptingRate.rate_link?.operator_proposed_day_rate}
+                  </div>
+                </div>
+                <div className="text-left border-l border-green-200 pl-4">
+                  <span className="text-[9px] uppercase font-bold text-green-700">Hourly Rate</span>
+                  <div className="text-sm font-mono font-bold text-brand-charcoal">
+                    {acceptingRate.rate_link?.rate_currency} {acceptingRate.rate_link?.operator_proposed_hour_rate}
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setAcceptingRate(null)}
+                  className="flex-1 py-2 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition-colors border border-gray-200"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleAcceptRates}
+                  disabled={!!processingId}
+                  className="flex-1 py-2 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-xs shadow-sm"
+                >
+                  {processingId === acceptingRate.rate_link.id ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                  Accept Rates
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -473,18 +557,32 @@ export const LinkRequestsPage: React.FC = () => {
                               )}
                               {activeTab === 'approved' && (
                                 <div className="flex items-center gap-2">
-                                  {rateLink?.rate_status === 'proposed' && (
-                                    <button
-                                      onClick={() => {
-                                        setCounteringRate(item);
-                                        setCounterDayRate(rateLink.operator_proposed_day_rate.toString());
-                                        setCounterHourRate(rateLink.operator_proposed_hour_rate.toString());
-                                      }}
-                                      disabled={!!processingId}
-                                      className="text-xs font-bold text-brand-teal hover:bg-brand-teal/5 border border-brand-teal/20 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1"
-                                    >
-                                      <Banknote size={14} /> Counter rates
-                                    </button>
+                              {rateLink?.rate_status === 'proposed' && (
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        onClick={() => setAcceptingRate(item)}
+                                        disabled={!!processingId}
+                                        className="text-xs font-bold text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 shadow-sm"
+                                      >
+                                        <Check size={14} /> Accept Proposal
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setCounteringRate(item);
+                                          setCounterDayRate(rateLink.operator_proposed_day_rate.toString());
+                                          setCounterHourRate(rateLink.operator_proposed_hour_rate.toString());
+                                        }}
+                                        disabled={!!processingId}
+                                        className="text-xs font-bold text-brand-teal hover:bg-brand-teal/5 border border-brand-teal/20 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1"
+                                      >
+                                        <Banknote size={14} /> Counter rates
+                                      </button>
+                                    </div>
+                                  )}
+                                  {rateLink?.rate_status === 'countered' && (
+                                    <div className="text-[10px] font-bold text-blue-600 flex items-center gap-1 bg-blue-50 px-2 py-1 rounded">
+                                      <Clock size={12} /> Waiting for operator response
+                                    </div>
                                   )}
                                   <button
                                     onClick={() => handleActionClick(item.id, 'revoked')}

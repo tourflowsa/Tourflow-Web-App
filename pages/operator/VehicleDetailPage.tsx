@@ -165,7 +165,9 @@ export const VehicleDetailPage: React.FC = () => {
         hydrateVehicleOwnerProfile((data as any).owner_id);
       }
 
-      if (data.photos && data.photos.length > 0) {
+      if (data.main_photo_url) {
+        setSelectedPhoto(data.main_photo_url);
+      } else if (data.photos && data.photos.length > 0) {
         const primary = data.photos.find((p: any) => p.is_primary);
         setSelectedPhoto(primary ? primary.url : data.photos[0].url);
       }
@@ -879,7 +881,7 @@ export const VehicleDetailPage: React.FC = () => {
                <div className="p-6 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
                     <User size={16} className="text-brand-teal" />
-                    Fleet Provider
+                    Vehicle Owner
                   </h3>
                   {loadingCompliance ? (
                     <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-bold uppercase tracking-wider">

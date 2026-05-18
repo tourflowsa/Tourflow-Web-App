@@ -61,6 +61,8 @@ export const NotificationBell: React.FC = () => {
       case 'ASSIGNMENT_REPLACED': return <AlertTriangle size={14} />;
       case 'VEHICLE_ASSIGNED_TO_BOOKING': return <CalendarCheck size={14} />;
       case 'VEHICLE_REMOVED_FROM_BOOKING': return <CalendarX size={14} />;
+      case 'NEW_LINK_REQUEST': return <Briefcase size={14} />;
+      case 'RATE_PROPOSAL': return <CreditCard size={14} />;
       default: return <Bell size={14} />;
     }
   };
@@ -90,6 +92,8 @@ export const NotificationBell: React.FC = () => {
       
       case 'ASSIGNED_TO_BOOKING':
       case 'VEHICLE_ASSIGNED_TO_BOOKING':
+      case 'NEW_LINK_REQUEST':
+      case 'RATE_PROPOSAL':
       case 'NEW_DOCUMENT_UPLOADED':
       case 'NEW_REVIEW':
       case 'PAYOUT_APPROVED':

@@ -43,6 +43,9 @@ export const ProviderEarningsPage: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [bankDetails, setBankDetails] = useState<any>(null);
   
+  const bankStatus = useMemo(() => getBankStatus(bankDetails), [bankDetails]);
+  const isBankIncomplete = ['Missing', 'Incomplete'].includes(bankStatus);
+  
   // Drawer State
   const [selectedPayout, setSelectedPayout] = useState<any | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -399,14 +402,20 @@ export const ProviderEarningsPage: React.FC = () => {
           <div className="flex items-center justify-between mt-1">
             <p className="text-[10px] text-gray-500">Ready to Withdraw</p>
             {payoutSummary?.available > 0 && (
-              <button 
-                onClick={handleRequestFromSummaryCard}
-                disabled={requesting || eligiblePayouts.length === 0}
-                className="bg-brand-teal text-white px-2 py-0.5 rounded-lg font-bold text-[9px] flex items-center gap-1 hover:bg-brand-teal/90 transition-all disabled:opacity-50"
-              >
-                {requesting ? <RefreshCw className="animate-spin" size={10} /> : <Send size={10} />}
-                Request
-              </button>
+              <div className="flex flex-col items-end gap-1">
+                <button 
+                  onClick={handleRequestFromSummaryCard}
+                  disabled={requesting || eligiblePayouts.length === 0 || isBankIncomplete}
+                  className="bg-brand-teal text-white px-2 py-0.5 rounded-lg font-bold text-[9px] flex items-center gap-1 hover:bg-brand-teal/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={isBankIncomplete ? "Add complete bank details before requesting a withdrawal" : ""}
+                >
+                  {requesting ? <RefreshCw className="animate-spin" size={10} /> : <Send size={10} />}
+                  Request
+                </button>
+                {isBankIncomplete && (
+                  <span className="text-[7px] text-amber-600 font-bold leading-none">Complete bank details required</span>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -518,14 +527,22 @@ export const ProviderEarningsPage: React.FC = () => {
           </div>
 
           {selectedPayouts.length > 0 && (
-            <button
-              onClick={handleRequestWithdrawal}
-              disabled={requesting}
-              className="bg-brand-teal text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-brand-teal/90 transition-all shadow-lg shadow-brand-teal/20 disabled:opacity-50"
-            >
-              {requesting ? <RefreshCw className="animate-spin" size={18} /> : <Send size={18} />}
-              Request Withdrawal ({selectedPayouts.length})
-            </button>
+            <div className="flex flex-col items-end gap-1">
+              <button
+                onClick={handleRequestWithdrawal}
+                disabled={requesting || isBankIncomplete}
+                className="bg-brand-teal text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-brand-teal/90 transition-all shadow-lg shadow-brand-teal/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {requesting ? <RefreshCw className="animate-spin" size={18} /> : <Send size={18} />}
+                Request Withdrawal ({selectedPayouts.length})
+              </button>
+              {isBankIncomplete && (
+                <p className="text-[10px] text-amber-600 font-bold flex items-center gap-1">
+                  <AlertCircle size={10} />
+                  Add complete bank details before requesting a withdrawal.
+                </p>
+              )}
+            </div>
           )}
         </div>
 

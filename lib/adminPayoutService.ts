@@ -388,7 +388,7 @@ export const exportBatchToCSV = async (batchId: string) => {
   if (error) throw error;
   if (!payouts || payouts.length === 0) throw new Error("No payouts found in this batch.");
 
-  // Fetch profiles and bookings separately
+  // Fetch profiles, bookings, and bank details separately
   const providerIds = Array.from(new Set(payouts.map(p => p.provider_id))).filter(Boolean);
   const bookingIds = Array.from(new Set(payouts.map(p => p.booking_id))).filter(Boolean);
 
@@ -398,6 +398,12 @@ export const exportBatchToCSV = async (batchId: string) => {
     profiles?.forEach(p => profileMap[p.id] = p);
   }
 
+  let bankMap: Record<string, any> = {};
+  if (providerIds.length > 0) {
+    const { data: banks } = await supabase.from('provider_bank_details').select('*').in('provider_id', providerIds);
+    banks?.forEach(b => bankMap[b.provider_id] = b);
+  }
+
   let bookingMap: Record<string, any> = {};
   if (bookingIds.length > 0) {
     const { data: bookings } = await supabase.from('bookings').select('id, booking_reference, start_date').in('id', bookingIds);
@@ -405,24 +411,26 @@ export const exportBatchToCSV = async (batchId: string) => {
   }
 
   const headers = [
-    "Batch Ref",
-    "Payout Reference",
+    "Account Holder",
+    "Bank Name",
+    "Account Number",
+    "Account Type",
+    "Branch Code",
     "Provider Name",
     "Provider Type",
     "Booking Ref",
-    "Service Date",
+    "Batch Ref",
     "Gross Amount",
     "Platform Fee",
-    "Original Amount",
-    "Adjustment Amount",
-    "Final Settlement Amount",
-    "Status",
-    "Paid Date",
-    "Created By"
+    "Original Net",
+    "Adjustment",
+    "Final Settlement",
+    "Status"
   ];
 
   const rows = payouts.map(p => {
     const profile = profileMap[p.provider_id] || {};
+    const bank = bankMap[p.provider_id] || {};
     const booking = bookingMap[p.booking_id] || {};
     
     let type = profile.role;
@@ -441,36 +449,37 @@ export const exportBatchToCSV = async (batchId: string) => {
       return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
     };
     
-    const finalAmount = 
+    const finalSettlement = 
       p.adjusted_amount != null ? Number(p.adjusted_amount) :
       p.amount_net != null ? Number(p.amount_net) :
       p.original_amount != null ? Number(p.original_amount) :
       0;
       
-    const originalAmount = 
+    const originalNet = 
       p.original_amount != null ? Number(p.original_amount) :
       p.amount_net != null ? Number(p.amount_net) :
-      finalAmount;
+      finalSettlement;
       
-    const adjustmentAmount = originalAmount - finalAmount;
+    const adjustment = originalNet - finalSettlement;
 
-    const clean = (val: string) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+    const clean = (val: any) => `"${String(val ?? "").replace(/"/g, '""')}"`;
 
     return [
-      clean(batchRef || ""),
-      clean(p.payout_reference),
+      clean(bank.account_holder_name || ""),
+      clean(bank.bank_name || ""),
+      clean(bank.account_number || ""),
+      clean(bank.account_type || ""),
+      clean(bank.branch_code || ""),
       clean(profile.company_name || profile.full_name || "Unknown"),
       clean(type),
       clean(booking.booking_reference || ""),
-      clean(booking.start_date || ""),
+      clean(batchRef || ""),
       Number(p.amount_gross || 0).toFixed(2),
       Number(p.platform_fee || 0).toFixed(2),
-      originalAmount.toFixed(2),
-      adjustmentAmount.toFixed(2),
-      finalAmount.toFixed(2),
-      clean(capStatus(p.status)),
-      clean(p.paid_at || ""),
-      clean(p.paid_by || "")
+      originalNet.toFixed(2),
+      adjustment.toFixed(2),
+      finalSettlement.toFixed(2),
+      clean(capStatus(p.status))
     ].join(",");
   });
 

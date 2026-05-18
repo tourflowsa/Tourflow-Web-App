@@ -532,6 +532,7 @@ export const VehicleOwnerDashboard: React.FC = () => {
               }
 
               const getThumbnail = (vehicle: any) => {
+    if (vehicle.main_photo_url) return vehicle.main_photo_url;
     if (!vehicle.photos || vehicle.photos.length === 0) return null;
     const primary = vehicle.photos.find((p: any) => p.is_primary);
     return primary ? primary.url : vehicle.photos[0].url;

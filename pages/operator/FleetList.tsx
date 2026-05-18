@@ -148,6 +148,7 @@ export const FleetList: React.FC = () => {
   };
 
   const getThumbnail = (vehicle: Vehicle) => {
+    if (vehicle.main_photo_url) return vehicle.main_photo_url;
     if (!vehicle.photos || vehicle.photos.length === 0) return null;
     const primary = vehicle.photos.find(p => p.is_primary);
     return primary ? primary.url : vehicle.photos[0].url;

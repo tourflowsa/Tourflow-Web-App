@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { createNotification } from './notificationService';
 
 const STORAGE_BUCKET = 'public-assets';
 
@@ -250,7 +251,7 @@ export async function getVehiclePublicProfile(vehicleId: string) {
       fuel_type, transmission, has_aircon, has_wifi, 
       has_tow_bar, wheelchair_access, has_child_seat, 
       seat_type, luggage_capacity, default_day_rate, 
-      default_hour_rate, rate_currency, photos,
+      default_hour_rate, rate_currency, photos, main_photo_url,
       owner_id, country, province, city, notes,
       profiles:owner_id (id, role, full_name, company_name, avatar_url, profile_image_url, verification_status, is_active, metadata, default_day_rate, default_hour_rate, city, province, country, bio, created_at, updated_at)
     `)
@@ -604,6 +605,7 @@ export async function listVehicleLinksForOperator(operatorId: string) {
         seat_count,
         status,
         photos,
+        main_photo_url,
         owner_id,
         operator_id,
         ownership_type
@@ -779,6 +781,8 @@ export async function setVehicleLinkStatus(linkId: string, status: 'approved' | 
     throw error;
   }
 
+  window.dispatchEvent(new CustomEvent('LINK_REQUESTS_UPDATED'));
+
   return true;
 }
 
@@ -800,6 +804,8 @@ export async function revokeVehicleLink(linkId: string): Promise<void> {
   if (!data || data.length === 0) {
     throw new Error('No matching link found to revoke.');
   }
+  
+  window.dispatchEvent(new CustomEvent('LINK_REQUESTS_UPDATED'));
 }
 
 /**
@@ -817,6 +823,8 @@ export async function revokeVehicleAccess(params: { vehicleId: string; operatorI
 
   if (error) throw error;
   if (!data || data.length === 0) throw new Error('No matching approved link found to revoke');
+
+  window.dispatchEvent(new CustomEvent('LINK_REQUESTS_UPDATED'));
 }
 
 // ===============================
@@ -957,6 +965,39 @@ export async function requestVehicleLink(vehicleId: string, operatorId: string):
   const message = String(row?.message ?? (success ? 'Request sent.' : 'Request failed.'));
   const status = (row?.status as VehicleLinkStatus) ?? (success ? 'pending' : null);
 
+  if (success) {
+    window.dispatchEvent(new CustomEvent('LINK_REQUESTS_UPDATED'));
+    
+    // Notify Owner of NEW link request
+    try {
+      const { data: vehicle } = await supabase
+        .from('vehicles')
+        .select('owner_id, make, model, license_plate')
+        .eq('id', vehicleId)
+        .single();
+      
+      if (vehicle?.owner_id) {
+        const { data: operator } = await supabase
+          .from('profiles')
+          .select('company_name, full_name')
+          .eq('id', operatorId)
+          .single();
+        
+        const operatorName = operator?.company_name || operator?.full_name || 'An operator';
+        
+        await createNotification({
+          user_id: vehicle.owner_id,
+          type: 'NEW_LINK_REQUEST',
+          title: 'New Link Request',
+          message: `${operatorName} requested to link your vehicle ${vehicle.make} ${vehicle.model} (${vehicle.license_plate}).`,
+          link: '/owner/link-requests'
+        });
+      }
+    } catch (e) {
+      console.error('Failed to send link request notification:', e);
+    }
+  }
+
   return { success, message, status };
 }
 
@@ -1022,6 +1063,37 @@ export async function proposeRates(params: {
     .single();
 
   if (error) throw error;
+
+  // Notify Owner of RATE PROPOSAL
+  try {
+    const { data: vehicle } = await supabase
+      .from('vehicles')
+      .select('owner_id, make, model, license_plate')
+      .eq('id', params.vehicleId)
+      .single();
+
+    if (vehicle?.owner_id) {
+      const { data: operator } = await supabase
+        .from('profiles')
+        .select('company_name, full_name')
+        .eq('id', params.operatorId)
+        .single();
+      
+      const operatorName = operator?.company_name || operator?.full_name || 'An operator';
+      
+      await createNotification({
+        user_id: vehicle.owner_id,
+        type: 'RATE_PROPOSAL',
+        title: 'New Rate Proposal',
+        message: `${operatorName} proposed custom rates for ${vehicle.make} ${vehicle.model} (${vehicle.license_plate}). Review the proposed rates.`,
+        link: '/owner/link-requests'
+      });
+    }
+  } catch (e) {
+    console.error('Failed to send rate proposal notification:', e);
+  }
+
+  window.dispatchEvent(new CustomEvent('LINK_REQUESTS_UPDATED'));
   return data;
 }
 
@@ -1039,6 +1111,7 @@ export async function counterRates(params: { rateLinkId: string, actorId: string
     .select()
     .single();
   if (error) throw error;
+  window.dispatchEvent(new CustomEvent('LINK_REQUESTS_UPDATED'));
   return data;
 }
 
@@ -1054,6 +1127,7 @@ export async function acceptRates(params: { rateLinkId: string, actorId: string 
     .select()
     .single();
   if (error) throw error;
+  window.dispatchEvent(new CustomEvent('LINK_REQUESTS_UPDATED'));
   return data;
 }
 

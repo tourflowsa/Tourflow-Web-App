@@ -34,6 +34,7 @@ import { getPendingRequestsCount, getPendingRequestsCountForGuide, getPendingReq
 import { getPendingAssignmentsCount } from '../lib/assignmentService';
 import { getActiveDisputeCount, getRequestedWithdrawalCount } from '../lib/adminPayoutService';
 import { getPendingDocumentsCountAdmin } from '../lib/documentService';
+import { getOwnerLinkRequestCounts } from '../lib/fleetService';
 
 interface NavItem {
   label: string;
@@ -102,6 +103,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   const { profile, signOut, loading, profileReady, sessionReady } = useAuth();
   const location = useLocation();
   const [pendingCount, setPendingCount] = useState(0);
+  const [pendingLinksCount, setPendingLinksCount] = useState(0);
   const [pendingAssignmentsCount, setPendingAssignmentsCount] = useState(0);
   const [disputeCount, setDisputeCount] = useState(0);
   const [pendingDocsCount, setPendingDocsCount] = useState(0);
@@ -119,6 +121,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       let pdCount = 0;
       let rwCount = 0;
       let pvCount = 0;
+      let linksCount = 0;
 
       if (profile.role === 'admin') {
         const [dispute, docs, withdrawals, verification] = await Promise.all([
@@ -140,10 +143,16 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
         count = await getPendingRequestsCountForDriver(profile.id);
         assignmentsCount = await getPendingAssignmentsCount(profile.id, 'driver');
       } else if (profile.role === 'vehicle_owner') {
-        count = await getPendingRequestsCountForVehicleOwner(profile.id);
+        const [requests, links] = await Promise.all([
+          getPendingRequestsCountForVehicleOwner(profile.id),
+          getOwnerLinkRequestCounts(profile.id)
+        ]);
+        count = requests;
+        linksCount = links.pending;
       }
 
       setPendingCount(count);
+      setPendingLinksCount(linksCount);
       setPendingAssignmentsCount(assignmentsCount);
       setDisputeCount(dCount);
       setPendingDocsCount(pdCount);
@@ -161,12 +170,14 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     const handleUpdate = () => fetchCount();
     window.addEventListener('PENDING_REQUESTS_UPDATED', handleUpdate);
+    window.addEventListener('LINK_REQUESTS_UPDATED', handleUpdate);
     window.addEventListener('ASSIGNMENTS_UPDATED', handleUpdate);
     window.addEventListener('DISPUTE_UPDATED', handleUpdate);
     window.addEventListener('DOCUMENTS_UPDATED', handleUpdate);
     window.addEventListener('PAYOUTS_UPDATED', handleUpdate);
     return () => {
       window.removeEventListener('PENDING_REQUESTS_UPDATED', handleUpdate);
+      window.removeEventListener('LINK_REQUESTS_UPDATED', handleUpdate);
       window.removeEventListener('ASSIGNMENTS_UPDATED', handleUpdate);
       window.removeEventListener('DISPUTE_UPDATED', handleUpdate);
       window.removeEventListener('DOCUMENTS_UPDATED', handleUpdate);
@@ -245,6 +256,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
               <span className="font-medium text-sm">
                 {item.label}
                 {(item.label === 'Requests' || item.label === 'Trip Requests' || item.label === 'Vehicle Requests') && pendingCount > 0 && ` (${pendingCount})`}
+                {item.label === 'Link Requests' && pendingLinksCount > 0 && ` (${pendingLinksCount})`}
                 {item.label === 'Assignments' && pendingAssignmentsCount > 0 && ` (${pendingAssignmentsCount})`}
                 {item.label === 'Disputes' && disputeCount > 0 && <span className="ml-2 bg-brand-coral text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{disputeCount}</span>}
                 {item.label === 'Document Reviews' && pendingDocsCount > 0 && <span className="ml-2 bg-brand-teal text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{pendingDocsCount}</span>}

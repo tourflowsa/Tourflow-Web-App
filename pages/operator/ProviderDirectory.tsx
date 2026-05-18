@@ -691,8 +691,12 @@ export const ProviderDirectory: React.FC = () => {
               return (
                 <div key={v.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:border-brand-teal transition-all group flex flex-col">
                   <div className="aspect-video bg-gray-100 relative">
-                    {v.photos && v.photos.length > 0 ? (
-                      <img src={v.photos[0].url} className="w-full h-full object-cover" alt={v.model} />
+                    {v.main_photo_url || (v.photos && v.photos.length > 0) ? (
+                      <img 
+                        src={v.main_photo_url || v.photos.find((p: any) => p.is_primary)?.url || v.photos[0].url} 
+                        className="w-full h-full object-cover" 
+                        alt={v.model} 
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-300">
                         <Truck size={48} />
@@ -1214,8 +1218,12 @@ export const ProviderDirectory: React.FC = () => {
                     <div key={item.id} className={`p-4 transition-colors flex items-center justify-between ${isPending ? 'bg-gray-50/50' : 'hover:bg-gray-50'}`}>
                       <div className="flex items-center gap-4">
                         <div className={`w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center border border-gray-200 overflow-hidden ${isPending ? 'opacity-60' : ''}`}>
-                          {v?.photos && v.photos.length > 0 ? (
-                            <img src={v.photos[0].url} className="w-full h-full object-cover" alt="" />
+                          {v?.main_photo_url || (v?.photos && v.photos.length > 0) ? (
+                            <img 
+                              src={v.main_photo_url || v.photos.find((p: any) => p.is_primary)?.url || v.photos[0].url} 
+                              className="w-full h-full object-cover" 
+                              alt="" 
+                            />
                           ) : (
                             <Truck size={24} className="text-gray-400" />
                           )}
