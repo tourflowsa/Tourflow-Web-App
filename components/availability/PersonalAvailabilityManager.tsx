@@ -7,7 +7,7 @@ import {
   createPersonalAvailabilityBlock, 
   deletePersonalAvailabilityBlock 
 } from '../../lib/availabilityService';
-import { formatDate } from '../../lib/formatUtils';
+import { formatDate, toLocalDateString } from '../../lib/formatUtils';
 
 export const PersonalAvailabilityManager: React.FC = () => {
   const { user } = useAuth();
@@ -76,7 +76,7 @@ export const PersonalAvailabilityManager: React.FC = () => {
     );
   }
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateString(new Date());
   const activeBlocks = blocks.filter(b => b.date_end >= today);
 
   const currentlyBlocked = activeBlocks.some(b => b.date_start <= today && b.date_end >= today);

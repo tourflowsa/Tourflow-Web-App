@@ -88,7 +88,7 @@ import {
 import { ComplianceBadge } from '../../components/common/ComplianceBadge';
 import { ConfirmationModal } from '../../components/common/ConfirmationModal';
 import { BookingFinancialBreakdownView } from '../../components/bookings/BookingFinancialBreakdown';
-import { formatCurrency, formatDate, toLocalDatetimeString } from '../../lib/formatUtils';
+import { formatCurrency, formatDate, toLocalDatetimeString, toLocalDateString } from '../../lib/formatUtils';
 import { getBookingFinancialBreakdown, BookingFinancialBreakdown } from '../../lib/financialService';
 import { getPayableAmount, getOriginalAmount } from '../../lib/payoutUtils';
 import { fetchAuditLogsByBookingId, AuditLogEntry, logAuditEvent } from '../../lib/auditService';
@@ -3769,8 +3769,8 @@ export const BookingDetail: React.FC = () => {
                           onClick={() => {
                             setRepeatConfig({
                               ...repeatConfig,
-                              startDate: toLocalDatetimeString(booking.start_date).split('T')[0],
-                              endDate: toLocalDatetimeString(booking.end_date).split('T')[0]
+                              startDate: toLocalDateString(booking.start_date),
+                              endDate: toLocalDateString(booking.end_date)
                             });
                             setShowRepeatModal(true);
                           }}

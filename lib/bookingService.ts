@@ -5,6 +5,7 @@ import { logAuditEvent } from './auditService';
 import { createPayoutLedgerForBooking, getPayoutLedgersForBooking, isBookingFinanciallyLocked } from './payoutService';
 import { getCurrentAssignment } from './assignmentService';
 import { syncBookingFinancialSnapshot, syncBookingPlatformFeeSnapshot } from './financialService';
+import { toLocalDateString } from './formatUtils';
 
 export const createVehicleAvailabilityRequest = async (
   operatorId: string,
@@ -1242,8 +1243,8 @@ export const checkVehicleConflicts = async (
     .select('id')
     .eq('vehicle_id', vehicleId)
     .eq('is_blocked', true)
-    .lte('date_start', endDate.split('T')[0])
-    .gte('date_end', startDate.split('T')[0]);
+    .lte('date_start', toLocalDateString(endDate))
+    .gte('date_end', toLocalDateString(startDate));
 
   if (blockError) throw blockError;
   if (blocks && blocks.length > 0) return true;
@@ -1265,8 +1266,8 @@ export const checkProviderConflicts = async (
   // 1. Check manual availability blocks via secure RPC
   const { data: isBlocked, error: rpcError } = await supabase.rpc('rpc_check_provider_manual_blocks', {
     p_provider_id: providerId,
-    p_start_date: startDate.split('T')[0],
-    p_end_date: endDate.split('T')[0]
+    p_start_date: toLocalDateString(startDate),
+    p_end_date: toLocalDateString(endDate)
   });
 
   if (rpcError) throw rpcError;
