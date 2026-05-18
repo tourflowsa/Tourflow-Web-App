@@ -94,6 +94,7 @@ import { getPayableAmount, getOriginalAmount } from '../../lib/payoutUtils';
 import { fetchAuditLogsByBookingId, AuditLogEntry, logAuditEvent } from '../../lib/auditService';
 import { ReviewModal } from '../../components/reviews/ReviewModal';
 import { hasReview, getProviderRatingSummary, RatingSummary } from '../../lib/reviewService';
+import { BookingChat } from '../../components/bookings/BookingChat';
 
 
 function getAllowedActions(status: string, isArchived: boolean) {
@@ -4228,6 +4229,11 @@ export const BookingDetail: React.FC = () => {
               </div>
             </div>
           </div>
+
+          <BookingChat 
+            bookingId={booking.id} 
+            bookingReference={booking.booking_reference} 
+          />
         </div>
       </div>
       {/* Repeat Booking Modal */}

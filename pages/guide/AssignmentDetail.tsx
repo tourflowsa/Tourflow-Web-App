@@ -5,6 +5,7 @@ import { getAssignmentById, respondToAssignment } from '../../lib/assignmentServ
 import { getBookingPayoutForProvider } from '../../lib/payoutService';
 import { checkComplianceGate, ComplianceGateResult } from '../../lib/complianceGate';
 import { supabase } from '../../lib/supabase';
+import { BookingChat } from '../../components/bookings/BookingChat';
 import {
   ArrowLeft,
   Calendar,
@@ -457,6 +458,15 @@ export const AssignmentDetail: React.FC = () => {
           )}
         </div>
       </div>
+
+      {isAccepted || assignment.status === 'pending' || assignment.status === 'completed' || assignment.status === 'no_show' ? (
+        <div className="mt-8">
+          <BookingChat 
+            bookingId={assignment.booking_id} 
+            bookingReference={assignment.bookings?.booking_reference} 
+          />
+        </div>
+      ) : null}
 
       {declineModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">

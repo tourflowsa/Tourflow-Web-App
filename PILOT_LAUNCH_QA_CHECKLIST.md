@@ -15,6 +15,10 @@
   - [ ] Platform fee tier active in Admin.
 - [ ] **Access verification:**
   - [ ] Admin can access Payouts, Documents, User Verification, Bookings, and Audit Logs.
+  - [ ] Operator, Driver, and Guide accounts can access their relevant booking/assignment detail pages.
+- [ ] **Booking Chat MVP Setup:**
+  - [ ] Booking Chat migration has been applied.
+  - [ ] Test booking has at least one assigned Driver and Guide.
 
 ## 2. Perfect Booking Flow
 - [ ] **Booking Creation:** Operator creates a draft booking.
@@ -82,9 +86,27 @@
 - [ ] **Link Triggers:** Link request sent and accepted.
 - [ ] **Financial Triggers:** Custom rate proposal sent, Payout approved, Payout paid, Payout on hold.
 - [ ] **Compliance Triggers:** Document approved or rejected.
+- [ ] **Booking Chat Triggers:** Booking Chat message sent.
 - [ ] **UI Sync:** Notification bell updates after event dispatch or refresh/polling.; links lead to relevant detail pages.
+- [ ] **Routing:** `NEW_CHAT_MESSAGE` notification routes to the correct detail page.
 
-## 9. Pass/Fail Table
+## 9. Booking Chat Flow
+- [ ] **Operator Initiation:** Operator opens Booking Detail and sends a chat message.
+- [ ] **Driver Interaction:** Driver opens Assignment Detail and sees the message.
+- [ ] **Driver Reply:** Driver replies.
+- [ ] **Guide Interaction:** Guide opens Assignment Detail and sees the conversation.
+- [ ] **Guide Reply:** Guide replies.
+- [ ] **Admin Oversight:** Admin opens Admin Booking Detail and sees the full booking chat.
+- [ ] **Admin Reply:** Admin sends a message.
+- [ ] **Real-time:** Conversation updates instantly for all active participants without page refresh.
+- [ ] **Notifications:** Operator, Driver, and Guide receive `NEW_CHAT_MESSAGE` notifications.
+- [ ] **Exclusion:** Sender does not receive their own notification.
+- [ ] **Security:** Rejected or cancelled assignment user cannot access chat.
+- [ ] **Validation:** Empty message cannot be sent.
+- [ ] **Limits:** Message over 2000 characters is blocked.
+- [ ] **Phase Restriction:** Vehicle Owner does not receive chat notification in this phase.
+
+## 10. Pass/Fail Table
 
 | Scenario ID | Scenario Name | Tester | Pass/Fail | Notes | Ref / Screenshot | Fix Req? |
 |-------------|---------------|--------|-----------|-------|------------------|----------|
@@ -97,14 +119,19 @@
 | QA-07 | Vehicle Photo Management | | | | | |
 | QA-08 | Notification Routing | | | | | |
 | QA-09 | Admin Audit Log | | | | | |
+| QA-10 | Booking Chat Access and Notifications | | | | | |
 
-## 10. Pilot Stop Conditions (Blockers)
+## 11. Pilot Stop Conditions (Blockers)
 Pilot must stop if any of these occur:
 - Payout math mismatch
 - Provider assigned or paid despite expired/missing required critical documents
 - Payout processed to a batch without valid account information
 - Escrow or settlement totals do not align with recorded payments
 - Provider or Operator can see another user’s bank details
+- User can read booking chat for a booking they are not allowed to access
+- Vehicle Owner receives booking chat notification before Vehicle Owner chat UI is enabled
+- Rejected/cancelled provider can access booking chat
+- Chat message sends but does not appear to intended participants
 - Admin cannot export a valid payout CSV
 - Provider cannot see assignment details
 - Operator cannot mark a valid booking as Completed

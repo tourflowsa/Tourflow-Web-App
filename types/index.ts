@@ -172,11 +172,23 @@ export interface Booking {
   
   // Joins
   tours?: Pick<Tour, 'title' | 'id' | 'region'>;
+  profiles?: Pick<UserProfile, 'id' | 'company_name' | 'full_name'>;
   vehicles?: {
     make: string;
     model: string;
     license_plate: string;
   } | null;
+}
+
+export interface BookingMessage {
+  id: string;
+  booking_id: string;
+  sender_id: string;
+  sender_role_snapshot: string;
+  sender_name_snapshot: string;
+  content: string;
+  metadata: Record<string, any>;
+  created_at: string;
 }
 
 export interface BookingAssignment {

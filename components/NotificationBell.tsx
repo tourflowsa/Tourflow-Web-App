@@ -13,7 +13,8 @@ import {
   Star, 
   CreditCard, 
   AlertTriangle,
-  Briefcase
+  Briefcase,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { listNotifications, getUnreadCount, markAsRead, markAllAsRead, Notification } from '../lib/notificationService';
@@ -63,6 +64,7 @@ export const NotificationBell: React.FC = () => {
       case 'VEHICLE_REMOVED_FROM_BOOKING': return <CalendarX size={14} />;
       case 'NEW_LINK_REQUEST': return <Briefcase size={14} />;
       case 'RATE_PROPOSAL': return <CreditCard size={14} />;
+      case 'NEW_CHAT_MESSAGE': return <MessageSquare size={14} />;
       default: return <Bell size={14} />;
     }
   };
@@ -96,6 +98,7 @@ export const NotificationBell: React.FC = () => {
       case 'RATE_PROPOSAL':
       case 'NEW_DOCUMENT_UPLOADED':
       case 'NEW_REVIEW':
+      case 'NEW_CHAT_MESSAGE':
       case 'PAYOUT_APPROVED':
       case 'WITHDRAWAL_REQUESTED':
         return 'text-brand-teal bg-brand-teal/10';

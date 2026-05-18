@@ -32,6 +32,7 @@ import { markBookingFundsReceived, refreshBookingEscrowState } from '../../lib/e
 import { getBookingFinancialBreakdown, BookingFinancialBreakdown } from '../../lib/financialService';
 import { archiveBookingRpc, unarchiveBookingRpc } from '../../lib/bookingService';
 import { useAuth } from '../../contexts/AuthContext';
+import { BookingChat } from '../../components/bookings/BookingChat';
 
 type AnyRow = Record<string, any>;
 
@@ -738,6 +739,13 @@ export const AdminBookingDetail: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="mt-6">
+            <BookingChat 
+              bookingId={id as string} 
+              bookingReference={booking.booking_reference} 
+            />
           </div>
         </div>
 
