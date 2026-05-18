@@ -88,7 +88,7 @@ import {
 import { ComplianceBadge } from '../../components/common/ComplianceBadge';
 import { ConfirmationModal } from '../../components/common/ConfirmationModal';
 import { BookingFinancialBreakdownView } from '../../components/bookings/BookingFinancialBreakdown';
-import { formatCurrency, formatDate } from '../../lib/formatUtils';
+import { formatCurrency, formatDate, toLocalDatetimeString } from '../../lib/formatUtils';
 import { getBookingFinancialBreakdown, BookingFinancialBreakdown } from '../../lib/financialService';
 import { getPayableAmount, getOriginalAmount } from '../../lib/payoutUtils';
 import { fetchAuditLogsByBookingId, AuditLogEntry, logAuditEvent } from '../../lib/auditService';
@@ -2815,8 +2815,8 @@ export const BookingDetail: React.FC = () => {
                     <button 
                       onClick={() => {
                         setEditTripForm({
-                          startDate: booking.start_date.slice(0, 16),
-                          endDate: booking.end_date.slice(0, 16),
+                          startDate: toLocalDatetimeString(booking.start_date),
+                          endDate: toLocalDatetimeString(booking.end_date),
                           guestName: booking.guest_name || '',
                           guestEmail: booking.guest_email || '',
                           guestPhone: booking.guest_phone || '',
@@ -3769,8 +3769,8 @@ export const BookingDetail: React.FC = () => {
                           onClick={() => {
                             setRepeatConfig({
                               ...repeatConfig,
-                              startDate: booking.start_date.split('T')[0],
-                              endDate: booking.end_date.split('T')[0]
+                              startDate: toLocalDatetimeString(booking.start_date).split('T')[0],
+                              endDate: toLocalDatetimeString(booking.end_date).split('T')[0]
                             });
                             setShowRepeatModal(true);
                           }}

@@ -1262,6 +1262,17 @@ export const checkProviderConflicts = async (
   endDate: string,
   excludeBookingId?: string
 ): Promise<boolean> => {
+  // 1. Check manual availability blocks via secure RPC
+  const { data: isBlocked, error: rpcError } = await supabase.rpc('rpc_check_provider_manual_blocks', {
+    p_provider_id: providerId,
+    p_start_date: startDate.split('T')[0],
+    p_end_date: endDate.split('T')[0]
+  });
+
+  if (rpcError) throw rpcError;
+  if (isBlocked) return true;
+
+  // 2. Check overlapping bookings
   const { data, error } = await supabase
     .from('booking_assignments')
     .select('id, bookings(start_date, end_date)')

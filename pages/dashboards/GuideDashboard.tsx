@@ -16,6 +16,7 @@ import { formatDate, formatCurrency } from '../../lib/formatUtils';
 import { getPayableAmount, getOriginalAmount } from '../../lib/payoutUtils';
 import { useNavigate } from 'react-router-dom';
 import { ProviderReviewSection } from '../../components/reviews/ProviderReviewSection';
+import { PersonalAvailabilityManager } from '../../components/availability/PersonalAvailabilityManager';
 
 export const GuideDashboard: React.FC = () => {
   const { user, profile } = useAuth();
@@ -246,6 +247,10 @@ export const GuideDashboard: React.FC = () => {
             <p className="text-sm text-gray-400 mt-1">Past work</p>
           </div>
         </div>
+      </div>
+
+      <div className="mb-8">
+        <PersonalAvailabilityManager />
       </div>
 
       <div className="mb-8">

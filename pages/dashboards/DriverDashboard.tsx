@@ -14,6 +14,7 @@ import { formatDate, formatCurrency } from '../../lib/formatUtils';
 import { getPayableAmount, getOriginalAmount } from '../../lib/payoutUtils';
 import { ProviderReviewSection } from '../../components/reviews/ProviderReviewSection';
 import { DocumentManager } from '../../components/documents/DocumentManager';
+import { PersonalAvailabilityManager } from '../../components/availability/PersonalAvailabilityManager';
 
 export const DriverDashboard: React.FC = () => {
   const { user, profile } = useAuth();
@@ -274,6 +275,10 @@ export const DriverDashboard: React.FC = () => {
             <p className="text-sm text-gray-400 mt-1">Past work</p>
           </div>
         </div>
+      </div>
+
+      <div className="mb-8">
+        <PersonalAvailabilityManager />
       </div>
 
       <div className="mb-8">
